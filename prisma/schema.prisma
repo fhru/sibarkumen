@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 1. Model Users (Mapped from table "users")
+model User {
+  id                  Int    @id @default(autoincrement())
+  username            String
+  password            String
+  fullName            String    @map("full_name")
+  isActive            Boolean   @default(true) @map("is_active")
+  lastLogin           DateTime? @map("last_login") @db.Timestamptz
+  failedLoginAttempts Int?      @default(0) @map("failed_login_attempts")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime? @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("users")
+}
+
+// 2. Model Barang
+model Barang {
+  id               Int             @id @default(autoincrement())
+  kodeBarang       String             @map("kode_barang")
+  namaBarang       String             @map("nama_barang")
+  kategori         String
+  satuan           String
+  spesifikasi      String?
+  asalPembelian    String             @map("asal_pembelian")
+  stokTersedia     Int                @default(0) @map("stok_tersedia")
+  stokMinimum      Int                @default(0) @map("stok_minimum")
+  hargaSatuan      Decimal            @map("harga_satuan") @db.Decimal(19, 2)
+  totalHarga       Decimal            @map("total_harga") @db.Decimal(19, 2)
+  isActive         Boolean            @default(true) @map("is_active")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime?          @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relasi Balik
+  bastMasukDetails BastMasukDetail[]
+  spbDetails       SpbDetail[]
+  sppbDetails      SppbDetail[]
+  bastKeluarDetails BastKeluarDetail[]
+
+  @@map("barang")
+}
+
+// 3. Model Rekening
+model Rekening {
+  id            Int         @id @default(autoincrement())
+  namaBank      String      @map("nama_bank")
+  kodeBank      String      @map("kode_bank")
+  nomorRekening String      @map("nomor_rekening")
+  namaPemilik   String      @map("nama_pemilik")
+  jenisRekening String      @map("jenis_rekening")
+  keterangan    String?
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime?   @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relasi Balik
+  bastMasukList BastMasuk[]
+
+  @@map("rekening")
+}
+
+// 4. Model Pegawai
+model Pegawai {
+  id          Int         @id @default(autoincrement())
+  nama        String
+  nip         String
+  jabatan     String
+  unitKerja   String      @map("unit_kerja")
+  isActive    Boolean     @default(true) @map("is_active")
+  keterangan  String?
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime?   @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relasi Balik
+  pejabatList          PejabatPengelola[]
+  bastMasukAsPptk      BastMasuk[]        @relation("PptkPpkRelation")
+  spbAsPemohon         Spb[]              @relation("PemohonRelation")
+  sppbAsPenerima       Sppb[]             @relation("PenerimaSppbRelation")
+  bastKeluarAsPenerima BastKeluar[]       @relation("PenerimaBastRelation")
+
+  @@map("pegawai")
+}
+
+// 5. Model Pejabat Pengelola
+model PejabatPengelola {
+  id           Int       @id @default(autoincrement())
+  idPegawai    Int       @map("id_pegawai")
+  jenisJabatan String    @map("jenis_jabatan")
+  nomorSk      String    @map("nomor_sk")
+  tanggalSk    DateTime  @map("tanggal_sk") @db.Date
+  isActive     Boolean   @default(true) @map("is_active")
+  keterangan   String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime? @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relasi
+  pegawai      Pegawai   @relation(fields: [idPegawai], references: [id])
+
+  // Relasi Balik
+  sppbAsPenatausahaan Sppb[]       @relation("PenatausahaanRelation")
+  sppbAsPengelola     Sppb[]       @relation("PengelolaBarangRelation")
+  bastKeluarAsPihak1  BastKeluar[] @relation("PihakMenyerahkanRelation")
+
+  @@map("pejabat_pengelola")
+}
+
+// 6. Model BAST (Berita Acara Serah Terima) Masuk
+model BastMasuk {
+  id             Int    @id @default(autoincrement())
+  nomorReferensi String    @map("nomor_referensi")
+  nomorBast      String    @map("nomor_bast")
+  tanggalBast    DateTime  @map("tanggal_bast") @db.Date
+  nomorBapb      String    @map("nomor_bapb")
+  tanggalBapb    DateTime  @map("tanggal_bapb") @db.Date
+  asalPembelian  String    @map("asal_pembelian")
+  peruntukkan    String?
+  idRekening     Int    @map("id_rekening")
+  pihakKetiga    String?   @map("pihak_ketiga")
+  keterangan     String?
+  pptkPpkId      Int    @map("pptk_ppk")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relasi
+  rekening       Rekening  @relation(fields: [idRekening], references: [id])
+  pptkPpk        Pegawai   @relation("PptkPpkRelation", fields: [pptkPpkId], references: [id])
+
+  details        BastMasukDetail[]
+
+  @@map("bast_masuk")
+}
+
+// 7. Model BAST (Berita Acara Serah Terima) Masuk Detail
+model BastMasukDetail {
+  id          Int    @id @default(autoincrement())
+  idBastMasuk Int    @map("id_bast_masuk")
+  idBarang    Int    @map("id_barang")
+  jumlah      Int
+  hargaSatuan Decimal   @map("harga_satuan") @db.Decimal(19, 2)
+  totalHarga  Decimal   @map("total_harga") @db.Decimal(19, 2)
+
+  // Relasi
+  bastMasuk   BastMasuk @relation(fields: [idBastMasuk], references: [id])
+  barang      Barang    @relation(fields: [idBarang], references: [id])
+
+  @@map("bast_masuk_detail")
+}
+
+// 8. Model SPB (Surat Permintaan Barang)
+model Spb {
+  id          Int    @id @default(autoincrement())
+  nomorSpb    String    @map("nomor_spb")
+  tanggalSpb  DateTime  @map("tanggal_spb") @db.Date
+  pemohonId   Int    @map("pemohon")
+  keterangan  String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime? @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relasi
+  pemohon     Pegawai   @relation("PemohonRelation", fields: [pemohonId], references: [id])
+
+  details     SpbDetail[]
+  sppbList    Sppb[]
+
+  @@map("spb")
+}
+
+// 9. Model SPB Detail
+model SpbDetail {
+  id       Int @id @default(autoincrement())
+  idSpb    Int @map("id_spb")
+  idBarang Int @map("id_barang")
+  jumlah   Int
+
+  // Relasi
+  spb      Spb    @relation(fields: [idSpb], references: [id])
+  barang   Barang @relation(fields: [idBarang], references: [id])
+
+  @@map("spb_detail")
+}
+
+// 10. Model SPPB (Surat Perintah Penyaluran Barang)
+model Sppb {
+  id                     Int    @id @default(autoincrement())
+  nomorSppb              String    @map("nomor_sppb")
+  tanggalSppb            DateTime  @map("tanggal_sppb") @db.Date
+  idSpb                  Int    @map("id_spb")
+  idPejabatPenatausahaan Int    @map("id_pejabat_penatausahaan")
+  idPengelolaBarang      Int    @map("id_pengelola_barang")
+  idPenerima             Int    @map("id_penerima")
+  keterangan             String?
+  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relasi
+  spb                   Spb              @relation(fields: [idSpb], references: [id])
+  pejabatPenatausahaan  PejabatPengelola @relation("PenatausahaanRelation", fields: [idPejabatPenatausahaan], references: [id])
+  pengelolaBarang       PejabatPengelola @relation("PengelolaBarangRelation", fields: [idPengelolaBarang], references: [id])
+  penerima              Pegawai          @relation("PenerimaSppbRelation", fields: [idPenerima], references: [id])
+
+  details               SppbDetail[]
+  bastKeluarList        BastKeluar[]
+
+  @@map("sppb")
+}
+
+// 11. Model SPPB Detail
+model SppbDetail {
+  id               Int @id @default(autoincrement())
+  idSppb           Int @map("id_sppb")
+  idBarang         Int @map("id_barang")
+  jumlahDisalurkan Int @map("jumlah_disalurkan")
+
+  // Relasi
+  sppb             Sppb   @relation(fields: [idSppb], references: [id])
+  barang           Barang @relation(fields: [idBarang], references: [id])
+
+  @@map("sppb_detail")
+}
+
+// 12. Model BAST (Berita Acara Serah Terima) Keluar
+model BastKeluar {
+  id                 Int    @id @default(autoincrement())
+  nomorBast          String    @map("nomor_bast")
+  tanggalBast        DateTime  @map("tanggal_bast") @db.Date
+  idSppb             Int    @map("id_sppb")
+  idPihakMenyerahkan Int    @map("id_pihak_menyerahkan")
+  idPihakMenerima    Int    @map("id_pihak_menerima")
+  keterangan         String?
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relasi
+  sppb             Sppb             @relation(fields: [idSppb], references: [id])
+  pihakMenyerahkan PejabatPengelola @relation("PihakMenyerahkanRelation", fields: [idPihakMenyerahkan], references: [id])
+  pihakMenerima    Pegawai          @relation("PenerimaBastRelation", fields: [idPihakMenerima], references: [id])
+
+  details          BastKeluarDetail[]
+
+  @@map("bast_keluar")
+}
+
+// 13. Model BAST Keluar Detail
+model BastKeluarDetail {
+  id              Int  @id @default(autoincrement())
+  idBast          Int  @map("id_bast")
+  idBarang        Int  @map("id_barang")
+  volume          Decimal @db.Decimal(19, 2)
+  jumlahHarga     Decimal @map("jumlah_harga") @db.Decimal(19, 2)
+  ppn             Decimal @db.Decimal(19, 2)
+  hargaSetelahPpn Decimal @map("harga_setelah_ppn") @db.Decimal(19, 2)
+
+  // Relasi
+  bastKeluar      BastKeluar @relation(fields: [idBast], references: [id])
+  barang          Barang     @relation(fields: [idBarang], references: [id])
+
+  @@map("bast_keluar_detail")
+}
+
+// 14. Model Referensi Kategori
+model ReferensiKategori {
+  id        Int      @id @default(autoincrement())
+  nama      String   @unique
+  kode      String   @unique // e.g., "ATK", "ELK"
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("referensi_kategori")
+}

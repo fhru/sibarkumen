@@ -1,0 +1,23 @@
+{
+  "site": {
+    "name": "Sibarkumen",
+    "description": "Sistem Inventaris Barang Kelurahan Ujung Menteng",
+    "url": "http://localhost:3000",
+    "version": "1.0.0"
+  },
+  "ui": {
+    "theme": "light",
+    "icons": {
+      "logo": "/globe.svg",
+      "favicon": "/favicon.ico"
+    }
+  },
+  "features": {
+    "enableAuth": true,
+    "enableNotifications": true
+  },
+  "author": {
+    "name": "Tim Pengembang",
+    "email": "dev@sibarkumen.com"
+  }
+}
