@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getAllPegawai } from '@/app/actions/pegawai';
 import { getBarangList } from '@/app/actions/barang'; // Need non-paginated for dropdown? Ideally yes, or search. Using simple list for now.
-import { getRekeningList } from '@/app/actions/rekening';
+import { getAllRekening } from '@/app/actions/rekening';
 import { createBastMasuk } from '@/app/actions/bast-masuk';
 import {
     Command,
@@ -75,7 +75,7 @@ export function BastMasukForm() {
   useEffect(() => {
       Promise.all([
           getAllPegawai(),
-          getRekeningList(),
+          getAllRekening(),
           getBarangList({ limit: 1000 }) // Temporary: fetch large list. Real app needs async combobox.
       ]).then(([pegawai, rekening, barangRes]) => {
           setPegawaiList(pegawai);

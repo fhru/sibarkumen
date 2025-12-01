@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, LogOut, Sparkles, BadgeCheck, CreditCard, Bell } from 'lucide-react';
+import { ChevronsUpDown, LogOut } from 'lucide-react';
 
 export function UserNav({ user }) {
   if (!user) return null;
@@ -60,28 +60,6 @@ export function UserNav({ user }) {
               </div>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Upgrade to Pro
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <BadgeCheck className="mr-2 h-4 w-4" />
-              Account
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Billing
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })}>
             <LogOut className="mr-2 h-4 w-4" />

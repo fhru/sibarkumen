@@ -54,6 +54,21 @@ export async function getRekeningList({ page = 1, limit = 10, query = '' } = {})
   }
 }
 
+export async function getAllRekening() {
+  const session = await auth();
+  if (!session) return [];
+
+  try {
+    return await prisma.rekening.findMany({
+      where: { isActive: true },
+      orderBy: { namaBank: 'asc' },
+    });
+  } catch (error) {
+    console.error('Fetch All Rekening Error:', error);
+    return [];
+  }
+}
+
 export async function createRekening(formData) {
   const session = await auth();
   if (!session) return { error: 'Unauthorized' };

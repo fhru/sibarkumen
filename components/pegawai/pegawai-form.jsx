@@ -14,11 +14,22 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash } from 'lucide-react';
 import { useState } from 'react';
-import { createPegawai, updatePegawai } from '@/app/actions/pegawai';
+import { createPegawai, updatePegawai, deletePegawai } from '@/app/actions/pegawai';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from '@/components/ui/alert-dialog';
 
 const formSchema = z.object({
   nama: z.string().min(1, 'Nama harus diisi'),
@@ -70,6 +81,25 @@ export function PegawaiForm({ initialData, onSuccess }) {
       setIsPending(false);
     }
   }
+
+  async function handleDelete() {
+    if (!initialData) return;
+    setIsPending(true);
+    try {
+        const res = await deletePegawai(initialData.id);
+        if (res.success) {
+            toast.success(res.message);
+            if (onSuccess) onSuccess();
+            router.refresh();
+        } else {
+            toast.error(res.error);
+        }
+    } catch (e) {
+        toast.error('Gagal menghapus');
+    } finally {
+        setIsPending(false);
+    }
+}
 
   return (
     <Form {...form}>
@@ -143,11 +173,36 @@ export function PegawaiForm({ initialData, onSuccess }) {
             )}
           />
 
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button type="submit" disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialData ? 'Simpan Perubahan' : 'Tambah Pegawai'}
-          </Button>
+        <div className="flex justify-between space-x-2 pt-4">
+          {initialData && (
+              <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                      <Button type="button" variant="destructive" size="icon">
+                          <Trash className="h-4 w-4" />
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                      <AlertDialogTitle>Hapus Pegawai?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          Tindakan ini tidak dapat dibatalkan.
+                      </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Hapus
+                      </AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+          )}
+          <div className="flex-1 flex justify-end">
+            <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {initialData ? 'Simpan Perubahan' : 'Tambah Pegawai'}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>
