@@ -12,6 +12,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
+import { ModeToggle } from '@/components/theme/mode-toggle';
 
 export default function DashboardHeader() {
     const pathname = usePathname();
@@ -48,6 +49,9 @@ export default function DashboardHeader() {
                 })}
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+          <div className="ml-auto px-4">
+            <ModeToggle />
           </div>
         </header>
     );

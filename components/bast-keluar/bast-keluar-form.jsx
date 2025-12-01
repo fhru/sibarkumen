@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, Search, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,7 @@ import { getPejabatList } from '@/app/actions/pejabat';
 
 // Schema matches the Server Action
 const BastKeluarSchema = z.object({
-  nomorBast: z.string().min(1, 'Nomor BAST wajib diisi'),
+  nomorBast: z.string().optional(),
   tanggalBast: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'Tanggal tidak valid',
   }),
@@ -70,6 +70,8 @@ const BastKeluarSchema = z.object({
 
 export function BastKeluarForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sppbIdParam = searchParams.get('sppbId');
   const [loading, setLoading] = useState(false);
   const [sppbList, setSppbList] = useState([]);
   const [pejabatList, setPejabatList] = useState([]);
@@ -109,6 +111,16 @@ export function BastKeluarForm() {
     }
     loadData();
   }, []);
+
+  // Effect to auto-select SPPB if param exists and options are loaded
+  useEffect(() => {
+      if (sppbIdParam && sppbList.length > 0) {
+          // Ensure param is number for matching logic (though handleSelectSppb logic might need checking)
+          // Actually handleSelectSppb expects ID. 
+          // Let's check if it's number or string match.
+          handleSelectSppb(Number(sppbIdParam));
+      }
+  }, [sppbIdParam, sppbList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 2. Handle SPPB Selection
   const handleSelectSppb = (sppbId) => {
@@ -177,7 +189,7 @@ export function BastKeluarForm() {
                             <FormItem>
                                 <FormLabel>Nomor BAST</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="BAST-OUT-001" {...field} />
+                                    <Input placeholder="Otomatis di-generate sistem" readOnly {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

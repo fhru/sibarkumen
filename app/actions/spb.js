@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { generateDocumentNumber } from '@/lib/number-generator';
 
 const SpbDetailSchema = z.object({
   idBarang: z.number().min(1, 'Barang wajib dipilih'),
@@ -11,7 +12,7 @@ const SpbDetailSchema = z.object({
 });
 
 const SpbSchema = z.object({
-  nomorSpb: z.string().min(1, 'Nomor SPB wajib diisi'),
+  nomorSpb: z.string().optional(),
   tanggalSpb: z.date(),
   pemohonId: z.number().min(1, 'Pemohon wajib dipilih'),
   keterangan: z.string().optional(),
@@ -35,6 +36,11 @@ export async function createSpb(data) {
   const { details, ...header } = validation.data;
 
   try {
+    // Auto-generate number if empty
+    if (!header.nomorSpb) {
+        header.nomorSpb = await generateDocumentNumber('SPB', 'spb', 'tanggalSpb');
+    }
+
     // Check stock availability
     for (const item of details) {
         const barang = await prisma.barang.findUnique({ where: { id: item.idBarang } });
@@ -93,6 +99,9 @@ export async function getSpbList({ page = 1, limit = 10, query = '' }) {
               pemohon: true,
               details: {
                   include: { barang: true }
+              },
+              sppbList: {
+                  select: { id: true, nomorSppb: true }
               }
           },
           skip,
@@ -105,6 +114,8 @@ export async function getSpbList({ page = 1, limit = 10, query = '' }) {
       // Flatten decimals if any (barang inside details has decimals)
       const safeData = data.map(item => ({
           ...item,
+          hasSppb: item.sppbList.length > 0,
+          sppbId: item.sppbList[0]?.id, // Assuming first one is the main one
           details: item.details.map(d => ({
               ...d,
               barang: d.barang ? {

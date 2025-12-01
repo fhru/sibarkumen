@@ -38,7 +38,7 @@ import {
 import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
-  nomorSpb: z.string().min(1, 'Nomor SPB wajib diisi'),
+  nomorSpb: z.string().optional(),
   tanggalSpb: z.string().min(1, 'Tanggal wajib diisi'),
   pemohonId: z.string().min(1, 'Pemohon wajib dipilih'),
   keterangan: z.string().optional(),
@@ -116,7 +116,7 @@ export function SpbForm() {
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Nomor SPB</FormLabel>
-                        <FormControl><Input placeholder="No. SPB" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Otomatis di-generate sistem" readOnly {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}

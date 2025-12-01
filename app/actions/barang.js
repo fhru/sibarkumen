@@ -77,6 +77,80 @@ export async function getBarangStock(id) {
   }
 }
 
+export async function getBarangById(id) {
+  const session = await auth();
+  if (!session) return null;
+
+  try {
+    return await prisma.barang.findUnique({
+      where: { id },
+    });
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function getBarangHistory(id) {
+  const session = await auth();
+  if (!session) return [];
+
+  try {
+    const [inbound, outbound] = await Promise.all([
+      // 1. BAST Masuk (Inbound)
+      prisma.bastMasukDetail.findMany({
+        where: { idBarang: id },
+        include: {
+          bastMasuk: true
+        },
+        orderBy: { bastMasuk: { tanggalBast: 'desc' } }
+      }),
+      // 2. SPPB (Outbound)
+      prisma.sppbDetail.findMany({
+        where: { idBarang: id },
+        include: {
+          sppb: {
+            include: { penerima: true }
+          }
+        },
+        orderBy: { sppb: { tanggalSppb: 'desc' } }
+      })
+    ]);
+
+    // Format Inbound
+    const formattedIn = inbound.map(item => ({
+      id: `IN-${item.id}`,
+      date: item.bastMasuk.tanggalBast,
+      docNumber: item.bastMasuk.nomorBast,
+      type: 'MASUK',
+      quantity: item.jumlah,
+      actor: item.bastMasuk.pihakKetiga || 'Pihak Ketiga',
+      description: 'Pembelian / Penerimaan'
+    }));
+
+    // Format Outbound
+    const formattedOut = outbound.map(item => ({
+      id: `OUT-${item.id}`,
+      date: item.sppb.tanggalSppb,
+      docNumber: item.sppb.nomorSppb,
+      type: 'KELUAR',
+      quantity: item.jumlahDisalurkan,
+      actor: item.sppb.penerima?.nama || 'Penerima',
+      description: 'Penyaluran Barang'
+    }));
+
+    // Combine and Sort
+    const combined = [...formattedIn, ...formattedOut].sort((a, b) => {
+      return new Date(b.date) - new Date(a.date);
+    });
+
+    return combined;
+
+  } catch (error) {
+    console.error('History Error:', error);
+    return [];
+  }
+}
+
 export async function createBarang(formData) {
   const session = await auth();
   if (!session) return { error: 'Unauthorized' };

@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getDashboardStats, getRecentDocuments } from '@/app/actions/dashboard';
+import { getDashboardStats, getRecentDocuments, getDashboardChartData } from '@/app/actions/dashboard';
 import { 
   AlertTriangle, 
   ArrowDownCircle, 
@@ -10,11 +10,17 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { OverviewChart } from '@/components/dashboard/overview-chart';
+import { QuickActions } from '@/components/dashboard/quick-actions';
+import { ChartContainer } from '@/components/dashboard/chart-container';
 
 export default async function DashboardPage() {
   const session = await auth();
-  const stats = await getDashboardStats();
-  const recentDocs = await getRecentDocuments();
+  const [stats, recentDocs, chartData] = await Promise.all([
+      getDashboardStats(),
+      getRecentDocuments(),
+      getDashboardChartData('6m') // Default range
+  ]);
 
   if (stats.error) {
     return <div className="p-4 text-red-500">Error loading stats</div>;
@@ -69,7 +75,7 @@ export default async function DashboardPage() {
       {/* Stat Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat, index) => (
-          <Card key={index}>
+          <Card key={index} className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {stat.title}
@@ -88,69 +94,53 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Recent SPB */}
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Permintaan Barang Terbaru</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              {recentDocs.recentSpb.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Belum ada data SPB.</p>
-              ) : (
-                recentDocs.recentSpb.map((item) => (
-                  <div key={item.id} className="flex items-center">
-                    <div className="h-9 w-9 rounded-full bg-orange-100 flex items-center justify-center mr-4">
-                        <FileText className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div className="ml-4 space-y-1">
-                      <p className="text-sm font-medium leading-none">{item.number}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.actor}
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium text-sm">
-                        {new Date(item.date).toLocaleDateString('id-ID')}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Middle Section: Chart (Full Width) */}
+      <div className="w-full">
+          <ChartContainer initialData={chartData} />
+      </div>
 
-        {/* Recent SPPB */}
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Penyaluran Terakhir</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              {recentDocs.recentSppb.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Belum ada data SPPB.</p>
-              ) : (
-                 recentDocs.recentSppb.map((item) => (
-                  <div key={item.id} className="flex items-center">
-                     <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                        <Package className="h-5 w-5 text-blue-600" />
+      {/* Bottom Section: Quick Actions & Recent Activity */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          {/* Quick Actions */}
+          <div className="col-span-3">
+              <QuickActions />
+          </div>
+
+          {/* Recent Activity (Combined into tabs or just list) */}
+          {/* Let's put Recent SPB here, maybe move SPPB to another view or below if needed */}
+          {/* Actually, user layout preference: Chart Full Width. */}
+          <div className="col-span-4">
+             <Card className="shadow-md h-full">
+                <CardHeader>
+                    <CardTitle>Aktivitas Terbaru</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-6">
+                    {/* Combine recent docs for better use of space? Or just show SPB as primary indicator */}
+                    {recentDocs.recentSpb.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Belum ada aktivitas.</p>
+                    ) : (
+                        recentDocs.recentSpb.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                                    <FileText className="h-5 w-5 text-orange-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium">{item.number}</p>
+                                    <p className="text-xs text-muted-foreground">{item.actor}</p>
+                                </div>
+                            </div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                                {new Date(item.date).toLocaleDateString('id-ID')}
+                            </div>
+                        </div>
+                        ))
+                    )}
                     </div>
-                    <div className="ml-4 space-y-1">
-                      <p className="text-sm font-medium leading-none">{item.number}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.actor}
-                      </p>
-                    </div>
-                     <div className="ml-auto font-medium text-sm">
-                        {new Date(item.date).toLocaleDateString('id-ID')}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                </CardContent>
+             </Card>
+          </div>
       </div>
     </div>
   );

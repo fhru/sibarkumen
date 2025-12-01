@@ -1,4 +1,4 @@
-# Sibarkumen (Sistem Informasi Barang dan Dokumen)
+# Sibarkumen
 
 Aplikasi manajemen inventaris dan dokumen administrasi barang (BAST, SPB, SPPB) berbasis web yang dibangun menggunakan Next.js.
 

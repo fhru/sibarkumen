@@ -23,7 +23,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { getAllPegawai, getPejabatList } from '@/app/actions/pegawai'; // Pejabat needs its own fetch or use generic pegawai?
 import { getSpbOptions, createSppb } from '@/app/actions/sppb';
@@ -31,7 +31,7 @@ import { getPejabatList as fetchPejabat } from '@/app/actions/pejabat';
 import { getBarangStock } from '@/app/actions/barang';
 
 const formSchema = z.object({
-  nomorSppb: z.string().min(1, 'Nomor SPPB wajib diisi'),
+  nomorSppb: z.string().optional(),
   tanggalSppb: z.string().min(1, 'Tanggal wajib diisi'),
   idSpb: z.string().min(1, 'SPB wajib dipilih'),
   idPejabatPenatausahaan: z.string().min(1, 'Wajib dipilih'),
@@ -60,6 +60,8 @@ export function SppbForm() {
   const [pejabatList, setPejabatList] = useState([]);
   const [pegawaiList, setPegawaiList] = useState([]);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const spbIdParam = searchParams.get('spbId');
 
   useEffect(() => {
       Promise.all([
@@ -72,6 +74,13 @@ export function SppbForm() {
           setPegawaiList(pegawai);
       });
   }, []);
+
+  // Effect to auto-select SPB if param exists and options are loaded
+  useEffect(() => {
+      if (spbIdParam && spbOptions.length > 0) {
+          onSpbChange(spbIdParam);
+      }
+  }, [spbIdParam, spbOptions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -165,7 +174,7 @@ export function SppbForm() {
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Nomor SPPB</FormLabel>
-                        <FormControl><Input placeholder="No. SPPB" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Otomatis di-generate sistem" readOnly {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}

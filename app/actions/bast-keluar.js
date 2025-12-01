@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { generateDocumentNumber } from '@/lib/number-generator';
 
 const BastKeluarDetailSchema = z.object({
   idBarang: z.number().min(1, 'Barang wajib dipilih'),
@@ -14,7 +15,7 @@ const BastKeluarDetailSchema = z.object({
 });
 
 const BastKeluarSchema = z.object({
-  nomorBast: z.string().min(1, 'Nomor BAST wajib diisi'),
+  nomorBast: z.string().optional(),
   tanggalBast: z.date(),
   idSppb: z.number().min(1, 'SPPB wajib dipilih'),
   idPihakMenyerahkan: z.number().min(1, 'Pihak menyerahkan wajib dipilih'),
@@ -105,6 +106,11 @@ export async function createBastKeluar(data) {
   const { details, ...header } = validation.data;
 
   try {
+    // Auto-generate number if empty
+    if (!header.nomorBast) {
+        header.nomorBast = await generateDocumentNumber('BAST-KELUAR', 'bastKeluar', 'tanggalBast');
+    }
+
     await prisma.$transaction(async (tx) => {
       // 1. Create Header
       const bast = await tx.bastKeluar.create({

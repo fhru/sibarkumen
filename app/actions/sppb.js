@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { generateDocumentNumber } from '@/lib/number-generator';
 
 const SppbDetailSchema = z.object({
   idBarang: z.number(),
@@ -11,7 +12,7 @@ const SppbDetailSchema = z.object({
 });
 
 const SppbSchema = z.object({
-  nomorSppb: z.string().min(1, 'Nomor SPPB wajib diisi'),
+  nomorSppb: z.string().optional(),
   tanggalSppb: z.date(),
   idSpb: z.number().min(1, 'SPB wajib dipilih'),
   idPejabatPenatausahaan: z.number().min(1, 'Pejabat Penatausahaan wajib dipilih'),
@@ -37,6 +38,11 @@ export async function createSppb(data) {
   const { details, ...header } = validation.data;
 
   try {
+    // Auto-generate number if empty
+    if (!header.nomorSppb) {
+        header.nomorSppb = await generateDocumentNumber('SPPB', 'sppb', 'tanggalSppb');
+    }
+
     // Transaction: Create SPPB -> Details -> Deduct Stock
     await prisma.$transaction(async (tx) => {
       // Check if SPB is already processed? Optional check.
@@ -101,7 +107,10 @@ export async function getSppbList({ page = 1, limit = 10, query = '' }) {
           include: {
               spb: true,
               penerima: true,
-              details: { include: { barang: true } }
+              details: { include: { barang: true } },
+              bastKeluarList: {
+                  select: { id: true, nomorBast: true }
+              }
           },
           skip,
           take: limit,
@@ -113,6 +122,8 @@ export async function getSppbList({ page = 1, limit = 10, query = '' }) {
       // Sanitize decimals
       const safeData = data.map(item => ({
           ...item,
+          hasBast: item.bastKeluarList.length > 0,
+          bastId: item.bastKeluarList[0]?.id,
           details: item.details.map(d => ({
               ...d,
               barang: d.barang ? {
@@ -141,6 +152,9 @@ export async function getSpbOptions() {
     // Ideally filter out those fully processed, but for now list all
     try {
         const spbs = await prisma.spb.findMany({
+            where: {
+                sppbList: { none: {} } // Only fetch SPB that has NO SPPB
+            },
             orderBy: { createdAt: 'desc' },
             include: {
                 pemohon: true,

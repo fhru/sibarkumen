@@ -118,3 +118,88 @@ export async function getRecentDocuments() {
         return { recentSpb: [], recentSppb: [] };
     }
 }
+
+export async function getDashboardChartData(range = '6m') {
+    const session = await auth();
+    if (!session) return [];
+
+    try {
+        const now = new Date();
+        let startDate = new Date();
+        let groupBy = 'month'; // 'month' or 'day'
+
+        if (range === '6m') {
+            startDate.setMonth(startDate.getMonth() - 5);
+            startDate.setDate(1);
+            groupBy = 'month';
+        } else if (range === '30d') {
+            startDate.setDate(startDate.getDate() - 29);
+            groupBy = 'day';
+        } else if (range === '7d') {
+            startDate.setDate(startDate.getDate() - 6);
+            groupBy = 'day';
+        }
+        startDate.setHours(0,0,0,0);
+
+        // Fetch all relevant records
+        const [bastMasuk, bastKeluar] = await Promise.all([
+            prisma.bastMasuk.findMany({
+                where: { tanggalBast: { gte: startDate } },
+                select: { tanggalBast: true }
+            }),
+            prisma.sppb.findMany({
+                where: { tanggalSppb: { gte: startDate } },
+                select: { tanggalSppb: true }
+            })
+        ]);
+
+        // Grouping Logic
+        const groupedData = {};
+        
+        if (groupBy === 'month') {
+            // Initialize 6 months
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(startDate);
+                d.setMonth(d.getMonth() + i);
+                const key = d.toLocaleDateString('id-ID', { month: 'short' }); 
+                groupedData[key] = { name: key, Masuk: 0, Keluar: 0 };
+            }
+        } else {
+            // Initialize days
+            const daysCount = range === '7d' ? 7 : 30;
+            for (let i = 0; i < daysCount; i++) {
+                const d = new Date(startDate);
+                d.setDate(d.getDate() + i);
+                const key = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                groupedData[key] = { name: key, Masuk: 0, Keluar: 0 };
+            }
+        }
+
+        // Populate Data
+        const formatKey = (dateStr) => {
+            const d = new Date(dateStr);
+            if (groupBy === 'month') {
+                return d.toLocaleDateString('id-ID', { month: 'short' });
+            } else {
+                return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+            }
+        };
+
+        bastMasuk.forEach(item => {
+            const key = formatKey(item.tanggalBast);
+            if (groupedData[key]) groupedData[key].Masuk++;
+        });
+
+        bastKeluar.forEach(item => {
+            const key = formatKey(item.tanggalSppb);
+            if (groupedData[key]) groupedData[key].Keluar++;
+        });
+
+        return Object.values(groupedData);
+
+    } catch (error) {
+        console.error('Chart Data Error:', error);
+        return [];
+    }
+}
+
