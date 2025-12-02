@@ -46,6 +46,9 @@ model Barang {
   sppbDetails      SppbDetail[]
   bastKeluarDetails BastKeluarDetail[]
 
+  @@index([isActive, namaBarang])
+  @@index([kodeBarang])
+  @@index([kategori])
   @@map("barang")
 }
 
@@ -87,6 +90,8 @@ model Pegawai {
   sppbAsPenerima       Sppb[]             @relation("PenerimaSppbRelation")
   bastKeluarAsPenerima BastKeluar[]       @relation("PenerimaBastRelation")
 
+  @@index([isActive, nama])
+  @@index([nip])
   @@map("pegawai")
 }
 
@@ -170,6 +175,8 @@ model Spb {
   details     SpbDetail[]
   sppbList    Sppb[]
 
+  @@index([nomorSpb])
+  @@index([createdAt])
   @@map("spb")
 }
 
@@ -208,6 +215,8 @@ model Sppb {
   details               SppbDetail[]
   bastKeluarList        BastKeluar[]
 
+  @@index([nomorSppb])
+  @@index([createdAt])
   @@map("sppb")
 }
 

@@ -23,12 +23,9 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { getAllPegawai } from '@/app/actions/pegawai';
-import { getBarangList } from '@/app/actions/barang'; // Need non-paginated for dropdown? Ideally yes, or search. Using simple list for now.
-import { getAllRekening } from '@/app/actions/rekening';
 import { createBastMasuk } from '@/app/actions/bast-masuk';
 import {
     Command,
@@ -64,25 +61,18 @@ const formSchema = z.object({
   })).min(1, 'Minimal satu barang'),
 });
 
-export function BastMasukForm() {
+export function BastMasukForm({ 
+  pegawaiOptions = [], 
+  rekeningOptions = [], 
+  barangOptions = [] 
+}) {
   const [isPending, setIsPending] = useState(false);
-  const [pegawaiList, setPegawaiList] = useState([]);
-  const [barangList, setBarangList] = useState([]);
-  const [rekeningList, setRekeningList] = useState([]);
   const router = useRouter();
 
-  // Initial Data Load
-  useEffect(() => {
-      Promise.all([
-          getAllPegawai(),
-          getAllRekening(),
-          getBarangList({ limit: 1000 }) // Temporary: fetch large list. Real app needs async combobox.
-      ]).then(([pegawai, rekening, barangRes]) => {
-          setPegawaiList(pegawai);
-          setRekeningList(rekening);
-          setBarangList(barangRes.data || []);
-      });
-  }, []);
+  // Data is now passed from server component
+  const pegawaiList = pegawaiOptions;
+  const rekeningList = rekeningOptions;
+  const barangList = barangOptions;
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -132,6 +122,7 @@ export function BastMasukForm() {
     } else {
         toast.success('Transaksi Berhasil Disimpan');
         router.push('/dashboard/bast-masuk');
+        router.refresh();
     }
     setIsPending(false);
   }

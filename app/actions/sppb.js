@@ -176,6 +176,10 @@ export async function createSppb(data) {
 
     revalidatePath('/dashboard/sppb');
     revalidatePath('/dashboard/barang');
+    revalidatePath('/dashboard/spb');
+    revalidatePath('/dashboard');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('spb');
     return { success: true, message: 'SPPB Berhasil Dibuat' };
   } catch (error) {
     logError('createSppb', error);

@@ -25,9 +25,7 @@ import { Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { getAllPegawai, getPejabatList } from '@/app/actions/pegawai'; // Pejabat needs its own fetch or use generic pegawai?
-import { getSpbOptions, createSppb } from '@/app/actions/sppb';
-import { getPejabatList as fetchPejabat } from '@/app/actions/pejabat';
+import { createSppb } from '@/app/actions/sppb';
 import { getBarangStock } from '@/app/actions/barang';
 
 const formSchema = z.object({
@@ -54,26 +52,20 @@ const formSchema = z.object({
   }),
 });
 
-export function SppbForm() {
+export function SppbForm({ 
+  pegawaiOptions = [], 
+  pejabatOptions = [], 
+  spbOptions: initialSpbOptions = [] 
+}) {
   const [isPending, setIsPending] = useState(false);
-  const [spbOptions, setSpbOptions] = useState([]);
-  const [pejabatList, setPejabatList] = useState([]);
-  const [pegawaiList, setPegawaiList] = useState([]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const spbIdParam = searchParams.get('spbId');
 
-  useEffect(() => {
-      Promise.all([
-          getSpbOptions(),
-          fetchPejabat({ limit: 100 }),
-          getAllPegawai()
-      ]).then(([spb, pejabatRes, pegawai]) => {
-          setSpbOptions(spb);
-          setPejabatList(pejabatRes.data || []);
-          setPegawaiList(pegawai);
-      });
-  }, []);
+  // Data is now passed from server component
+  const spbOptions = initialSpbOptions;
+  const pejabatList = pejabatOptions;
+  const pegawaiList = pegawaiOptions;
 
   // Effect to auto-select SPB if param exists and options are loaded
   useEffect(() => {
@@ -157,6 +149,7 @@ export function SppbForm() {
     } else {
         toast.success('SPPB Berhasil Dibuat');
         router.push('/dashboard/sppb');
+        router.refresh();
     }
     setIsPending(false);
   }

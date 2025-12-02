@@ -16,11 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Plus, Trash2, Check, ChevronsUpDown } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { getAllPegawai } from '@/app/actions/pegawai';
-import { getBarangList } from '@/app/actions/barang';
 import { createSpb } from '@/app/actions/spb';
 import {
     Command,
@@ -48,21 +46,16 @@ const formSchema = z.object({
   })).min(1, 'Minimal satu barang'),
 });
 
-export function SpbForm() {
+export function SpbForm({ 
+  pegawaiOptions = [], 
+  barangOptions = [] 
+}) {
   const [isPending, setIsPending] = useState(false);
-  const [pegawaiList, setPegawaiList] = useState([]);
-  const [barangList, setBarangList] = useState([]);
   const router = useRouter();
 
-  useEffect(() => {
-      Promise.all([
-          getAllPegawai(),
-          getBarangList({ limit: 1000 })
-      ]).then(([pegawai, barangRes]) => {
-          setPegawaiList(pegawai);
-          setBarangList(barangRes.data || []);
-      });
-  }, []);
+  // Data is now passed from server component
+  const pegawaiList = pegawaiOptions;
+  const barangList = barangOptions;
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -98,7 +91,8 @@ export function SpbForm() {
         toast.error(result.error);
     } else {
         toast.success('Permintaan Barang Berhasil Dibuat');
-        router.push('/dashboard/spb'); // Or spb-saya depending on role, but this generic form redirects to generic list for now
+        router.push('/dashboard/spb');
+        router.refresh();
     }
     setIsPending(false);
   }

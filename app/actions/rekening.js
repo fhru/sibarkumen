@@ -105,6 +105,8 @@ export async function createRekening(formData) {
   try {
     await prisma.rekening.create({ data: validated.data });
     revalidatePath('/dashboard/rekening');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('rekening');
     return { success: true, message: 'Rekening berhasil ditambahkan' };
   } catch (error) {
     logError('createRekening', error);
@@ -124,6 +126,8 @@ export async function updateRekening(id, formData) {
   try {
     await prisma.rekening.update({ where: { id }, data: validated.data });
     revalidatePath('/dashboard/rekening');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('rekening');
     return { success: true, message: 'Rekening berhasil diupdate' };
   } catch (error) {
     logError('updateRekening', error);
@@ -138,6 +142,8 @@ export async function deleteRekening(id) {
   try {
     await prisma.rekening.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/rekening');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('rekening');
     return { success: true, message: 'Rekening berhasil dihapus' };
   } catch (error) {
     logError('deleteRekening', error);

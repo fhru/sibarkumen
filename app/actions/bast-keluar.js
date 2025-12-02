@@ -185,6 +185,10 @@ export async function createBastKeluar(data) {
     });
 
     revalidatePath('/dashboard/bast-keluar');
+    revalidatePath('/dashboard/sppb');
+    revalidatePath('/dashboard');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('sppb');
     return { success: true, message: 'BAST Keluar berhasil dibuat' };
   } catch (error) {
     logError('createBastKeluar', error);

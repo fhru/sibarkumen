@@ -79,6 +79,8 @@ export async function createPejabat(formData) {
   try {
     await prisma.pejabatPengelola.create({ data: validated.data });
     revalidatePath('/dashboard/pejabat');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('pejabat');
     return { success: true, message: 'Pejabat berhasil ditambahkan' };
   } catch (error) {
     logError('createPejabat', error);
@@ -98,6 +100,8 @@ export async function updatePejabat(id, formData) {
   try {
     await prisma.pejabatPengelola.update({ where: { id }, data: validated.data });
     revalidatePath('/dashboard/pejabat');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('pejabat');
     return { success: true, message: 'Pejabat berhasil diupdate' };
   } catch (error) {
     logError('updatePejabat', error);
@@ -112,6 +116,8 @@ export async function deletePejabat(id) {
   try {
     await prisma.pejabatPengelola.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/pejabat');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('pejabat');
     return { success: true, message: 'Pejabat berhasil dihapus' };
   } catch (error) {
     logError('deletePejabat', error);
@@ -122,4 +128,34 @@ export async function deletePejabat(id) {
 export async function revalidatePejabatCache() {
   const { revalidateTag } = await import('next/cache');
   revalidateTag('pejabat');
+}
+
+// Optimized options fetcher for dropdowns (minimal fields)
+async function fetchPejabatOptions() {
+  return prisma.pejabatPengelola.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      jenisJabatan: true,
+      pegawai: {
+        select: { id: true, nama: true, jabatan: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+}
+
+const getCachedPejabatOptions = unstable_cache(
+  fetchPejabatOptions,
+  ['pejabat-options'],
+  { revalidate: 60, tags: ['pejabat'] }
+);
+
+export async function getPejabatOptions() {
+  try {
+    return await getCachedPejabatOptions();
+  } catch (error) {
+    logError('getPejabatOptions', error);
+    return [];
+  }
 }

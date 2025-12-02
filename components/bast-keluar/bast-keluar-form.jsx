@@ -42,8 +42,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
-import { createBastKeluar, getSppbOptions } from '@/app/actions/bast-keluar';
-import { getPejabatList } from '@/app/actions/pejabat';
+import { createBastKeluar } from '@/app/actions/bast-keluar';
 
 // Schema matches the Server Action
 const BastKeluarSchema = z.object({
@@ -68,14 +67,20 @@ const BastKeluarSchema = z.object({
   ).min(1, 'Detail barang kosong'),
 });
 
-export function BastKeluarForm() {
+export function BastKeluarForm({ 
+  pegawaiOptions = [], 
+  pejabatOptions = [], 
+  sppbOptions: initialSppbOptions = [] 
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sppbIdParam = searchParams.get('sppbId');
   const [loading, setLoading] = useState(false);
-  const [sppbList, setSppbList] = useState([]);
-  const [pejabatList, setPejabatList] = useState([]);
   const [openSppb, setOpenSppb] = useState(false);
+
+  // Data is now passed from server component
+  const sppbList = initialSppbOptions;
+  const pejabatList = pejabatOptions;
 
   const form = useForm({
     resolver: zodResolver(BastKeluarSchema),
@@ -94,23 +99,6 @@ export function BastKeluarForm() {
     control: form.control,
     name: 'details',
   });
-
-  // 1. Load Initial Data (Pejabat & SPPB Options)
-  useEffect(() => {
-    async function loadData() {
-      const [sppbRes, pejabatRes] = await Promise.all([
-        getSppbOptions(),
-        getPejabatList({ limit: 100 }) // Get all officials
-      ]);
-
-      setSppbList(sppbRes);
-      if (pejabatRes.data) {
-          // Filter only valid officials if needed (e.g., Pihak Menyerahkan types)
-          setPejabatList(pejabatRes.data);
-      }
-    }
-    loadData();
-  }, []);
 
   // Effect to auto-select SPPB if param exists and options are loaded
   useEffect(() => {
@@ -159,6 +147,7 @@ export function BastKeluarForm() {
       } else {
         toast.success('BAST Keluar berhasil dibuat');
         router.push('/dashboard/bast-keluar');
+        router.refresh();
       }
     } catch (error) {
       toast.error('Terjadi kesalahan sistem');

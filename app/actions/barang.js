@@ -208,6 +208,8 @@ export async function createBarang(formData) {
     });
 
     revalidatePath('/dashboard/barang');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('barang');
     return { success: true, message: 'Barang berhasil ditambahkan' };
   } catch (error) {
     logError('createBarang', error);
@@ -240,6 +242,8 @@ export async function updateBarang(id, formData) {
     });
 
     revalidatePath('/dashboard/barang');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('barang');
     return { success: true, message: 'Barang berhasil diupdate' };
   } catch (error) {
     logError('updateBarang', error);
@@ -254,6 +258,8 @@ export async function deleteBarang(id) {
   try {
     await prisma.barang.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/barang');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('barang');
     return { success: true, message: 'Barang berhasil dihapus' };
   } catch (error) {
     logError('deleteBarang', error);
@@ -264,4 +270,42 @@ export async function deleteBarang(id) {
 export async function revalidateBarangCache() {
   const { revalidateTag } = await import('next/cache');
   revalidateTag('barang');
+}
+
+// Optimized options fetcher for dropdowns (minimal fields)
+async function fetchBarangOptions() {
+  const data = await prisma.barang.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      kodeBarang: true,
+      namaBarang: true,
+      satuan: true,
+      stokTersedia: true,
+      hargaSatuan: true,
+    },
+    orderBy: { namaBarang: 'asc' },
+    take: 500
+  });
+  
+  // Konversi Decimal sebelum di-cache
+  return data.map(item => ({
+    ...item,
+    hargaSatuan: item.hargaSatuan.toNumber()
+  }));
+}
+
+const getCachedBarangOptions = unstable_cache(
+  fetchBarangOptions,
+  ['barang-options'],
+  { revalidate: 60, tags: ['barang'] }
+);
+
+export async function getBarangOptions() {
+  try {
+    return await getCachedBarangOptions();
+  } catch (error) {
+    logError('getBarangOptions', error);
+    return [];
+  }
 }

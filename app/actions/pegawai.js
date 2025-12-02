@@ -109,6 +109,8 @@ export async function createPegawai(formData) {
     await prisma.pegawai.create({ data: validated.data });
 
     revalidatePath('/dashboard/pegawai');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('pegawai');
     return { success: true, message: 'Pegawai berhasil ditambahkan' };
   } catch (error) {
     logError('createPegawai', error);
@@ -128,6 +130,8 @@ export async function updatePegawai(id, formData) {
   try {
     await prisma.pegawai.update({ where: { id }, data: validated.data });
     revalidatePath('/dashboard/pegawai');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('pegawai');
     return { success: true, message: 'Pegawai berhasil diupdate' };
   } catch (error) {
     logError('updatePegawai', error);
@@ -142,6 +146,8 @@ export async function deletePegawai(id) {
   try {
     await prisma.pegawai.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/pegawai');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('pegawai');
     return { success: true, message: 'Pegawai berhasil dihapus' };
   } catch (error) {
     logError('deletePegawai', error);
@@ -152,4 +158,33 @@ export async function deletePegawai(id) {
 export async function revalidatePegawaiCache() {
   const { revalidateTag } = await import('next/cache');
   revalidateTag('pegawai');
+}
+
+// Optimized options fetcher for dropdowns (minimal fields)
+async function fetchPegawaiOptions() {
+  return prisma.pegawai.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      nama: true,
+      nip: true,
+      jabatan: true,
+    },
+    orderBy: { nama: 'asc' }
+  });
+}
+
+const getCachedPegawaiOptions = unstable_cache(
+  fetchPegawaiOptions,
+  ['pegawai-options'],
+  { revalidate: 60, tags: ['pegawai'] }
+);
+
+export async function getPegawaiOptions() {
+  try {
+    return await getCachedPegawaiOptions();
+  } catch (error) {
+    logError('getPegawaiOptions', error);
+    return [];
+  }
 }

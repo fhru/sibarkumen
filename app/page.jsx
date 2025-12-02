@@ -1,8 +1,7 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ShieldCheck, User, ArrowRight, Box } from 'lucide-react';
-import config from '../app.config.json';
-import { ModeToggle } from '@/components/theme/mode-toggle';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ShieldCheck, User, ArrowRight, Box } from "lucide-react";
+import config from "../app.config.json";
 
 export default function Home() {
   return (
@@ -45,7 +44,6 @@ export default function Home() {
               Login ke Sistem
             </Button>
           </Link>
-          <ModeToggle />
         </div>
 
         {/* Feature Grid (Decorative) */}

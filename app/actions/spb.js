@@ -148,6 +148,7 @@ export async function createSpb(data) {
     });
 
     revalidatePath("/dashboard/spb");
+    revalidatePath("/dashboard");
     return { success: true, message: "Permintaan Barang berhasil dibuat" };
   } catch (error) {
     logError("createSpb", error);
