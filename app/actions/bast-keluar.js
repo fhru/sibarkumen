@@ -2,9 +2,11 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { generateDocumentNumber } from '@/lib/number-generator';
+import { ErrorTypes, createError, logError } from '@/lib/error-types';
 
 const BastKeluarDetailSchema = z.object({
   idBarang: z.number().min(1, 'Barang wajib dipilih'),
@@ -24,10 +26,8 @@ const BastKeluarSchema = z.object({
   details: z.array(BastKeluarDetailSchema).min(1, 'Minimal satu barang harus ditambahkan'),
 });
 
-export async function getBastKeluarList({ page = 1, limit = 10, query = '' }) {
-  const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
-
+// Core fetch functions
+async function fetchBastKeluarList({ page = 1, limit = 10, query = '' }) {
   const skip = (page - 1) * limit;
   
   const where = {
@@ -37,87 +37,139 @@ export async function getBastKeluarList({ page = 1, limit = 10, query = '' }) {
     ],
   };
 
-  try {
-    const [data, total] = await Promise.all([
-      prisma.bastKeluar.findMany({
-        where,
-        include: {
-            sppb: true,
-            pihakMenyerahkan: {
-                include: { pegawai: true }
-            },
-            pihakMenerima: true,
-            details: {
-                include: { barang: true }
-            }
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.bastKeluar.count({ where }),
-    ]);
-
-    // Flatten decimals in details for Client Component safety
-    const safeData = data.map(item => ({
-        ...item,
-        details: item.details.map(d => ({
-            ...d,
-            volume: d.volume.toNumber(),
-            jumlahHarga: d.jumlahHarga.toNumber(),
-            ppn: d.ppn.toNumber(),
-            hargaSetelahPpn: d.hargaSetelahPpn.toNumber(),
-            barang: {
-                ...d.barang,
-                hargaSatuan: d.barang.hargaSatuan.toNumber(),
-                totalHarga: d.barang.totalHarga.toNumber()
-            }
-        }))
-    }));
-
-    return {
-      data: safeData,
-      metadata: {
-        hasNextPage: skip + limit < total,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
+  const [data, total] = await Promise.all([
+    prisma.bastKeluar.findMany({
+      where,
+      include: {
+        sppb: true,
+        pihakMenyerahkan: { include: { pegawai: true } },
+        pihakMenerima: true,
+        details: { include: { barang: true } }
       },
-    };
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.bastKeluar.count({ where }),
+  ]);
+
+  const safeData = data.map(item => ({
+    ...item,
+    details: item.details.map(d => ({
+      ...d,
+      volume: d.volume.toNumber(),
+      jumlahHarga: d.jumlahHarga.toNumber(),
+      ppn: d.ppn.toNumber(),
+      hargaSetelahPpn: d.hargaSetelahPpn.toNumber(),
+      barang: {
+        ...d.barang,
+        hargaSatuan: d.barang.hargaSatuan.toNumber(),
+        totalHarga: d.barang.totalHarga.toNumber()
+      }
+    }))
+  }));
+
+  return {
+    data: safeData,
+    metadata: {
+      hasNextPage: skip + limit < total,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    },
+  };
+}
+
+async function fetchSppbOptions(query = '') {
+  const where = {
+    nomorSppb: { contains: query, mode: 'insensitive' },
+    bastKeluarList: { none: {} }
+  };
+
+  const data = await prisma.sppb.findMany({
+    where,
+    take: 20,
+    include: {
+      penerima: true,
+      details: { include: { barang: true } },
+      pejabatPenatausahaan: true,
+      pengelolaBarang: true,
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  return data.map(item => ({
+    ...item,
+    details: item.details.map(d => ({
+      ...d,
+      barang: {
+        ...d.barang,
+        hargaSatuan: d.barang.hargaSatuan.toNumber(),
+        totalHarga: d.barang.totalHarga.toNumber()
+      }
+    }))
+  }));
+}
+
+// Cached versions
+const getCachedBastKeluarList = unstable_cache(
+  fetchBastKeluarList,
+  ['bast-keluar-list'],
+  { revalidate: 60, tags: ['bast-keluar'] }
+);
+
+const getCachedSppbOptions = unstable_cache(
+  fetchSppbOptions,
+  ['sppb-options'],
+  { revalidate: 30, tags: ['sppb', 'bast-keluar'] }
+);
+
+export async function getBastKeluarList(params) {
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  try {
+    return await getCachedBastKeluarList(params);
   } catch (error) {
-    console.error('Fetch Error:', error);
-    return { error: 'Failed to fetch BAST Keluar' };
+    logError('getBastKeluarList', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal mengambil data BAST Keluar');
+  }
+}
+
+export async function getSppbOptions(query = '') {
+  const session = await auth();
+  if (!session) return [];
+  
+  try {
+    return await getCachedSppbOptions(query);
+  } catch (e) {
+    logError('getSppbOptions', e);
+    return [];
   }
 }
 
 export async function createBastKeluar(data) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
-  // Validate
   const validation = BastKeluarSchema.safeParse({
     ...data,
     tanggalBast: new Date(data.tanggalBast),
   });
 
   if (!validation.success) {
-    return { error: 'Validasi gagal', details: validation.error.flatten() };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Validasi gagal', validation.error.flatten());
   }
 
   const { details, ...header } = validation.data;
 
   try {
-    // Auto-generate number if empty
     if (!header.nomorBast) {
-        header.nomorBast = await generateDocumentNumber('BAST-KELUAR', 'bastKeluar', 'tanggalBast');
+      header.nomorBast = await generateDocumentNumber('BAST-KELUAR', 'bastKeluar', 'tanggalBast');
     }
 
     await prisma.$transaction(async (tx) => {
-      // 1. Create Header
-      const bast = await tx.bastKeluar.create({
-        data: header,
-      });
+      const bast = await tx.bastKeluar.create({ data: header });
 
-      // 2. Create Details
       for (const item of details) {
         await tx.bastKeluarDetail.create({
           data: {
@@ -135,51 +187,12 @@ export async function createBastKeluar(data) {
     revalidatePath('/dashboard/bast-keluar');
     return { success: true, message: 'BAST Keluar berhasil dibuat' };
   } catch (error) {
-    console.error('Create Error:', error);
-    return { error: 'Gagal membuat BAST Keluar' };
+    logError('createBastKeluar', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal membuat BAST Keluar');
   }
 }
 
-// Helper to get SPPB data for selection and population
-export async function getSppbOptions(query = '') {
-    const session = await auth();
-    if (!session) return [];
-    
-    // Only fetch SPPB that haven't been fully processed? 
-    // Or just all. For now, all. 
-    // In a real app, you might want to filter out ones that already have a BAST Keluar.
-    const where = {
-        nomorSppb: { contains: query, mode: 'insensitive' },
-        // Check if NOT exists in bast_keluar (Optional, if 1-to-1 relation enforced logic-wise)
-        bastKeluarList: {
-             none: {}
-        }
-    };
-
-    const data = await prisma.sppb.findMany({
-        where,
-        take: 20,
-        include: {
-            penerima: true,
-            details: {
-                include: { barang: true }
-            },
-            pejabatPenatausahaan: true, // usually not needed for BAST fields directly unless reusing
-            pengelolaBarang: true, // needed?
-        },
-        orderBy: { createdAt: 'desc' }
-    });
-    
-    // Flatten decimals
-    return data.map(item => ({
-        ...item,
-        details: item.details.map(d => ({
-            ...d,
-            barang: {
-                ...d.barang,
-                hargaSatuan: d.barang.hargaSatuan.toNumber(),
-                totalHarga: d.barang.totalHarga.toNumber()
-            }
-        }))
-    }));
+export async function revalidateBastKeluarCache() {
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('bast-keluar');
 }

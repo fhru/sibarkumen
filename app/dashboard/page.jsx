@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { auth } from '@/auth';
 import { getDashboardStats, getRecentDocuments, getDashboardChartData } from '@/app/actions/dashboard';
 import { 
@@ -5,25 +6,27 @@ import {
   ArrowDownCircle, 
   ArrowUpCircle, 
   Clock, 
-  Package, 
   FileText 
 } from 'lucide-react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { OverviewChart } from '@/components/dashboard/overview-chart';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { ChartContainer } from '@/components/dashboard/chart-container';
+import { 
+  StatsCardSkeleton, 
+  ChartSkeleton, 
+  RecentActivitySkeleton, 
+  QuickActionsSkeleton 
+} from '@/components/dashboard/skeletons';
 
-export default async function DashboardPage() {
-  const session = await auth();
-  const [stats, recentDocs, chartData] = await Promise.all([
-      getDashboardStats(),
-      getRecentDocuments(),
-      getDashboardChartData('6m') // Default range
-  ]);
+async function DashboardStats() {
+  const stats = await getDashboardStats();
 
   if (stats.error) {
-    return <div className="p-4 text-red-500">Error loading stats</div>;
+    return (
+      <div className="col-span-4 p-4 text-red-500 bg-red-50 rounded-lg">
+        {stats.message || 'Error loading stats'}
+      </div>
+    );
   }
 
   const statCards = [
@@ -62,6 +65,89 @@ export default async function DashboardPage() {
   ];
 
   return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {statCards.map((stat, index) => (
+        <Card key={index} className="shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {stat.title}
+            </CardTitle>
+            <div className={`p-2 rounded-full ${stat.bg}`}>
+              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-xs text-muted-foreground">
+              {stat.desc}
+            </p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+async function ChartSection() {
+  const result = await getDashboardChartData('6m');
+  const chartData = result.data || result || [];
+  
+  return <ChartContainer initialData={chartData} />;
+}
+
+async function RecentActivity() {
+  const recentDocs = await getRecentDocuments();
+
+  if (recentDocs.error && !recentDocs.recentSpb) {
+    return (
+      <Card className="shadow-md h-full">
+        <CardHeader>
+          <CardTitle>Aktivitas Terbaru</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-500">{recentDocs.message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="shadow-md h-full">
+      <CardHeader>
+        <CardTitle>Aktivitas Terbaru</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {(!recentDocs.recentSpb || recentDocs.recentSpb.length === 0) ? (
+            <p className="text-sm text-muted-foreground">Belum ada aktivitas.</p>
+          ) : (
+            recentDocs.recentSpb.map((item) => (
+              <div key={item.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{item.number}</p>
+                    <p className="text-xs text-muted-foreground">{item.actor}</p>
+                  </div>
+                </div>
+                <div className="text-xs font-medium text-muted-foreground">
+                  {new Date(item.date).toLocaleDateString('id-ID')}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default async function DashboardPage() {
+  const session = await auth();
+
+  return (
     <div className="flex flex-1 flex-col gap-6 p-4">
       <div className="flex items-center justify-between">
         <div>
@@ -72,75 +158,31 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat, index) => (
-          <Card key={index} className="shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <div className={`p-2 rounded-full ${stat.bg}`}>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {stat.desc}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Stat Cards with Suspense */}
+      <Suspense fallback={<StatsCardSkeleton />}>
+        <DashboardStats />
+      </Suspense>
 
-      {/* Middle Section: Chart (Full Width) */}
+      {/* Chart Section with Suspense */}
       <div className="w-full">
-          <ChartContainer initialData={chartData} />
+        <Suspense fallback={<ChartSkeleton />}>
+          <ChartSection />
+        </Suspense>
       </div>
 
       {/* Bottom Section: Quick Actions & Recent Activity */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          {/* Quick Actions */}
-          <div className="col-span-3">
-              <QuickActions />
-          </div>
+        <div className="col-span-3">
+          <Suspense fallback={<QuickActionsSkeleton />}>
+            <QuickActions />
+          </Suspense>
+        </div>
 
-          {/* Recent Activity (Combined into tabs or just list) */}
-          {/* Let's put Recent SPB here, maybe move SPPB to another view or below if needed */}
-          {/* Actually, user layout preference: Chart Full Width. */}
-          <div className="col-span-4">
-             <Card className="shadow-md h-full">
-                <CardHeader>
-                    <CardTitle>Aktivitas Terbaru</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-6">
-                    {/* Combine recent docs for better use of space? Or just show SPB as primary indicator */}
-                    {recentDocs.recentSpb.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Belum ada aktivitas.</p>
-                    ) : (
-                        recentDocs.recentSpb.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
-                                    <FileText className="h-5 w-5 text-orange-600" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium">{item.number}</p>
-                                    <p className="text-xs text-muted-foreground">{item.actor}</p>
-                                </div>
-                            </div>
-                            <div className="text-xs font-medium text-muted-foreground">
-                                {new Date(item.date).toLocaleDateString('id-ID')}
-                            </div>
-                        </div>
-                        ))
-                    )}
-                    </div>
-                </CardContent>
-             </Card>
-          </div>
+        <div className="col-span-4">
+          <Suspense fallback={<RecentActivitySkeleton />}>
+            <RecentActivity />
+          </Suspense>
+        </div>
       </div>
     </div>
   );

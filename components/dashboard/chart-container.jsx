@@ -31,7 +31,7 @@ export function ChartContainer({ initialData }) {
       const loadData = async () => {
           setLoading(true);
           const res = await getDashboardChartData(range);
-          setData(res);
+          setData(res.data || res || []);
           setLoading(false);
       };
       loadData();

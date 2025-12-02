@@ -2,8 +2,10 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { ErrorTypes, createError, logError } from '@/lib/error-types';
 
 const RekeningSchema = z.object({
   namaBank: z.string().min(1, 'Nama Bank wajib diisi'),
@@ -14,10 +16,8 @@ const RekeningSchema = z.object({
   keterangan: z.string().optional(),
 });
 
-export async function getRekeningList({ page = 1, limit = 10, query = '' } = {}) {
-  const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
-
+// Core fetch functions
+async function fetchRekeningList({ page = 1, limit = 10, query = '' } = {}) {
   const skip = (page - 1) * limit;
   
   const where = {
@@ -29,28 +29,55 @@ export async function getRekeningList({ page = 1, limit = 10, query = '' } = {})
     ],
   };
 
-  try {
-    const [data, total] = await Promise.all([
-      prisma.rekening.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.rekening.count({ where }),
-    ]);
+  const [data, total] = await Promise.all([
+    prisma.rekening.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.rekening.count({ where }),
+  ]);
 
-    return {
-      data,
-      metadata: {
-        hasNextPage: skip + limit < total,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-      },
-    };
+  return {
+    data,
+    metadata: {
+      hasNextPage: skip + limit < total,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    },
+  };
+}
+
+async function fetchAllRekening() {
+  return await prisma.rekening.findMany({
+    where: { isActive: true },
+    orderBy: { namaBank: 'asc' },
+  });
+}
+
+// Cached versions
+const getCachedRekeningList = unstable_cache(
+  fetchRekeningList,
+  ['rekening-list'],
+  { revalidate: 60, tags: ['rekening'] }
+);
+
+const getCachedAllRekening = unstable_cache(
+  fetchAllRekening,
+  ['rekening-all'],
+  { revalidate: 60, tags: ['rekening'] }
+);
+
+export async function getRekeningList(params) {
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  try {
+    return await getCachedRekeningList(params);
   } catch (error) {
-    console.error('Fetch Error:', error);
-    return { error: 'Failed to fetch Rekening' };
+    logError('getRekeningList', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal mengambil data rekening');
   }
 }
 
@@ -59,74 +86,66 @@ export async function getAllRekening() {
   if (!session) return [];
 
   try {
-    return await prisma.rekening.findMany({
-      where: { isActive: true },
-      orderBy: { namaBank: 'asc' },
-    });
+    return await getCachedAllRekening();
   } catch (error) {
-    console.error('Fetch All Rekening Error:', error);
+    logError('getAllRekening', error);
     return [];
   }
 }
 
 export async function createRekening(formData) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   const validated = RekeningSchema.safeParse(formData);
-
   if (!validated.success) {
-    return { error: 'Validasi gagal', details: validated.error.flatten() };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Validasi gagal', validated.error.flatten());
   }
 
   try {
-    await prisma.rekening.create({
-      data: validated.data,
-    });
-
+    await prisma.rekening.create({ data: validated.data });
     revalidatePath('/dashboard/rekening');
     return { success: true, message: 'Rekening berhasil ditambahkan' };
   } catch (error) {
-    console.error('Create Error:', error);
-    return { error: 'Gagal membuat rekening' };
+    logError('createRekening', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal membuat rekening');
   }
 }
 
 export async function updateRekening(id, formData) {
-    const session = await auth();
-    if (!session) return { error: 'Unauthorized' };
-  
-    const validated = RekeningSchema.safeParse(formData);
-  
-    if (!validated.success) {
-      return { error: 'Validasi gagal' };
-    }
-  
-    try {
-      await prisma.rekening.update({
-        where: { id },
-        data: validated.data,
-      });
-  
-      revalidatePath('/dashboard/rekening');
-      return { success: true, message: 'Rekening berhasil diupdate' };
-    } catch (error) {
-      return { error: 'Gagal update rekening' };
-    }
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  const validated = RekeningSchema.safeParse(formData);
+  if (!validated.success) {
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Validasi gagal');
+  }
+
+  try {
+    await prisma.rekening.update({ where: { id }, data: validated.data });
+    revalidatePath('/dashboard/rekening');
+    return { success: true, message: 'Rekening berhasil diupdate' };
+  } catch (error) {
+    logError('updateRekening', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal update rekening');
+  }
 }
-  
+
 export async function deleteRekening(id) {
-    const session = await auth();
-    if (!session) return { error: 'Unauthorized' };
-  
-    try {
-      await prisma.rekening.update({
-        where: { id },
-        data: { isActive: false },
-      });
-      revalidatePath('/dashboard/rekening');
-      return { success: true, message: 'Rekening berhasil dihapus' };
-    } catch (error) {
-      return { error: 'Gagal menghapus rekening' };
-    }
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  try {
+    await prisma.rekening.update({ where: { id }, data: { isActive: false } });
+    revalidatePath('/dashboard/rekening');
+    return { success: true, message: 'Rekening berhasil dihapus' };
+  } catch (error) {
+    logError('deleteRekening', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal menghapus rekening');
+  }
+}
+
+export async function revalidateRekeningCache() {
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('rekening');
 }

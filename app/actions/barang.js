@@ -2,8 +2,10 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { ErrorTypes, createError, logError } from '@/lib/error-types';
 
 const BarangSchema = z.object({
   kodeBarang: z.string().optional(),
@@ -16,10 +18,8 @@ const BarangSchema = z.object({
   hargaSatuan: z.coerce.number().min(0, 'Harga satuan tidak boleh negatif'),
 });
 
-export async function getBarangList({ page = 1, limit = 10, query = '' }) {
-  const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
-
+// Core fetch functions
+async function fetchBarangList({ page = 1, limit = 10, query = '' }) {
   const skip = (page - 1) * limit;
   
   const where = {
@@ -31,34 +31,94 @@ export async function getBarangList({ page = 1, limit = 10, query = '' }) {
     ],
   };
 
-  try {
-    const [data, total] = await Promise.all([
-      prisma.barang.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.barang.count({ where }),
-    ]);
+  const [data, total] = await Promise.all([
+    prisma.barang.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.barang.count({ where }),
+  ]);
 
-    const safeData = data.map((item) => ({
+  return {
+    data: data.map((item) => ({
       ...item,
       hargaSatuan: item.hargaSatuan.toNumber(),
       totalHarga: item.totalHarga.toNumber(),
-    }));
+    })),
+    metadata: {
+      hasNextPage: skip + limit < total,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    },
+  };
+}
 
-    return {
-      data: safeData,
-      metadata: {
-        hasNextPage: skip + limit < total,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-      },
-    };
+async function fetchBarangById(id) {
+  return await prisma.barang.findUnique({ where: { id } });
+}
+
+async function fetchBarangHistory(id) {
+  const [inbound, outbound] = await Promise.all([
+    prisma.bastMasukDetail.findMany({
+      where: { idBarang: id },
+      include: { bastMasuk: true },
+      orderBy: { bastMasuk: { tanggalBast: 'desc' } }
+    }),
+    prisma.sppbDetail.findMany({
+      where: { idBarang: id },
+      include: { sppb: { include: { penerima: true } } },
+      orderBy: { sppb: { tanggalSppb: 'desc' } }
+    })
+  ]);
+
+  const formattedIn = inbound.map(item => ({
+    id: `IN-${item.id}`,
+    date: item.bastMasuk.tanggalBast,
+    docNumber: item.bastMasuk.nomorBast,
+    type: 'MASUK',
+    quantity: item.jumlah,
+    actor: item.bastMasuk.pihakKetiga || 'Pihak Ketiga',
+    description: 'Pembelian / Penerimaan'
+  }));
+
+  const formattedOut = outbound.map(item => ({
+    id: `OUT-${item.id}`,
+    date: item.sppb.tanggalSppb,
+    docNumber: item.sppb.nomorSppb,
+    type: 'KELUAR',
+    quantity: item.jumlahDisalurkan,
+    actor: item.sppb.penerima?.nama || 'Penerima',
+    description: 'Penyaluran Barang'
+  }));
+
+  return [...formattedIn, ...formattedOut].sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Cached versions
+const getCachedBarangList = unstable_cache(
+  fetchBarangList,
+  ['barang-list'],
+  { revalidate: 60, tags: ['barang'] }
+);
+
+const getCachedBarangHistory = unstable_cache(
+  fetchBarangHistory,
+  ['barang-history'],
+  { revalidate: 60, tags: ['barang'] }
+);
+
+// Exported functions
+export async function getBarangList(params) {
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  try {
+    return await getCachedBarangList(params);
   } catch (error) {
-    console.error('Failed to fetch barang:', error);
-    return { error: 'Failed to fetch data' };
+    logError('getBarangList', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal mengambil data barang');
   }
 }
 
@@ -82,10 +142,9 @@ export async function getBarangById(id) {
   if (!session) return null;
 
   try {
-    return await prisma.barang.findUnique({
-      where: { id },
-    });
+    return await fetchBarangById(id);
   } catch (error) {
+    logError('getBarangById', error);
     return null;
   }
 }
@@ -95,140 +154,55 @@ export async function getBarangHistory(id) {
   if (!session) return [];
 
   try {
-    const [inbound, outbound] = await Promise.all([
-      // 1. BAST Masuk (Inbound)
-      prisma.bastMasukDetail.findMany({
-        where: { idBarang: id },
-        include: {
-          bastMasuk: true
-        },
-        orderBy: { bastMasuk: { tanggalBast: 'desc' } }
-      }),
-      // 2. SPPB (Outbound)
-      prisma.sppbDetail.findMany({
-        where: { idBarang: id },
-        include: {
-          sppb: {
-            include: { penerima: true }
-          }
-        },
-        orderBy: { sppb: { tanggalSppb: 'desc' } }
-      })
-    ]);
-
-    // Format Inbound
-    const formattedIn = inbound.map(item => ({
-      id: `IN-${item.id}`,
-      date: item.bastMasuk.tanggalBast,
-      docNumber: item.bastMasuk.nomorBast,
-      type: 'MASUK',
-      quantity: item.jumlah,
-      actor: item.bastMasuk.pihakKetiga || 'Pihak Ketiga',
-      description: 'Pembelian / Penerimaan'
-    }));
-
-    // Format Outbound
-    const formattedOut = outbound.map(item => ({
-      id: `OUT-${item.id}`,
-      date: item.sppb.tanggalSppb,
-      docNumber: item.sppb.nomorSppb,
-      type: 'KELUAR',
-      quantity: item.jumlahDisalurkan,
-      actor: item.sppb.penerima?.nama || 'Penerima',
-      description: 'Penyaluran Barang'
-    }));
-
-    // Combine and Sort
-    const combined = [...formattedIn, ...formattedOut].sort((a, b) => {
-      return new Date(b.date) - new Date(a.date);
-    });
-
-    return combined;
-
+    return await getCachedBarangHistory(id);
   } catch (error) {
-    console.error('History Error:', error);
+    logError('getBarangHistory', error);
     return [];
   }
 }
 
 export async function createBarang(formData) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   const validated = BarangSchema.safeParse(formData);
-
   if (!validated.success) {
-    return { error: 'Invalid fields', details: validated.error.flatten() };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Data tidak valid', validated.error.flatten());
   }
 
-  const {
-    namaBarang,
-    kategori, // This will be the 'kode' (e.g. ELK) from the dropdown
-    satuan,
-    spesifikasi,
-    asalPembelian,
-    stokMinimum,
-    hargaSatuan,
-  } = validated.data;
+  const { namaBarang, kategori, satuan, spesifikasi, asalPembelian, stokMinimum, hargaSatuan } = validated.data;
 
   try {
-    // 1. Fetch the category details to get the proper name if needed, or verify it exists
-    // In our form we will send 'kode' as the value.
-    // But we want to store the full Name in 'barang.kategori' field based on PRD common practice?
-    // Wait, the schema just says "kategori String".
-    // UIDD says "Kategori" is displayed. 
-    // If we store "ELK", user sees "ELK". If we store "Elektronik", user sees "Elektronik".
-    // Let's look up the Reference.
-    const refKategori = await prisma.referensiKategori.findUnique({
-      where: { kode: kategori },
-    });
-    
-    if (!refKategori) {
-        return { error: 'Kategori tidak valid' };
-    }
+    const refKategori = await prisma.referensiKategori.findUnique({ where: { kode: kategori } });
+    if (!refKategori) return createError(ErrorTypes.VALIDATION_ERROR, 'Kategori tidak valid');
 
-    // 2. Generate Code: ELK-001
-    const prefix = refKategori.kode; // ELK
+    const prefix = refKategori.kode;
     const lastItem = await prisma.barang.findFirst({
-      where: {
-        kodeBarang: { startsWith: prefix + '-' },
-      },
-      orderBy: {
-        kodeBarang: 'desc',
-      },
+      where: { kodeBarang: { startsWith: prefix + '-' } },
+      orderBy: { kodeBarang: 'desc' },
     });
 
     let nextNum = 1;
     if (lastItem) {
-        const parts = lastItem.kodeBarang.split('-');
-        if (parts.length === 2) {
-             const currentNum = parseInt(parts[1], 10);
-             if (!isNaN(currentNum)) nextNum = currentNum + 1;
-        }
+      const parts = lastItem.kodeBarang.split('-');
+      if (parts.length === 2) {
+        const currentNum = parseInt(parts[1], 10);
+        if (!isNaN(currentNum)) nextNum = currentNum + 1;
+      }
     }
     const kodeBarang = `${prefix}-${String(nextNum).padStart(3, '0')}`;
-
-    // 3. Store Data
-    // We store 'nama' (Elektronik) in the Kategori field for readability, 
-    // OR we store the code?
-    // If we store Name, we lose the link to the Code technically unless we lookup again.
-    // But for reporting, Name is better. 
-    // Let's store Name "Elektronik".
-    const categoryNameToStore = refKategori.nama; 
-
-    const totalHarga = 0; 
 
     await prisma.barang.create({
       data: {
         kodeBarang,
         namaBarang,
-        kategori: categoryNameToStore, // Storing "Elektronik"
+        kategori: refKategori.nama,
         satuan,
         spesifikasi,
         asalPembelian,
         stokMinimum,
         hargaSatuan,
-        totalHarga,
+        totalHarga: 0,
         stokTersedia: 0,
       },
     });
@@ -236,80 +210,58 @@ export async function createBarang(formData) {
     revalidatePath('/dashboard/barang');
     return { success: true, message: 'Barang berhasil ditambahkan' };
   } catch (error) {
-    console.error('Create Error:', error);
-    return { error: 'Gagal membuat barang' };
+    logError('createBarang', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal membuat barang');
   }
 }
 
 export async function updateBarang(id, formData) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   const validated = BarangSchema.safeParse(formData);
-
   if (!validated.success) {
-    return { error: 'Invalid fields' };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Data tidak valid');
   }
 
   try {
     const existingItem = await prisma.barang.findUnique({ where: { id } });
-    if (!existingItem) return { error: 'Barang not found' };
+    if (!existingItem) return createError(ErrorTypes.NOT_FOUND, 'Barang tidak ditemukan');
 
     const totalHarga = existingItem.stokTersedia * validated.data.hargaSatuan;
     
-    // Note: For update, we usually don't regenerate Kode Barang even if category changes
-    // So we just update the other fields. 
-    // If category changes, we update the 'kategori' name string?
-    // For now, simple update.
-    
-    // If user changed Kategori dropdown, we receive a CODE (e.g. ELK).
-    // But existing data might be "Elektronik".
-    // We need to handle this if we want to allow category changes.
-    // For MVP, let's assume Kategori update is allowed and we look it up again.
-    
     let categoryToUpdate = validated.data.kategori;
-    
-    // Check if it looks like a code (short, uppercase) or just keep as is if it matches a ref
-    const refKategori = await prisma.referensiKategori.findUnique({
-         where: { kode: validated.data.kategori }
-    });
-    
-    if (refKategori) {
-        categoryToUpdate = refKategori.nama;
-    } else {
-        // Maybe they didn't change it and sent back "Elektronik"
-        // Or maybe they sent an invalid code. 
-        // If it matches existing Name, keep it.
-    }
+    const refKategori = await prisma.referensiKategori.findUnique({ where: { kode: validated.data.kategori } });
+    if (refKategori) categoryToUpdate = refKategori.nama;
 
     await prisma.barang.update({
       where: { id },
-      data: {
-        ...validated.data,
-        kategori: categoryToUpdate,
-        totalHarga,
-      },
+      data: { ...validated.data, kategori: categoryToUpdate, totalHarga },
     });
 
     revalidatePath('/dashboard/barang');
     return { success: true, message: 'Barang berhasil diupdate' };
   } catch (error) {
-    return { error: 'Gagal update barang' };
+    logError('updateBarang', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal update barang');
   }
 }
 
 export async function deleteBarang(id) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   try {
-    await prisma.barang.update({
-      where: { id },
-      data: { isActive: false },
-    });
+    await prisma.barang.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/barang');
     return { success: true, message: 'Barang berhasil dihapus' };
   } catch (error) {
-    return { error: 'Gagal menghapus barang' };
+    logError('deleteBarang', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal menghapus barang');
   }
+}
+
+export async function revalidateBarangCache() {
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('barang');
 }

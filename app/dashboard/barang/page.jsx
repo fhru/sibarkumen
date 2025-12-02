@@ -6,6 +6,27 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { columns } from '@/components/barang/columns';
 import { AddBarangDialog } from '@/components/barang/add-barang-dialog';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+
+async function BarangTable({ page, query }) {
+  const { data, metadata, error } = await getBarangList({ page, limit: 10, query });
+  
+  if (error) {
+    return <div className="p-4 text-red-500 bg-red-50 rounded-lg">{error.message || 'Gagal memuat data'}</div>;
+  }
+
+  return (
+    <DataTable
+      columns={columns}
+      data={data || []}
+      pagination={{
+        currentPage: page,
+        totalPages: metadata?.totalPages || 1,
+        hasNextPage: metadata?.hasNextPage,
+      }}
+    />
+  );
+}
 
 export default async function BarangPage(props) {
   const searchParams = await props.searchParams;
@@ -15,8 +36,6 @@ export default async function BarangPage(props) {
 
   const page = Number(searchParams?.page) || 1;
   const query = searchParams?.query || '';
-
-  const { data, metadata } = await getBarangList({ page, limit: 10, query });
 
   return (
     <div className="flex flex-col gap-6 py-6">
@@ -29,15 +48,9 @@ export default async function BarangPage(props) {
         <SearchInput placeholder="Cari nama, kode, atau kategori..." />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={data || []}
-        pagination={{
-          currentPage: page,
-          totalPages: metadata?.totalPages || 1,
-          hasNextPage: metadata?.hasNextPage,
-        }}
-      />
+      <Suspense fallback={<TableSkeleton rows={10} columns={6} />}>
+        <BarangTable page={page} query={query} />
+      </Suspense>
     </div>
   );
 }

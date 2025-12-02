@@ -2,8 +2,10 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { ErrorTypes, createError, logError } from '@/lib/error-types';
 
 const BastMasukDetailSchema = z.object({
   idBarang: z.number().min(1, 'Barang wajib dipilih'),
@@ -22,15 +24,83 @@ const BastMasukSchema = z.object({
   pptkPpkId: z.number().min(1, 'PPTK/PPK wajib dipilih'),
   pihakKetiga: z.string().optional(),
   keterangan: z.string().optional(),
-  nomorReferensi: z.string().optional().default('-'), // or generated
+  nomorReferensi: z.string().optional().default('-'),
   details: z.array(BastMasukDetailSchema).min(1, 'Minimal satu barang harus ditambahkan'),
 });
 
+// Core fetch function
+async function fetchBastMasukList({ page = 1, limit = 10, query = '' }) {
+  const skip = (page - 1) * limit;
+  
+  const where = {
+    OR: [
+      { nomorBast: { contains: query, mode: 'insensitive' } },
+      { pihakKetiga: { contains: query, mode: 'insensitive' } },
+    ],
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.bastMasuk.findMany({
+      where,
+      include: {
+        pptkPpk: true,
+        rekening: true,
+        details: { include: { barang: true } }
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.bastMasuk.count({ where }),
+  ]);
+
+  const safeData = data.map(item => ({
+    ...item,
+    details: item.details.map(d => ({
+      ...d,
+      hargaSatuan: d.hargaSatuan.toNumber(),
+      totalHarga: d.totalHarga.toNumber(),
+      barang: d.barang ? {
+        ...d.barang,
+        hargaSatuan: d.barang.hargaSatuan.toNumber(),
+        totalHarga: d.barang.totalHarga.toNumber()
+      } : null
+    }))
+  }));
+
+  return {
+    data: safeData,
+    metadata: {
+      hasNextPage: skip + limit < total,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    },
+  };
+}
+
+// Cached version
+const getCachedBastMasukList = unstable_cache(
+  fetchBastMasukList,
+  ['bast-masuk-list'],
+  { revalidate: 60, tags: ['bast-masuk'] }
+);
+
+export async function getBastMasukList(params) {
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  try {
+    return await getCachedBastMasukList(params);
+  } catch (error) {
+    logError('getBastMasukList', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal mengambil data BAST Masuk');
+  }
+}
+
 export async function createBastMasuk(data) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
-  // Validate
   const validation = BastMasukSchema.safeParse({
     ...data,
     tanggalBast: new Date(data.tanggalBast),
@@ -38,22 +108,16 @@ export async function createBastMasuk(data) {
   });
 
   if (!validation.success) {
-    return { error: 'Validasi gagal', details: validation.error.flatten() };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Validasi gagal', validation.error.flatten());
   }
 
   const { details, ...header } = validation.data;
 
   try {
-    // Transaction: Create Header -> Create Details -> Update Stock
     await prisma.$transaction(async (tx) => {
-      // 1. Create Header
-      const bast = await tx.bastMasuk.create({
-        data: header,
-      });
+      const bast = await tx.bastMasuk.create({ data: header });
 
-      // 2. Process Details
       for (const item of details) {
-        // Create Detail Record
         await tx.bastMasukDetail.create({
           data: {
             idBastMasuk: bast.id,
@@ -64,98 +128,31 @@ export async function createBastMasuk(data) {
           },
         });
 
-        // 3. Update Stock & Price in Master Barang
-        // Fetch current stock first
-        const currentBarang = await tx.barang.findUnique({
-            where: { id: item.idBarang }
-        });
-
+        const currentBarang = await tx.barang.findUnique({ where: { id: item.idBarang } });
         if (currentBarang) {
-            const newStock = currentBarang.stokTersedia + item.jumlah;
-            
-            // Optional: Update Master Price to latest price? 
-            // Or Weighted Average? PRD doesn't specify.
-            // Usually latest price is used for future reference, or kept static.
-            // Let's update Master Price to the incoming price.
-            
-            await tx.barang.update({
-                where: { id: item.idBarang },
-                data: {
-                    stokTersedia: newStock,
-                    hargaSatuan: item.hargaSatuan, // Updating master price
-                    totalHarga: newStock * item.hargaSatuan // Recalculate total valuation roughly
-                }
-            });
+          const newStock = currentBarang.stokTersedia + item.jumlah;
+          await tx.barang.update({
+            where: { id: item.idBarang },
+            data: {
+              stokTersedia: newStock,
+              hargaSatuan: item.hargaSatuan,
+              totalHarga: newStock * item.hargaSatuan
+            }
+          });
         }
       }
     });
 
     revalidatePath('/dashboard/bast-masuk');
-    revalidatePath('/dashboard/barang'); // Refresh stock view
+    revalidatePath('/dashboard/barang');
     return { success: true, message: 'BAST Masuk berhasil disimpan' };
-
   } catch (error) {
-    console.error('Transaction Error:', error);
-    return { error: 'Gagal menyimpan transaksi BAST Masuk' };
+    logError('createBastMasuk', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal menyimpan transaksi BAST Masuk');
   }
 }
 
-export async function getBastMasukList({ page = 1, limit = 10, query = '' }) {
-    const session = await auth();
-    if (!session) return { error: 'Unauthorized' };
-  
-    const skip = (page - 1) * limit;
-    
-    const where = {
-      OR: [
-        { nomorBast: { contains: query, mode: 'insensitive' } },
-        { pihakKetiga: { contains: query, mode: 'insensitive' } },
-      ],
-    };
-  
-    try {
-      const [data, total] = await Promise.all([
-        prisma.bastMasuk.findMany({
-          where,
-          include: {
-              pptkPpk: true, // Include Pegawai name
-              rekening: true,
-              details: {
-                  include: { barang: true }
-              }
-          },
-          skip,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
-        }),
-        prisma.bastMasuk.count({ where }),
-      ]);
-  
-      // Serialize decimals
-      const safeData = data.map(item => ({
-          ...item,
-          details: item.details.map(d => ({
-              ...d,
-              hargaSatuan: d.hargaSatuan.toNumber(),
-              totalHarga: d.totalHarga.toNumber(),
-              barang: d.barang ? {
-                  ...d.barang,
-                  hargaSatuan: d.barang.hargaSatuan.toNumber(),
-                  totalHarga: d.barang.totalHarga.toNumber()
-              } : null
-          }))
-      }));
-  
-      return {
-        data: safeData,
-        metadata: {
-          hasNextPage: skip + limit < total,
-          totalPages: Math.ceil(total / limit),
-          totalItems: total,
-        },
-      };
-    } catch (error) {
-      console.error('Fetch Error:', error);
-      return { error: 'Failed to fetch BAST' };
-    }
+export async function revalidateBastMasukCache() {
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('bast-masuk');
 }

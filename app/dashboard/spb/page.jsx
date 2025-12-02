@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getSpbList } from '@/app/actions/spb';
 import { DataTable } from '@/components/ui/data-table';
 import { SearchInput } from '@/components/ui/search-input';
@@ -7,6 +8,27 @@ import Link from 'next/link';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { columns } from '@/components/spb/columns';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+
+async function SpbTable({ page, query }) {
+  const { data, metadata, error } = await getSpbList({ page, limit: 10, query });
+  
+  if (error) {
+    return <div className="p-4 text-red-500 bg-red-50 rounded-lg">{error.message || 'Gagal memuat data'}</div>;
+  }
+
+  return (
+    <DataTable
+      columns={columns}
+      data={data || []}
+      pagination={{
+        currentPage: page,
+        totalPages: metadata?.totalPages || 1,
+        hasNextPage: metadata?.hasNextPage,
+      }}
+    />
+  );
+}
 
 export default async function SpbPage(props) {
   const searchParams = await props.searchParams;
@@ -17,17 +39,15 @@ export default async function SpbPage(props) {
   const page = Number(searchParams?.page) || 1;
   const query = searchParams?.query || '';
 
-  const { data, metadata } = await getSpbList({ page, limit: 10, query });
-
   return (
     <div className="flex flex-col gap-6 py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Daftar Permintaan Barang (SPB)</h1>
         <Link href="/dashboard/spb/create">
-            <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Buat SPB Baru
-            </Button>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Buat SPB Baru
+          </Button>
         </Link>
       </div>
 
@@ -35,15 +55,9 @@ export default async function SpbPage(props) {
         <SearchInput placeholder="Cari No SPB atau Pemohon..." />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={data || []}
-        pagination={{
-          currentPage: page,
-          totalPages: metadata?.totalPages || 1,
-          hasNextPage: metadata?.hasNextPage,
-        }}
-      />
+      <Suspense fallback={<TableSkeleton rows={10} columns={5} />}>
+        <SpbTable page={page} query={query} />
+      </Suspense>
     </div>
   );
 }

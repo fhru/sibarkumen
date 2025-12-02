@@ -17,8 +17,8 @@ export function OverviewChart({ data, noCard = false }) {
           )
       }
       return (
-        <div className="h-[400px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[400px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <AreaChart
                 data={data}
                 margin={{

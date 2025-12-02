@@ -2,8 +2,10 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { ErrorTypes, createError, logError } from '@/lib/error-types';
 
 const PejabatSchema = z.object({
   idPegawai: z.coerce.number().min(1, 'Pegawai harus dipilih'),
@@ -13,13 +15,10 @@ const PejabatSchema = z.object({
   keterangan: z.string().optional(),
 });
 
-export async function getPejabatList({ page = 1, limit = 10, query = '' }) {
-  const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
-
+// Core fetch function
+async function fetchPejabatList({ page = 1, limit = 10, query = '' }) {
   const skip = (page - 1) * limit;
   
-  // Query logic: filter by pegawai name or jabatan
   const where = {
     isActive: true,
     OR: [
@@ -28,91 +27,99 @@ export async function getPejabatList({ page = 1, limit = 10, query = '' }) {
     ],
   };
 
-  try {
-    const [data, total] = await Promise.all([
-      prisma.pejabatPengelola.findMany({
-        where,
-        include: {
-            pegawai: true
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.pejabatPengelola.count({ where }),
-    ]);
+  const [data, total] = await Promise.all([
+    prisma.pejabatPengelola.findMany({
+      where,
+      include: { pegawai: true },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.pejabatPengelola.count({ where }),
+  ]);
 
-    return {
-      data,
-      metadata: {
-        hasNextPage: skip + limit < total,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-      },
-    };
+  return {
+    data,
+    metadata: {
+      hasNextPage: skip + limit < total,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    },
+  };
+}
+
+// Cached version
+const getCachedPejabatList = unstable_cache(
+  fetchPejabatList,
+  ['pejabat-list'],
+  { revalidate: 60, tags: ['pejabat'] }
+);
+
+export async function getPejabatList(params) {
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  try {
+    return await getCachedPejabatList(params);
   } catch (error) {
-    console.error('Failed to fetch pejabat:', error);
-    return { error: 'Failed to fetch data' };
+    logError('getPejabatList', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal mengambil data pejabat');
   }
 }
 
 export async function createPejabat(formData) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   const validated = PejabatSchema.safeParse(formData);
-
   if (!validated.success) {
-    return { error: 'Invalid fields', details: validated.error.flatten() };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Data tidak valid', validated.error.flatten());
   }
 
   try {
-    await prisma.pejabatPengelola.create({
-      data: validated.data,
-    });
-
+    await prisma.pejabatPengelola.create({ data: validated.data });
     revalidatePath('/dashboard/pejabat');
     return { success: true, message: 'Pejabat berhasil ditambahkan' };
   } catch (error) {
-    return { error: 'Gagal membuat pejabat' };
+    logError('createPejabat', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal membuat pejabat');
   }
 }
 
 export async function updatePejabat(id, formData) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   const validated = PejabatSchema.safeParse(formData);
-
   if (!validated.success) {
-    return { error: 'Invalid fields' };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Data tidak valid');
   }
 
   try {
-    await prisma.pejabatPengelola.update({
-      where: { id },
-      data: validated.data,
-    });
-
+    await prisma.pejabatPengelola.update({ where: { id }, data: validated.data });
     revalidatePath('/dashboard/pejabat');
     return { success: true, message: 'Pejabat berhasil diupdate' };
   } catch (error) {
-    return { error: 'Gagal update pejabat' };
+    logError('updatePejabat', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal update pejabat');
   }
 }
 
 export async function deletePejabat(id) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   try {
-    await prisma.pejabatPengelola.update({
-      where: { id },
-      data: { isActive: false },
-    });
+    await prisma.pejabatPengelola.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/pejabat');
     return { success: true, message: 'Pejabat berhasil dihapus' };
   } catch (error) {
-    return { error: 'Gagal menghapus pejabat' };
+    logError('deletePejabat', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal menghapus pejabat');
   }
+}
+
+export async function revalidatePejabatCache() {
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('pejabat');
 }

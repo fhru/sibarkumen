@@ -2,8 +2,10 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { ErrorTypes, createError, logError } from '@/lib/error-types';
 
 const PegawaiSchema = z.object({
   nama: z.string().min(1, 'Nama harus diisi'),
@@ -13,10 +15,8 @@ const PegawaiSchema = z.object({
   keterangan: z.string().optional(),
 });
 
-export async function getPegawaiList({ page = 1, limit = 10, query = '' }) {
-  const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
-
+// Core fetch functions
+async function fetchPegawaiList({ page = 1, limit = 10, query = '' }) {
   const skip = (page - 1) * limit;
   
   const where = {
@@ -27,51 +27,74 @@ export async function getPegawaiList({ page = 1, limit = 10, query = '' }) {
     ],
   };
 
-  try {
-    const [data, total] = await Promise.all([
-      prisma.pegawai.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { nama: 'asc' },
-      }),
-      prisma.pegawai.count({ where }),
-    ]);
+  const [data, total] = await Promise.all([
+    prisma.pegawai.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { nama: 'asc' },
+    }),
+    prisma.pegawai.count({ where }),
+  ]);
 
-    return {
-      data,
-      metadata: {
-        hasNextPage: skip + limit < total,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-      },
-    };
+  return {
+    data,
+    metadata: {
+      hasNextPage: skip + limit < total,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    },
+  };
+}
+
+async function fetchAllPegawai() {
+  return await prisma.pegawai.findMany({
+    where: { isActive: true },
+    orderBy: { nama: 'asc' }
+  });
+}
+
+// Cached versions
+const getCachedPegawaiList = unstable_cache(
+  fetchPegawaiList,
+  ['pegawai-list'],
+  { revalidate: 60, tags: ['pegawai'] }
+);
+
+const getCachedAllPegawai = unstable_cache(
+  fetchAllPegawai,
+  ['pegawai-all'],
+  { revalidate: 60, tags: ['pegawai'] }
+);
+
+export async function getPegawaiList(params) {
+  const session = await auth();
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
+
+  try {
+    return await getCachedPegawaiList(params);
   } catch (error) {
-    console.error('Failed to fetch pegawai:', error);
-    return { error: 'Failed to fetch data' };
+    logError('getPegawaiList', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal mengambil data pegawai');
   }
 }
 
 export async function getAllPegawai() {
-    // Helper for dropdowns
-    try {
-        return await prisma.pegawai.findMany({
-            where: { isActive: true },
-            orderBy: { nama: 'asc' }
-        });
-    } catch (e) {
-        return [];
-    }
+  try {
+    return await getCachedAllPegawai();
+  } catch (e) {
+    logError('getAllPegawai', e);
+    return [];
+  }
 }
 
 export async function createPegawai(formData) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   const validated = PegawaiSchema.safeParse(formData);
-
   if (!validated.success) {
-    return { error: 'Invalid fields', details: validated.error.flatten() };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Data tidak valid', validated.error.flatten());
   }
 
   try {
@@ -80,55 +103,53 @@ export async function createPegawai(formData) {
     });
 
     if (existing) {
-      return { error: 'NIP sudah terdaftar' };
+      return createError(ErrorTypes.CONFLICT, 'NIP sudah terdaftar');
     }
 
-    await prisma.pegawai.create({
-      data: validated.data,
-    });
+    await prisma.pegawai.create({ data: validated.data });
 
     revalidatePath('/dashboard/pegawai');
     return { success: true, message: 'Pegawai berhasil ditambahkan' };
   } catch (error) {
-    return { error: 'Gagal membuat pegawai' };
+    logError('createPegawai', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal membuat pegawai');
   }
 }
 
 export async function updatePegawai(id, formData) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   const validated = PegawaiSchema.safeParse(formData);
-
   if (!validated.success) {
-    return { error: 'Invalid fields' };
+    return createError(ErrorTypes.VALIDATION_ERROR, 'Data tidak valid');
   }
 
   try {
-    await prisma.pegawai.update({
-      where: { id },
-      data: validated.data,
-    });
-
+    await prisma.pegawai.update({ where: { id }, data: validated.data });
     revalidatePath('/dashboard/pegawai');
     return { success: true, message: 'Pegawai berhasil diupdate' };
   } catch (error) {
-    return { error: 'Gagal update pegawai' };
+    logError('updatePegawai', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal update pegawai');
   }
 }
 
 export async function deletePegawai(id) {
   const session = await auth();
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   try {
-    await prisma.pegawai.update({
-      where: { id },
-      data: { isActive: false },
-    });
+    await prisma.pegawai.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/pegawai');
     return { success: true, message: 'Pegawai berhasil dihapus' };
   } catch (error) {
-    return { error: 'Gagal menghapus pegawai' };
+    logError('deletePegawai', error);
+    return createError(ErrorTypes.DATABASE_ERROR, 'Gagal menghapus pegawai');
   }
+}
+
+export async function revalidatePegawaiCache() {
+  const { revalidateTag } = await import('next/cache');
+  revalidateTag('pegawai');
 }
