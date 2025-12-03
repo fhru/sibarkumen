@@ -152,6 +152,9 @@ const getCachedPejabatOptions = unstable_cache(
 );
 
 export async function getPejabatOptions() {
+  const session = await auth();
+  if (!session) return [];
+
   try {
     return await getCachedPejabatOptions();
   } catch (error) {

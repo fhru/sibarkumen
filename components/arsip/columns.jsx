@@ -1,7 +1,20 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
+import Link from "next/link";
+
+// Mapping type ke doctype untuk URL print
+const getDocType = (type) => {
+  const map = {
+    BAST_MASUK: "bast-masuk",
+    SPB: "spb",
+    SPPB: "sppb",
+    BAST_KELUAR: "bast-keluar",
+  };
+  return map[type] || type.toLowerCase();
+};
 
 export const columns = [
   {
@@ -58,5 +71,21 @@ export const columns = [
     accessorKey: "description",
     header: "Keterangan",
   },
-  // Add Action to "View PDF" or "Details" eventually
+  {
+    id: "actions",
+    header: "Aksi",
+    cell: ({ row }) => {
+      const docType = getDocType(row.original.type);
+      const docId = row.original.id;
+
+      return (
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/print/${docType}/${docId}`} target="_blank">
+            <Printer className="mr-2 h-4 w-4" />
+            Cetak
+          </Link>
+        </Button>
+      );
+    },
+  },
 ];

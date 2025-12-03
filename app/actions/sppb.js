@@ -125,6 +125,9 @@ export async function getSppbList(params) {
 }
 
 export async function getSpbOptions() {
+  const session = await auth();
+  if (!session) return [];
+
   try {
     return await getCachedSpbOptions();
   } catch (e) {
@@ -154,6 +157,17 @@ export async function createSppb(data) {
     }
 
     await prisma.$transaction(async (tx) => {
+      // Validasi stok SEBELUM insert untuk performa dan logika yang lebih baik
+      for (const item of details) {
+        const barang = await tx.barang.findUnique({ where: { id: item.idBarang } });
+        if (!barang) {
+          throw new Error(`Barang ID ${item.idBarang} tidak ditemukan`);
+        }
+        if (barang.stokTersedia < item.jumlahDisalurkan) {
+          throw new Error(`Stok tidak cukup untuk ${barang.namaBarang}. Sisa: ${barang.stokTersedia}`);
+        }
+      }
+
       const sppb = await tx.sppb.create({ data: header });
 
       for (const item of details) {
@@ -161,16 +175,11 @@ export async function createSppb(data) {
           data: { idSppb: sppb.id, idBarang: item.idBarang, jumlahDisalurkan: item.jumlahDisalurkan },
         });
 
-        const barang = await tx.barang.findUnique({ where: { id: item.idBarang } });
-        if (barang) {
-          if (barang.stokTersedia < item.jumlahDisalurkan) {
-            throw new Error(`Stok tidak cukup untuk ${barang.namaBarang}. Sisa: ${barang.stokTersedia}`);
-          }
-          await tx.barang.update({
-            where: { id: item.idBarang },
-            data: { stokTersedia: barang.stokTersedia - item.jumlahDisalurkan }
-          });
-        }
+        // Update stok barang
+        await tx.barang.update({
+          where: { id: item.idBarang },
+          data: { stokTersedia: { decrement: item.jumlahDisalurkan } }
+        });
       }
     });
 
@@ -180,6 +189,9 @@ export async function createSppb(data) {
     revalidatePath('/dashboard');
     const { revalidateTag } = await import('next/cache');
     revalidateTag('spb');
+    revalidateTag('sppb');
+    revalidateTag('barang');
+    revalidateTag('dashboard');
     return { success: true, message: 'SPPB Berhasil Dibuat' };
   } catch (error) {
     logError('createSppb', error);

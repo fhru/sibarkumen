@@ -26,7 +26,26 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                  throw new Error("Akun Non-Aktif.");
              }
 
+             // Reset failed login attempts on successful login
+             if (user.failedLoginAttempts > 0) {
+               await prisma.user.update({
+                 where: { id: user.id },
+                 data: { failedLoginAttempts: 0, lastLogin: new Date() }
+               });
+             } else {
+               await prisma.user.update({
+                 where: { id: user.id },
+                 data: { lastLogin: new Date() }
+               });
+             }
+
              return user;
+          } else {
+            // Increment failed login attempts
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { failedLoginAttempts: (user.failedLoginAttempts || 0) + 1 }
+            });
           }
         }
         

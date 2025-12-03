@@ -5,8 +5,7 @@ import { PrintBastMasuk } from '@/components/print/print-bast-masuk';
 import { PrintSpb } from '@/components/print/print-spb';
 import { PrintSppb } from '@/components/print/print-sppb';
 import { PrintBastKeluar } from '@/components/print/print-bast-keluar';
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
+import { PrintButton } from '@/components/print/print-button';
 
 export default async function PrintPage(props) {
   const params = await props.params;
@@ -15,6 +14,7 @@ export default async function PrintPage(props) {
 
   const { doctype, id } = params;
   const docId = parseInt(id);
+  if (isNaN(docId)) notFound();
 
   let data = null;
   let Component = null;
@@ -87,5 +87,4 @@ export default async function PrintPage(props) {
   );
 }
 
-// Tiny Client Component for the Print Button
-import { PrintButton } from '@/components/print/print-button';
+

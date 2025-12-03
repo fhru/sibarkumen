@@ -144,6 +144,24 @@ export async function deletePegawai(id) {
   if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   try {
+    // Cek apakah pegawai memiliki relasi aktif
+    const [bastMasukCount, spbCount, sppbCount, bastKeluarCount, pejabatCount] = await Promise.all([
+      prisma.bastMasuk.count({ where: { pptkPpkId: id } }),
+      prisma.spb.count({ where: { pemohonId: id } }),
+      prisma.sppb.count({ where: { idPenerima: id } }),
+      prisma.bastKeluar.count({ where: { idPihakMenerima: id } }),
+      prisma.pejabatPengelola.count({ where: { idPegawai: id, isActive: true } }),
+    ]);
+
+    const totalRelations = bastMasukCount + spbCount + sppbCount + bastKeluarCount;
+    if (totalRelations > 0) {
+      return createError(ErrorTypes.CONFLICT, `Pegawai masih memiliki ${totalRelations} dokumen terkait`);
+    }
+
+    if (pejabatCount > 0) {
+      return createError(ErrorTypes.CONFLICT, `Pegawai masih terdaftar sebagai pejabat pengelola aktif`);
+    }
+
     await prisma.pegawai.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/pegawai');
     const { revalidateTag } = await import('next/cache');
@@ -181,6 +199,9 @@ const getCachedPegawaiOptions = unstable_cache(
 );
 
 export async function getPegawaiOptions() {
+  const session = await auth();
+  if (!session) return [];
+
   try {
     return await getCachedPegawaiOptions();
   } catch (error) {

@@ -121,24 +121,22 @@ export async function createSpb(data) {
       );
     }
 
-    for (const item of details) {
-      const barang = await prisma.barang.findUnique({
-        where: { id: item.idBarang },
-      });
-      if (!barang)
-        return createError(
-          ErrorTypes.NOT_FOUND,
-          `Barang ID ${item.idBarang} tidak ditemukan`,
-        );
-      if (barang.stokTersedia < item.jumlah) {
-        return createError(
-          ErrorTypes.VALIDATION_ERROR,
-          `Stok ${barang.namaBarang} tidak mencukupi. Tersedia: ${barang.stokTersedia}`,
-        );
-      }
-    }
-
     await prisma.$transaction(async (tx) => {
+      // Validasi stok di dalam transaction untuk menghindari race condition
+      for (const item of details) {
+        const barang = await tx.barang.findUnique({
+          where: { id: item.idBarang },
+        });
+        if (!barang) {
+          throw new Error(`Barang ID ${item.idBarang} tidak ditemukan`);
+        }
+        if (barang.stokTersedia < item.jumlah) {
+          throw new Error(
+            `Stok ${barang.namaBarang} tidak mencukupi. Tersedia: ${barang.stokTersedia}`,
+          );
+        }
+      }
+
       const spb = await tx.spb.create({ data: header });
       for (const item of details) {
         await tx.spbDetail.create({
@@ -149,6 +147,9 @@ export async function createSpb(data) {
 
     revalidatePath("/dashboard/spb");
     revalidatePath("/dashboard");
+    const { revalidateTag } = await import("next/cache");
+    revalidateTag("spb");
+    revalidateTag("dashboard");
     return { success: true, message: "Permintaan Barang berhasil dibuat" };
   } catch (error) {
     logError("createSpb", error);

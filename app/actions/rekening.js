@@ -140,6 +140,13 @@ export async function deleteRekening(id) {
   if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   try {
+    // Cek apakah rekening sedang digunakan oleh BAST Masuk
+    const usedByBast = await prisma.bastMasuk.count({ where: { idRekening: id } });
+
+    if (usedByBast > 0) {
+      return createError(ErrorTypes.CONFLICT, `Rekening masih digunakan oleh ${usedByBast} transaksi BAST Masuk`);
+    }
+
     await prisma.rekening.update({ where: { id }, data: { isActive: false } });
     revalidatePath('/dashboard/rekening');
     const { revalidateTag } = await import('next/cache');

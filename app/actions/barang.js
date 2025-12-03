@@ -142,7 +142,15 @@ export async function getBarangById(id) {
   if (!session) return null;
 
   try {
-    return await fetchBarangById(id);
+    const item = await fetchBarangById(id);
+    if (!item) return null;
+    
+    // Serialize Decimal fields untuk client component
+    return {
+      ...item,
+      hargaSatuan: item.hargaSatuan?.toNumber?.() ?? item.hargaSatuan,
+      totalHarga: item.totalHarga?.toNumber?.() ?? item.totalHarga,
+    };
   } catch (error) {
     logError('getBarangById', error);
     return null;
@@ -302,6 +310,9 @@ const getCachedBarangOptions = unstable_cache(
 );
 
 export async function getBarangOptions() {
+  const session = await auth();
+  if (!session) return [];
+
   try {
     return await getCachedBarangOptions();
   } catch (error) {

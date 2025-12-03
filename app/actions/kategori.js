@@ -63,6 +63,9 @@ const getCachedKategoriList = unstable_cache(
 );
 
 export async function getKategoriOptions() {
+  const session = await auth();
+  if (!session) return [];
+
   try {
     return await getCachedKategoriOptions();
   } catch (e) {
@@ -134,6 +137,18 @@ export async function deleteKategori(id) {
   if (!session) return createError(ErrorTypes.UNAUTHORIZED, 'Anda harus login');
 
   try {
+    // Cek apakah kategori sedang digunakan oleh barang
+    const kategori = await prisma.referensiKategori.findUnique({ where: { id } });
+    if (!kategori) return createError(ErrorTypes.NOT_FOUND, 'Kategori tidak ditemukan');
+
+    const usedByBarang = await prisma.barang.count({
+      where: { kategori: kategori.nama, isActive: true }
+    });
+
+    if (usedByBarang > 0) {
+      return createError(ErrorTypes.CONFLICT, `Kategori masih digunakan oleh ${usedByBarang} barang aktif`);
+    }
+
     await prisma.referensiKategori.delete({ where: { id } });
     revalidatePath('/dashboard/kategori');
     revalidatePath('/dashboard/barang');

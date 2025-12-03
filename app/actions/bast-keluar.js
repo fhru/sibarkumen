@@ -189,6 +189,8 @@ export async function createBastKeluar(data) {
     revalidatePath('/dashboard');
     const { revalidateTag } = await import('next/cache');
     revalidateTag('sppb');
+    revalidateTag('bast-keluar');
+    revalidateTag('dashboard');
     return { success: true, message: 'BAST Keluar berhasil dibuat' };
   } catch (error) {
     logError('createBastKeluar', error);

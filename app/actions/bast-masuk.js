@@ -146,6 +146,10 @@ export async function createBastMasuk(data) {
     revalidatePath('/dashboard/bast-masuk');
     revalidatePath('/dashboard/barang');
     revalidatePath('/dashboard');
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag('barang');
+    revalidateTag('bast-masuk');
+    revalidateTag('dashboard');
     return { success: true, message: 'BAST Masuk berhasil disimpan' };
   } catch (error) {
     logError('createBastMasuk', error);
