@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Scan } from 'lucide-react';
+import { OcrScanner } from './ocr-scanner';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -90,15 +91,49 @@ export function BastMasukForm({
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "details",
   });
 
-  // Watch for calculation
-  // Ideally use useWatch, but for simplicity in this big form,
-  // we can just calculate on render or useEffect if needed for display.
-  // But react-hook-form handles value updates.
+  // Handler untuk data dari OCR Scanner
+  const handleOcrData = (ocrData) => {
+    // Update header fields
+    if (ocrData.nomorBast) {
+      form.setValue('nomorBast', ocrData.nomorBast);
+    }
+    if (ocrData.tanggalBast) {
+      form.setValue('tanggalBast', ocrData.tanggalBast);
+    }
+    if (ocrData.nomorBapb) {
+      form.setValue('nomorBapb', ocrData.nomorBapb);
+    }
+    if (ocrData.tanggalBapb) {
+      form.setValue('tanggalBapb', ocrData.tanggalBapb);
+    }
+    if (ocrData.pihakKetiga) {
+      form.setValue('pihakKetiga', ocrData.pihakKetiga);
+    }
+    
+    // Jika nomorBapb sama dengan nomorBast, tetap set keduanya
+    // (dalam banyak kasus nomor BAST dan BAPB sama)
+
+    // Update detail items jika ada yang terdeteksi dengan match
+    if (ocrData.details && ocrData.details.length > 0) {
+      const validDetails = ocrData.details
+        .filter(d => d.idBarang) // Hanya yang matched dengan database
+        .map(d => ({
+          idBarang: d.idBarang,
+          jumlah: d.jumlah || 1,
+          hargaSatuan: d.hargaSatuan || 0,
+          totalHarga: (d.jumlah || 1) * (d.hargaSatuan || 0)
+        }));
+
+      if (validDetails.length > 0) {
+        replace(validDetails);
+      }
+    }
+  };
 
   async function onSubmit(values) {
     setIsPending(true);
@@ -133,7 +168,13 @@ export function BastMasukForm({
         
         {/* Header Section */}
         <Card>
-            <CardHeader><CardTitle>Informasi Dokumen</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Informasi Dokumen</CardTitle>
+              <OcrScanner 
+                barangOptions={barangList} 
+                onDataExtracted={handleOcrData} 
+              />
+            </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
