@@ -59,7 +59,7 @@ export function SignIn() {
       },
       {
         onSuccess: () => {
-          router.push('/');
+          router.push('/dashboard');
           toast.success('Signed in successfully');
         },
         onError: (ctx) => {
