@@ -11,30 +11,28 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useTransition } from 'react';
-import { deleteBarang } from '@/drizzle/actions/barang';
 import { toast } from 'sonner';
+import { deleteKategori } from '@/drizzle/actions/kategori';
 
-interface BarangAlertDeleteProps {
+interface KategoriAlertDeleteProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  barangId: number;
-  barangNama: string;
+  setOpen: (open: boolean) => void;
+  kategoriId: number;
 }
 
-export function BarangAlertDelete({
+export function KategoriAlertDelete({
   open,
-  onOpenChange,
-  barangId,
-  barangNama,
-}: BarangAlertDeleteProps) {
+  setOpen,
+  kategoriId,
+}: KategoriAlertDeleteProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteBarang(barangId);
+      const result = await deleteKategori(kategoriId);
       if (result.success) {
         toast.success(result.message);
-        onOpenChange(false);
+        setOpen(false);
       } else {
         toast.error(result.message);
       }
@@ -42,27 +40,26 @@ export function BarangAlertDelete({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+          <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus barang "
-            <span className="font-semibold text-foreground">{barangNama}</span>"
-            secara permanen dari database.
+            Tindakan ini tidak dapat dibatalkan. Kategori ini akan dihapus
+            permanen dari database.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
           <AlertDialogAction
-            disabled={isPending}
             onClick={(e) => {
               e.preventDefault();
               handleDelete();
             }}
+            disabled={isPending}
             variant={'destructive'}
           >
-            {isPending ? 'Menghapus...' : 'Hapus Barang'}
+            {isPending ? 'Menghapus...' : 'Hapus Kategori'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

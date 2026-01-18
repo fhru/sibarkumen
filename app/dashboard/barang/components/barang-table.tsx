@@ -197,16 +197,16 @@ export function BarangTable({
               />
             </div>
 
+            <BarangStatusFilter
+              value={statusParam || undefined}
+              onChange={handleStatusFilter}
+            />
+
             <BarangFacetedFilter
               title="Kategori"
               options={categoryOptions}
               selectedValues={selectedCategories}
               setFilterValue={handleCategoryFilter}
-            />
-
-            <BarangStatusFilter
-              value={statusParam || undefined}
-              onChange={handleStatusFilter}
             />
 
             {isFiltered && (

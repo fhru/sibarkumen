@@ -43,7 +43,7 @@ export const navItems: NavItem[] = [
       },
       {
         title: 'Konversi Satuan',
-        href: '/dashboard/konversi',
+        href: '/dashboard/konversi-satuan',
       },
     ],
   },

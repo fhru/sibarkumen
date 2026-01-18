@@ -4,7 +4,17 @@ import { useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, MoreHorizontal, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ArrowUpDown,
+  MoreHorizontal,
+  ArrowUp,
+  ArrowDown,
+  Pencil,
+  Trash2,
+  History,
+  Eye,
+  Copy,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DropdownMenu,
@@ -34,27 +44,34 @@ const BarangActionCell = ({ barang }: { barang: Barang }) => {
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent className="w-40" align="end">
           <DropdownMenuLabel>Aksi</DropdownMenuLabel>
           <DropdownMenuItem
             onClick={() => navigator.clipboard.writeText(barang.kodeBarang)}
           >
+            <Copy className="h-4 w-4" />
             Salin Kode
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setShowDetailDialog(true)}>
+            <Eye className="h-4 w-4" />
             Lihat Detail
           </DropdownMenuItem>
-          <DropdownMenuItem>Lihat Mutasi</DropdownMenuItem>
+          <DropdownMenuItem>
+            <History className="h-4 w-4" />
+            Lihat Mutasi
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
-            Edit Barang
+            <Pencil className="h-4 w-4" />
+            Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={() => setShowDeleteDialog(true)}
-            className="text-destructive focus:text-destructive"
+            variant="destructive"
           >
-            Hapus Barang
+            <Trash2 className="h-4 w-4" />
+            Hapus
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

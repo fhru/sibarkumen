@@ -116,10 +116,12 @@ export function BarangDialogCreate({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-4">
           <FieldGroup>
             <Field>
-              <FieldLabel>Nama Barang</FieldLabel>
+              <FieldLabel>
+                Nama Barang <span className="text-red-500 -ml-1">*</span>
+              </FieldLabel>
               <Input
                 {...register('nama')}
                 placeholder="Contoh: Laptop Dell XPS 13"
@@ -129,7 +131,9 @@ export function BarangDialogCreate({
 
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel>Kategori</FieldLabel>
+                <FieldLabel>
+                  Kategori <span className="text-red-500 -ml-1">*</span>
+                </FieldLabel>
                 <Controller
                   control={control}
                   name="kategoriId"
@@ -154,7 +158,9 @@ export function BarangDialogCreate({
               </Field>
 
               <Field>
-                <FieldLabel>Satuan</FieldLabel>
+                <FieldLabel>
+                  Satuan <span className="text-red-500 -ml-1">*</span>
+                </FieldLabel>
                 <Controller
                   control={control}
                   name="satuanId"

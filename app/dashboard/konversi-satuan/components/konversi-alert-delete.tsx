@@ -1,5 +1,6 @@
 'use client';
 
+import { useTransition } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,31 +11,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useTransition } from 'react';
-import { deleteBarang } from '@/drizzle/actions/barang';
+import { deleteKonversiSatuan } from '@/drizzle/actions/konversi-satuan';
 import { toast } from 'sonner';
 
-interface BarangAlertDeleteProps {
+interface KonversiAlertDeleteProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  barangId: number;
-  barangNama: string;
+  setOpen: (open: boolean) => void;
+  konversiId: number;
 }
 
-export function BarangAlertDelete({
+export function KonversiAlertDelete({
   open,
-  onOpenChange,
-  barangId,
-  barangNama,
-}: BarangAlertDeleteProps) {
+  setOpen,
+  konversiId,
+}: KonversiAlertDeleteProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteBarang(barangId);
+      const result = await deleteKonversiSatuan(konversiId);
       if (result.success) {
         toast.success(result.message);
-        onOpenChange(false);
+        setOpen(false);
       } else {
         toast.error(result.message);
       }
@@ -42,27 +40,28 @@ export function BarangAlertDelete({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+          <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus barang "
-            <span className="font-semibold text-foreground">{barangNama}</span>"
-            secara permanen dari database.
+            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus aturan
+            konversi secara permanen.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => setOpen(false)}>
+            Batal
+          </AlertDialogCancel>
           <AlertDialogAction
-            disabled={isPending}
             onClick={(e) => {
               e.preventDefault();
               handleDelete();
             }}
+            disabled={isPending}
             variant={'destructive'}
           >
-            {isPending ? 'Menghapus...' : 'Hapus Barang'}
+            {isPending ? 'Menghapus...' : 'Hapus Konversi'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

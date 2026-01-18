@@ -124,7 +124,7 @@ export function BarangDialogUpdate({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-4">
           <FieldGroup>
             <div className="grid grid-cols-2 gap-4">
               <Field>
