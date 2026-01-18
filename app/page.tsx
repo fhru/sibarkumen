@@ -59,7 +59,7 @@ export default function Page() {
       <main className="flex-1 flex flex-col items-center justify-center z-10 px-4 text-center mt-20">
         <div className="max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out">
           <div className="inline-block px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4">
-            New Generation Asset Management
+            Sistem Inventaris Barang
           </div>
 
           <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-linear-to-b from-foreground to-foreground/50 pb-2">
@@ -67,16 +67,17 @@ export default function Page() {
           </h1>
 
           <p className="max-w-2xl mx-auto text-xl text-muted-foreground md:text-2xl leading-relaxed">
-            Sistem Inventaris Barang Gudang Kelurahan Ujung Menteng.
+            Aplikasi internal untuk mempermudah pencatatan barang masuk, barang
+            keluar, dan pelaporan stok gudang di Kantor Kelurahan Ujung Menteng.
           </p>
 
           <div className="pt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link href="/sign-in">
               <Button
                 size="lg"
-                className="h-12 px-8 text-base shadow-lg shadow-primary/20 hover:scale-105 transition-transform duration-300"
+                className="h-12 px-8 text-base shadow-lg shadow-primary/20"
               >
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                Masuk ke Sistem <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link href="/sign-in">
@@ -85,7 +86,7 @@ export default function Page() {
                 variant="outline"
                 className="h-12 px-8 text-base bg-background/50 hover:bg-background/80 backdrop-blur-sm border-white/10 dark:border-white/10"
               >
-                Learn More
+                Panduan Penggunaan
               </Button>
             </Link>
           </div>
@@ -95,8 +96,9 @@ export default function Page() {
       {/* Simple Footer */}
       <footer className="relative z-10 py-6 text-center text-sm text-muted-foreground/60">
         <p>
-          &copy; {new Date().getFullYear()} Kelurahan Ujung Menteng. Dibuat oleh
-          Mahasiswa Gunadarma.
+          &copy; {new Date().getFullYear()} Kelurahan Ujung Menteng.{' '}
+          <br className="sm:hidden" />
+          Dikembangkan oleh Mahasiswa Gunadarma.
         </p>
       </footer>
     </div>

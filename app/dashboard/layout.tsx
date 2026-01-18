@@ -101,7 +101,7 @@ export default function DashboardLayout({
         </div>
 
         {/* User Profile Section */}
-        <div className="p-3">
+        <div className="px-3 py-2 border-b">
           {isPending ? (
             <div className="flex items-center gap-3">
               <Skeleton className="h-8 w-8 rounded-full" />
@@ -122,7 +122,12 @@ export default function DashboardLayout({
                     isCollapsed && 'justify-center px-0'
                   )}
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar
+                    className={cn(
+                      'h-6 w-6',
+                      isCollapsed ? 'h-6 w-6' : 'h-8 w-8'
+                    )}
+                  >
                     <AvatarImage
                       src={session.user.image || ''}
                       alt={session.user.name}
@@ -148,8 +153,8 @@ export default function DashboardLayout({
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
-                align="center"
-                side="bottom"
+                align={isCollapsed ? 'start' : 'center'}
+                side={isCollapsed ? 'right' : 'bottom'}
                 sideOffset={4}
               >
                 <DropdownMenuLabel className="p-0 font-normal">

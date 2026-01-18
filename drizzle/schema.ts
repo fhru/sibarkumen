@@ -90,34 +90,38 @@ export const verification = pgTable(
   (table) => [index('verification_identifier_idx').on(table.identifier)]
 );
 
-export const barang = pgTable('barang', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  nama: text('nama').notNull(),
-  kodeBarang: text('kode_barang').notNull().unique(),
-  stok: integer('stok').notNull(),
-  spesifikasi: text('spesifikasi'),
+export const barang = pgTable(
+  'barang',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    nama: text('nama').notNull(),
+    kodeBarang: text('kode_barang').notNull().unique(),
+    stok: integer('stok').default(0).notNull(),
+    spesifikasi: text('spesifikasi'),
 
-  kategoriId: integer('kategori_id')
-    .notNull()
-    .references(() => kategori.id, {
-      onDelete: 'cascade',
-      onUpdate: 'cascade',
-    }),
+    kategoriId: integer('kategori_id')
+      .notNull()
+      .references(() => kategori.id, {
+        onDelete: 'cascade',
+        onUpdate: 'cascade',
+      }),
 
-  // satuanId ini adalah SATUAN TERKECIL (misal: Pcs)
-  satuanId: integer('satuan_id')
-    .notNull()
-    .references(() => satuan.id, {
-      onDelete: 'cascade',
-      onUpdate: 'cascade',
-    }),
+    // satuanId ini adalah SATUAN TERKECIL (misal: Pcs)
+    satuanId: integer('satuan_id')
+      .notNull()
+      .references(() => satuan.id, {
+        onDelete: 'cascade',
+        onUpdate: 'cascade',
+      }),
 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index('barang_nama_idx').on(table.nama)]
+);
 
 export const pihakKetiga = pgTable('pihak_ketiga', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
@@ -183,7 +187,7 @@ export const jabatan = pgTable('jabatan', {
 export const pegawai = pgTable('pegawai', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   nama: text('nama').notNull(),
-  nip: text('nip').notNull().unique(),
+  nip: text('nip').unique(),
   userId: text('user_id')
     .references(() => user.id, { onDelete: 'set null' })
     .unique(),
@@ -353,6 +357,7 @@ export const mutasiBarang = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    index('mutasi_history_idx').on(table.barangId, table.tanggal),
     index('mutasi_barang_barang_idx').on(table.barangId),
     index('mutasi_barang_tanggal_idx').on(table.tanggal),
   ]
@@ -472,7 +477,7 @@ export const bastKeluar = pgTable('bast_keluar', {
     .notNull()
     .references(() => sppb.id, { onDelete: 'cascade' }),
 
-  nomorBast: text('nomor_bast').notNull().unique(), // Format: BAST-OUT/2026/...
+  nomorBast: text('nomor_bast').notNull().unique(),
   tanggalBast: date('tanggal_bast').notNull(), // Tanggal tanda tangan (Serah Terima)
 
   // Pihak yang bertanda tangan (Biasanya Pihak 1 & Pihak 2)
@@ -483,6 +488,21 @@ export const bastKeluar = pgTable('bast_keluar', {
   pihakKeduaId: integer('pihak_kedua_id') // Yang Menerima (User/Pemohon)
     .notNull()
     .references(() => pegawai.id),
+
+  // Jumlah total harga dasar semua item (Sebelum PPN)
+  subtotal: numeric('subtotal', { precision: 18, scale: 2 })
+    .default('0')
+    .notNull(),
+
+  // Total PPN dari semua item (Sum of bastKeluarDetail.nilaiPpn)
+  totalPpn: numeric('total_ppn', { precision: 18, scale: 2 })
+    .default('0')
+    .notNull(),
+
+  // Grand Total yang harus dibayar/dicatat (Subtotal + Total PPN)
+  grandTotal: numeric('grand_total', { precision: 18, scale: 2 })
+    .default('0')
+    .notNull(),
 
   keterangan: text('keterangan'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -502,9 +522,21 @@ export const bastKeluarDetail = pgTable('bast_keluar_detail', {
     .notNull()
     .references(() => barang.id),
 
-  // Jumlah yang SECARA FISIK diserahterimakan
-  // (Harusnya sama dengan SPPB, tapi bisa kurang jika ada barang rusak saat serah terima)
   qtySerahTerima: integer('qty_serah_terima').notNull(),
+
+  hargaSatuan: numeric('harga_satuan', { precision: 18, scale: 2 })
+    .default('0')
+    .notNull(),
+
+  persentasePpn: integer('persentase_ppn').default(0).notNull(),
+
+  nilaiPpn: numeric('nilai_ppn', { precision: 18, scale: 2 })
+    .default('0')
+    .notNull(),
+
+  totalHarga: numeric('total_harga', { precision: 18, scale: 2 })
+    .default('0')
+    .notNull(),
   keterangan: text('keterangan'),
 });
 
@@ -740,9 +772,11 @@ export const konversiSatuanRelations = relations(konversiSatuan, ({ one }) => ({
   satuanBesar: one(satuan, {
     fields: [konversiSatuan.satuanBesarId],
     references: [satuan.id],
+    relationName: 'satuanBesarRel',
   }),
   satuanKecil: one(satuan, {
     fields: [konversiSatuan.satuanKecilId],
     references: [satuan.id],
+    relationName: 'satuanKecilRel',
   }),
 }));
