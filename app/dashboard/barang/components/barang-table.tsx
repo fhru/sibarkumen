@@ -85,6 +85,7 @@ export function BarangTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({
       spesifikasi: false,
+      updatedAt: false,
     });
 
   // Search state managed via URL
@@ -193,7 +194,7 @@ export function BarangTable({
                 placeholder="Cari barang..."
                 defaultValue={search}
                 onChange={(event) => handleSearch(event.target.value)}
-                className="pl-8"
+                className="pl-8 bg-background dark:bg-sidebar"
               />
             </div>
 
@@ -311,7 +312,7 @@ export function BarangTable({
                       </div>
 
                       <div className="space-y-1">
-                        <p className="font-medium">Barang Tidak Ditemukan</p>
+                        <p className="font-medium">Tidak ada data Barang.</p>
                       </div>
                     </div>
                   </TableCell>

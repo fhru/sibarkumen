@@ -37,7 +37,7 @@ const barangSchema = z.object({
   nama: z.string().min(1, 'Nama barang wajib diisi'),
   kategoriId: z.string().min(1, 'Kategori wajib dipilih'),
   satuanId: z.string().min(1, 'Satuan wajib dipilih'),
-  spesifikasi: z.string().optional(),
+  spesifikasi: z.string().max(500, 'Spesifikasi maksimal 500 karakter').optional(),
 });
 
 type BarangFormValues = z.infer<typeof barangSchema>;
@@ -184,7 +184,12 @@ export function BarangDialogCreate({
             </div>
 
             <Field>
-              <FieldLabel>Spesifikasi</FieldLabel>
+              <FieldLabel>
+                Spesifikasi
+                <span className="text-muted-foreground text-xs -ml-1">
+                  (Max 500 Karakter)
+                </span>
+              </FieldLabel>
               <Textarea
                 {...register('spesifikasi')}
                 placeholder="Detail spesifikasi barang (opsional)"

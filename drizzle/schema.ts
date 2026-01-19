@@ -94,7 +94,7 @@ export const barang = pgTable(
   'barang',
   {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-    nama: text('nama').notNull(),
+    nama: text('nama').notNull().unique(),
     kodeBarang: text('kode_barang').notNull().unique(),
     stok: integer('stok').default(0).notNull(),
     spesifikasi: text('spesifikasi'),
@@ -173,7 +173,7 @@ export const asalPembelian = pgTable('asal_pembelian', {
 
 export const rekening = pgTable('rekening', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  namaBank: text('nama_bank').notNull().unique(),
+  namaBank: text('nama_bank').notNull(),
   nomorRekening: text('nomor_rekening').notNull().unique(),
   namaPemilik: text('nama_pemilik').notNull(),
   keterangan: text('keterangan'),

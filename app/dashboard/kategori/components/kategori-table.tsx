@@ -142,7 +142,7 @@ export function KategoriTable({ data }: KategoriTableProps) {
           placeholder="Cari kategori..."
           value={globalFilter ?? ''}
           onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm pl-8"
+          className="max-w-sm pl-8 bg-background dark:bg-sidebar"
         />
         <KategoriDialogCreate />
       </div>
@@ -254,10 +254,10 @@ function ActionCell({
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Aksi</DropdownMenuLabel>
         <DropdownMenuItem onClick={onEdit}>
-          <Pencil className="h-4 w-4" /> Edit
+          <Pencil className="mr-2 h-4 w-4" /> Edit
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onDelete} variant="destructive">
-          <Trash className="h-4 w-4" /> Hapus
+          <Trash className="mr-2 h-4 w-4" /> Hapus
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

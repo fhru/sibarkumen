@@ -55,7 +55,7 @@ export default async function BarangPage(props: {
         topCategory={stats.topCategory}
       />
 
-      <div className="hidden h-full flex-1 flex-col space-y-8 md:flex">
+      <div className="flex h-full flex-1 flex-col space-y-8">
         <Suspense fallback={<div>Loading table...</div>}>
           <BarangTable
             data={data}

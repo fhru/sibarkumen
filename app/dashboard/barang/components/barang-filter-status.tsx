@@ -23,7 +23,7 @@ export function BarangStatusFilter({
       value={value || 'all'}
       onValueChange={(val) => onChange(val === 'all' ? undefined : val)}
     >
-      <SelectTrigger className="h-8 w-[150px]">
+      <SelectTrigger className="h-8 w-[150px] bg-background dark:bg-sidebar">
         <SelectValue placeholder="Status Stok" />
       </SelectTrigger>
       <SelectContent>

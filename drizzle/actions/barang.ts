@@ -84,10 +84,16 @@ export async function createBarang(prevState: any, formData: FormData) {
     // Handle Error Database (Misal Kode Unik Duplicate)
     // Code 'P2002' adalah kode error umum Prisma/DB untuk Unique Constraint,
     // sesuaikan jika pakai driver Postgres native (23505).
-    if (error.message.includes('Unique constraint') || error.code === '23505') {
+    if (
+      error.code === '23505' ||
+      error.message?.includes('Unique constraint') ||
+      error.message?.includes('duplicate key') ||
+      error.message?.includes('Failed query')
+    ) {
       return {
         success: false,
-        message: 'Gagal generate kode unik. Silakan coba lagi.',
+        message:
+          'Nama barang sudah ada (duplikat) atau Kode Barang bentrok. Silakan coba lagi.',
       };
     }
 
@@ -134,7 +140,12 @@ export async function updateBarang(prevState: any, formData: FormData) {
         errors: error.flatten().fieldErrors,
       };
     }
-    if (error.code === '23505') {
+    if (
+      error.code === '23505' ||
+      error.message?.includes('duplicate key') ||
+      error.message?.includes('unique constraint') ||
+      error.message?.includes('Failed query')
+    ) {
       return {
         success: false,
         message: 'Nama barang sudah ada (duplikat)',

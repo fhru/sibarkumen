@@ -46,23 +46,16 @@ const BarangActionCell = ({ barang }: { barang: Barang }) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-40" align="end">
           <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-          <DropdownMenuItem
-            onClick={() => navigator.clipboard.writeText(barang.kodeBarang)}
-          >
-            <Copy className="h-4 w-4" />
-            Salin Kode
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setShowDetailDialog(true)}>
-            <Eye className="h-4 w-4" />
+            <Eye className="mr-2 h-4 w-4" />
             Lihat Detail
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <History className="h-4 w-4" />
+            <History className="mr-2 h-4 w-4" />
             Lihat Mutasi
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
-            <Pencil className="h-4 w-4" />
+            <Pencil className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -70,7 +63,7 @@ const BarangActionCell = ({ barang }: { barang: Barang }) => {
             onSelect={() => setShowDeleteDialog(true)}
             variant="destructive"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="mr-2 h-4 w-4" />
             Hapus
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -176,7 +169,11 @@ export const columns: ColumnDef<Barang>[] = [
   {
     accessorKey: 'kodeBarang',
     header: ({ column }) => (
-      <SortableHeader column={column} title="Kode" sortKey="kodeBarang" />
+      <SortableHeader
+        column={column}
+        title="Kode Barang"
+        sortKey="kodeBarang"
+      />
     ),
   },
   {

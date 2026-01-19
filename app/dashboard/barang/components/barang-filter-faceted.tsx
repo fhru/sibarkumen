@@ -40,7 +40,10 @@ export function BarangFacetedFilter({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="h-8 border-dashed">
+        <Button
+          variant="outline"
+          className="h-8 border-dashed bg-background! dark:bg-sidebar!"
+        >
           <PlusCircle className="mr-2 h-4 w-4" />
           {title}
           {selectedValues?.length > 0 && (

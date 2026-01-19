@@ -34,7 +34,10 @@ const konversiSchema = z.object({
   barangId: z.string().min(1, 'Barang harus dipilih'),
   satuanBesarId: z.string().min(1, 'Satuan Besar harus dipilih'),
   satuanKecilId: z.string().min(1, 'Satuan Kecil harus dipilih'),
-  nilaiKonversi: z.coerce.number().min(1, 'Nilai konversi minimal 1'),
+  nilaiKonversi: z.coerce
+    .number()
+    .int('Nilai konversi harus berupa angka bulat')
+    .min(1, 'Nilai konversi minimal 1'),
 });
 
 type KonversiFormValues = z.infer<typeof konversiSchema>;

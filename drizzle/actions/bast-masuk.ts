@@ -1,0 +1,452 @@
+'use server';
+
+import { db } from '@/lib/db';
+import {
+  bastMasuk,
+  bastMasukDetail,
+  barang,
+  mutasiBarang,
+  pegawai,
+  pihakKetiga,
+  asalPembelian,
+  rekening,
+} from '@/drizzle/schema';
+import { eq, desc, sql, inArray } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { auth } from '@/lib/auth'; // Adjust if needed
+import { headers } from 'next/headers';
+
+// Helper to check authentication
+async function checkAuth() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+  return session;
+}
+
+// Zod Schema for Create/Update
+const bastMasukDetailSchema = z.object({
+  barangId: z.number(),
+  qtyKemasan: z.number().min(1),
+  satuanKemasanId: z.number(),
+  isiPerKemasan: z.number().min(1),
+  hargaSatuan: z.number().min(0),
+  keterangan: z.string().optional(),
+});
+
+const createBastMasukSchema = z.object({
+  nomorReferensi: z.string().min(1),
+  nomorBast: z.string().min(1),
+  tanggalBast: z.union([z.string(), z.date()]),
+  nomorBapb: z.string().min(1),
+  tanggalBapb: z.union([z.string(), z.date()]),
+  asalPembelianId: z.number(),
+  rekeningId: z.number(),
+  pihakKetigaId: z.number(),
+  pptkPpkId: z.number(),
+  peruntukkan: z.string().optional(),
+  keterangan: z.string().optional(),
+  items: z.array(bastMasukDetailSchema).min(1),
+});
+
+export async function getBastMasuk() {
+  await checkAuth();
+
+  const data = await db.query.bastMasuk.findMany({
+    with: {
+      pihakKetiga: true,
+      pptkPpk: true,
+      asalPembelian: true,
+    },
+    orderBy: [desc(bastMasuk.createdAt)],
+  });
+
+  return { success: true, data };
+}
+
+export async function getBastMasukById(id: number) {
+  await checkAuth();
+
+  const data = await db.query.bastMasuk.findFirst({
+    where: eq(bastMasuk.id, id),
+    with: {
+      items: {
+        with: {
+          barang: true,
+          satuanKemasan: true,
+        },
+      },
+      pihakKetiga: true,
+      pptkPpk: true,
+      asalPembelian: true,
+      rekening: true,
+    },
+  });
+
+  if (!data) return { success: false, message: 'Data not found' };
+
+  return { success: true, data };
+}
+
+export async function createBastMasuk(
+  prevState: any,
+  data: z.infer<typeof createBastMasukSchema>
+) {
+  try {
+    const session = await checkAuth();
+    const validated = createBastMasukSchema.parse(data);
+
+    // Date conversion
+    const tglBast = new Date(validated.tanggalBast);
+    const tglBapb = new Date(validated.tanggalBapb);
+
+    await db.transaction(async (tx) => {
+      // 1. Create Header
+      const [newBast] = await tx
+        .insert(bastMasuk)
+        .values({
+          nomorReferensi: validated.nomorReferensi,
+          nomorBast: validated.nomorBast,
+          tanggalBast: tglBast.toISOString().split('T')[0], // format as YYYY-MM-DD
+          nomorBapb: validated.nomorBapb,
+          tanggalBapb: tglBapb.toISOString().split('T')[0],
+          asalPembelianId: validated.asalPembelianId,
+          rekeningId: validated.rekeningId,
+          pihakKetigaId: validated.pihakKetigaId,
+          pptkPpkId: validated.pptkPpkId,
+          peruntukkan: validated.peruntukkan,
+          keterangan: validated.keterangan,
+        })
+        .returning();
+
+      // 2. Process Items
+      for (const item of validated.items) {
+        // Calculate Total Qty (Satuan Terkecil)
+        const qtyTotal = item.qtyKemasan * item.isiPerKemasan;
+
+        // Insert Detail
+        await tx.insert(bastMasukDetail).values({
+          bastMasukId: newBast.id,
+          barangId: item.barangId,
+          qtyKemasan: item.qtyKemasan,
+          satuanKemasanId: item.satuanKemasanId,
+          isiPerKemasan: item.isiPerKemasan,
+          qtyTotal: qtyTotal,
+          hargaSatuan: item.hargaSatuan.toString(),
+          keterangan: item.keterangan,
+        });
+
+        // Update Stock Barang
+        // First get current stock to be safe
+        const [currentItem] = await tx
+          .select({ stok: barang.stok })
+          .from(barang)
+          .where(eq(barang.id, item.barangId));
+
+        const newStock = (currentItem?.stok || 0) + qtyTotal;
+
+        await tx
+          .update(barang)
+          .set({ stok: newStock })
+          .where(eq(barang.id, item.barangId));
+
+        // Create Mutation Record
+        await tx.insert(mutasiBarang).values({
+          barangId: item.barangId,
+          tanggal: new Date(),
+          jenisMutasi: 'MASUK',
+          qtyMasuk: qtyTotal,
+          qtyKeluar: 0,
+          stokAkhir: newStock,
+          referensiId: newBast.nomorBast,
+          sumberTransaksi: 'BAST_MASUK',
+          keterangan: `Penerimaan Barang via BAST ${newBast.nomorBast}`,
+        });
+      }
+    });
+
+    revalidatePath('/dashboard/bast-masuk');
+    return { success: true, message: 'BAST Masuk berhasil disimpan' };
+  } catch (error: any) {
+    console.error('Create BAST Error:', error);
+
+    // PostgreSQL error might be in error.cause
+    const pgError = error.cause || error;
+    const errorMessage = error.message || '';
+
+    // Handle unique constraint violations (PostgreSQL error code 23505)
+    if (
+      pgError.code === '23505' ||
+      errorMessage.includes('unique constraint')
+    ) {
+      const constraintName =
+        pgError.constraint_name || pgError.constraint || '';
+
+      if (
+        constraintName.includes('nomor_referensi') ||
+        errorMessage.includes('nomor_referensi')
+      ) {
+        return { success: false, message: 'Nomor Referensi sudah digunakan' };
+      }
+      if (
+        constraintName.includes('nomor_bast') ||
+        errorMessage.includes('nomor_bast')
+      ) {
+        return { success: false, message: 'Nomor BAST sudah terdaftar' };
+      }
+      if (
+        constraintName.includes('nomor_bapb') ||
+        errorMessage.includes('nomor_bapb')
+      ) {
+        return { success: false, message: 'Nomor BAPB sudah ada dalam sistem' };
+      }
+
+      return {
+        success: false,
+        message: 'Data yang Anda masukkan sudah ada dalam sistem',
+      };
+    }
+
+    return {
+      success: false,
+      message: error.message || 'Gagal menyimpan BAST Masuk',
+    };
+  }
+}
+
+export async function updateBastMasuk(
+  id: number,
+  prevState: any,
+  data: z.infer<typeof createBastMasukSchema>
+) {
+  try {
+    const session = await checkAuth();
+    const validated = createBastMasukSchema.parse(data);
+
+    // Date conversion
+    const tglBast = new Date(validated.tanggalBast);
+    const tglBapb = new Date(validated.tanggalBapb);
+
+    await db.transaction(async (tx) => {
+      // 1. Revert Old Stock
+      const oldDetails = await tx.query.bastMasukDetail.findMany({
+        where: eq(bastMasukDetail.bastMasukId, id),
+      });
+
+      const oldBast = await tx.query.bastMasuk.findFirst({
+        where: eq(bastMasuk.id, id),
+      });
+
+      if (!oldBast) throw new Error('Data BAST tidak ditemukan');
+
+      for (const item of oldDetails) {
+        const [currentBarang] = await tx
+          .select({ stok: barang.stok })
+          .from(barang)
+          .where(eq(barang.id, item.barangId));
+
+        const revertedStock = (currentBarang?.stok || 0) - item.qtyTotal;
+
+        await tx
+          .update(barang)
+          .set({ stok: revertedStock })
+          .where(eq(barang.id, item.barangId));
+
+        // Record reversal mutation
+        await tx.insert(mutasiBarang).values({
+          barangId: item.barangId,
+          tanggal: new Date(),
+          jenisMutasi: 'PENYESUAIAN',
+          qtyMasuk: 0,
+          qtyKeluar: item.qtyTotal,
+          stokAkhir: revertedStock,
+          referensiId: oldBast.nomorBast,
+          sumberTransaksi: 'EDIT_BAST_MASUK',
+          keterangan: `Revisi BAST (Revert) ${oldBast.nomorBast}`,
+        });
+      }
+
+      // 2. Delete Old Details
+      await tx
+        .delete(bastMasukDetail)
+        .where(eq(bastMasukDetail.bastMasukId, id));
+
+      // 3. Update Header
+      await tx
+        .update(bastMasuk)
+        .set({
+          nomorReferensi: validated.nomorReferensi,
+          nomorBast: validated.nomorBast,
+          tanggalBast: tglBast.toISOString().split('T')[0],
+          nomorBapb: validated.nomorBapb,
+          tanggalBapb: tglBapb.toISOString().split('T')[0],
+          asalPembelianId: validated.asalPembelianId,
+          rekeningId: validated.rekeningId,
+          pihakKetigaId: validated.pihakKetigaId,
+          pptkPpkId: validated.pptkPpkId,
+          peruntukkan: validated.peruntukkan,
+          keterangan: validated.keterangan,
+          updatedAt: new Date(),
+        })
+        .where(eq(bastMasuk.id, id));
+
+      // 4. Insert New Details & Update Stock
+      for (const item of validated.items) {
+        const qtyTotal = item.qtyKemasan * item.isiPerKemasan;
+
+        await tx.insert(bastMasukDetail).values({
+          bastMasukId: id,
+          barangId: item.barangId,
+          qtyKemasan: item.qtyKemasan,
+          satuanKemasanId: item.satuanKemasanId,
+          isiPerKemasan: item.isiPerKemasan,
+          qtyTotal: qtyTotal,
+          hargaSatuan: item.hargaSatuan.toString(),
+          keterangan: item.keterangan,
+        });
+
+        // Update Stock
+        const [currentBarang] = await tx
+          .select({ stok: barang.stok })
+          .from(barang)
+          .where(eq(barang.id, item.barangId));
+
+        const newStock = (currentBarang?.stok || 0) + qtyTotal;
+
+        await tx
+          .update(barang)
+          .set({ stok: newStock })
+          .where(eq(barang.id, item.barangId));
+
+        // Create Mutation Record
+        await tx.insert(mutasiBarang).values({
+          barangId: item.barangId,
+          tanggal: new Date(),
+          jenisMutasi: 'MASUK',
+          qtyMasuk: qtyTotal,
+          qtyKeluar: 0,
+          stokAkhir: newStock,
+          referensiId: validated.nomorBast,
+          sumberTransaksi: 'EDIT_BAST_MASUK',
+          keterangan: `Revisi BAST (Update) ${validated.nomorBast}`,
+        });
+      }
+    });
+
+    revalidatePath('/dashboard/bast-masuk');
+    return { success: true, message: 'BAST Masuk berhasil diperbarui' };
+  } catch (error: any) {
+    console.error('Update BAST Error:', error);
+
+    // PostgreSQL error might be in error.cause
+    const pgError = error.cause || error;
+    const errorMessage = error.message || '';
+
+    // Handle unique constraint violations (PostgreSQL error code 23505)
+    if (
+      pgError.code === '23505' ||
+      errorMessage.includes('unique constraint')
+    ) {
+      const constraintName =
+        pgError.constraint_name || pgError.constraint || '';
+
+      if (
+        constraintName.includes('nomor_referensi') ||
+        errorMessage.includes('nomor_referensi')
+      ) {
+        return { success: false, message: 'Nomor Referensi sudah digunakan' };
+      }
+      if (
+        constraintName.includes('nomor_bast') ||
+        errorMessage.includes('nomor_bast')
+      ) {
+        return { success: false, message: 'Nomor BAST sudah terdaftar' };
+      }
+      if (
+        constraintName.includes('nomor_bapb') ||
+        errorMessage.includes('nomor_bapb')
+      ) {
+        return { success: false, message: 'Nomor BAPB sudah ada dalam sistem' };
+      }
+
+      return {
+        success: false,
+        message: 'Data yang Anda masukkan sudah ada dalam sistem',
+      };
+    }
+
+    return {
+      success: false,
+      message: error.message || 'Gagal memperbarui BAST Masuk',
+    };
+  }
+}
+
+export async function deleteBastMasuk(id: number) {
+  try {
+    await checkAuth();
+
+    await db.transaction(async (tx) => {
+      // 1. Get existing details to reverse stock
+      const details = await tx.query.bastMasukDetail.findMany({
+        where: eq(bastMasukDetail.bastMasukId, id),
+      });
+
+      const bastion = await tx.query.bastMasuk.findFirst({
+        where: eq(bastMasuk.id, id),
+      });
+
+      if (!bastion) throw new Error('BAST tidak ditemukan');
+
+      for (const item of details) {
+        // Reverse Stock
+        const [currentBarang] = await tx
+          .select({ stok: barang.stok })
+          .from(barang)
+          .where(eq(barang.id, item.barangId));
+
+        const newStock = (currentBarang?.stok || 0) - item.qtyTotal;
+
+        if (newStock < 0) {
+          // Option: Block delete if stock becomes negative
+          // throw new Error(`Stok barang ID ${item.barangId} tidak cukup untuk pembatalan`);
+          // Option: Allow negative stock (User preference?)
+          // For now, let's allow it but maybe warn? No, let's just do it.
+        }
+
+        await tx
+          .update(barang)
+          .set({ stok: newStock })
+          .where(eq(barang.id, item.barangId));
+
+        // Create Mutation Record (Reversal)
+        await tx.insert(mutasiBarang).values({
+          barangId: item.barangId,
+          tanggal: new Date(),
+          jenisMutasi: 'PENYESUAIAN', // Or should we use KELUAR? Use PENYESUAIAN for correction.
+          qtyMasuk: 0,
+          qtyKeluar: item.qtyTotal, // Treated as reducing stock
+          stokAkhir: newStock,
+          referensiId: bastion.nomorBast,
+          sumberTransaksi: 'VOID_BAST_MASUK',
+          keterangan: `Pembatalan BAST ${bastion.nomorBast}`,
+        });
+      }
+
+      // 2. Delete Header (Cascade deletes details)
+      await tx.delete(bastMasuk).where(eq(bastMasuk.id, id));
+    });
+
+    revalidatePath('/dashboard/bast-masuk');
+    return { success: true, message: 'BAST Masuk berhasil dihapus' };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message || 'Gagal menghapus data',
+    };
+  }
+}
