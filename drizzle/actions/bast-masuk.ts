@@ -6,10 +6,6 @@ import {
   bastMasukDetail,
   barang,
   mutasiBarang,
-  pegawai,
-  pihakKetiga,
-  asalPembelian,
-  rekening,
 } from '@/drizzle/schema';
 import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -52,6 +48,24 @@ const createBastMasukSchema = z.object({
   keterangan: z.string().optional(),
   items: z.array(bastMasukDetailSchema).min(1),
 });
+
+// Helper to format date without timezone issues
+function formatDateForDB(date: string | Date): string {
+  if (typeof date === 'string') {
+    // If already a string in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return date;
+    }
+    // Otherwise parse it
+    date = new Date(date);
+  }
+
+  // Format using local timezone
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export async function getBastMasuk() {
   await checkAuth();
@@ -100,9 +114,9 @@ export async function createBastMasuk(
     const session = await checkAuth();
     const validated = createBastMasukSchema.parse(data);
 
-    // Date conversion
-    const tglBast = new Date(validated.tanggalBast);
-    const tglBapb = new Date(validated.tanggalBapb);
+    // Format dates without timezone conversion
+    const tglBast = formatDateForDB(validated.tanggalBast);
+    const tglBapb = formatDateForDB(validated.tanggalBapb);
 
     await db.transaction(async (tx) => {
       // 1. Create Header
@@ -111,9 +125,9 @@ export async function createBastMasuk(
         .values({
           nomorReferensi: validated.nomorReferensi,
           nomorBast: validated.nomorBast,
-          tanggalBast: tglBast.toISOString().split('T')[0], // format as YYYY-MM-DD
+          tanggalBast: tglBast,
           nomorBapb: validated.nomorBapb,
-          tanggalBapb: tglBapb.toISOString().split('T')[0],
+          tanggalBapb: tglBapb,
           asalPembelianId: validated.asalPembelianId,
           rekeningId: validated.rekeningId,
           pihakKetigaId: validated.pihakKetigaId,
@@ -227,9 +241,9 @@ export async function updateBastMasuk(
     const session = await checkAuth();
     const validated = createBastMasukSchema.parse(data);
 
-    // Date conversion
-    const tglBast = new Date(validated.tanggalBast);
-    const tglBapb = new Date(validated.tanggalBapb);
+    // Format dates without timezone conversion
+    const tglBast = formatDateForDB(validated.tanggalBast);
+    const tglBapb = formatDateForDB(validated.tanggalBapb);
 
     await db.transaction(async (tx) => {
       // 1. Revert Old Stock
@@ -245,11 +259,17 @@ export async function updateBastMasuk(
 
       for (const item of oldDetails) {
         const [currentBarang] = await tx
-          .select({ stok: barang.stok })
+          .select({ stok: barang.stok, nama: barang.nama })
           .from(barang)
           .where(eq(barang.id, item.barangId));
 
         const revertedStock = (currentBarang?.stok || 0) - item.qtyTotal;
+
+        if (revertedStock < 0) {
+          throw new Error(
+            `Gagal Edit! Barang "${currentBarang?.nama || 'Unknown'}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini.`
+          );
+        }
 
         await tx
           .update(barang)
@@ -281,9 +301,9 @@ export async function updateBastMasuk(
         .set({
           nomorReferensi: validated.nomorReferensi,
           nomorBast: validated.nomorBast,
-          tanggalBast: tglBast.toISOString().split('T')[0],
+          tanggalBast: tglBast,
           nomorBapb: validated.nomorBapb,
-          tanggalBapb: tglBapb.toISOString().split('T')[0],
+          tanggalBapb: tglBapb,
           asalPembelianId: validated.asalPembelianId,
           rekeningId: validated.rekeningId,
           pihakKetigaId: validated.pihakKetigaId,
@@ -405,17 +425,16 @@ export async function deleteBastMasuk(id: number) {
       for (const item of details) {
         // Reverse Stock
         const [currentBarang] = await tx
-          .select({ stok: barang.stok })
+          .select({ stok: barang.stok, nama: barang.nama })
           .from(barang)
           .where(eq(barang.id, item.barangId));
 
         const newStock = (currentBarang?.stok || 0) - item.qtyTotal;
 
         if (newStock < 0) {
-          // Option: Block delete if stock becomes negative
-          // throw new Error(`Stok barang ID ${item.barangId} tidak cukup untuk pembatalan`);
-          // Option: Allow negative stock (User preference?)
-          // For now, let's allow it but maybe warn? No, let's just do it.
+          throw new Error(
+            `Gagal! Barang "${currentBarang?.nama || 'Unknown'}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini (Butuh: ${item.qtyTotal}).`
+          );
         }
 
         await tx
@@ -432,7 +451,7 @@ export async function deleteBastMasuk(id: number) {
           qtyKeluar: item.qtyTotal, // Treated as reducing stock
           stokAkhir: newStock,
           referensiId: bastion.nomorBast,
-          sumberTransaksi: 'VOID_BAST_MASUK',
+          sumberTransaksi: 'PEMBATALAN_BAST_MASUK',
           keterangan: `Pembatalan BAST ${bastion.nomorBast}`,
         });
       }

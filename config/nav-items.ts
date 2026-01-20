@@ -119,19 +119,4 @@ export const navItems: NavItem[] = [
       },
     ],
   },
-  {
-    title: 'Settings',
-    href: '/dashboard/settings',
-    icon: Settings,
-    items: [
-      {
-        title: 'Profile',
-        href: '/dashboard/settings/profile',
-      },
-      {
-        title: 'Account',
-        href: '/dashboard/settings/account',
-      },
-    ],
-  },
 ];

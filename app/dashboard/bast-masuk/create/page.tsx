@@ -1,12 +1,5 @@
 import { db } from '@/lib/db';
-import {
-  barang,
-  satuan,
-  asalPembelian,
-  rekening,
-  pihakKetiga,
-  pegawai,
-} from '@/drizzle/schema';
+import { satuan, asalPembelian, rekening } from '@/drizzle/schema';
 import { BastMasukForm } from '../components/bast-masuk-form';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -18,15 +11,7 @@ export const metadata = {
 };
 
 export default async function CreateBastMasukPage() {
-  const [
-    barangList,
-    satuanList,
-    asalList,
-    rekeningList,
-    pihakList,
-    pegawaiList,
-  ] = await Promise.all([
-    db.select({ id: barang.id, nama: barang.nama }).from(barang),
+  const [satuanList, asalList, rekeningList] = await Promise.all([
     db.select({ id: satuan.id, nama: satuan.nama }).from(satuan),
     db
       .select({ id: asalPembelian.id, nama: asalPembelian.nama })
@@ -39,8 +24,6 @@ export default async function CreateBastMasukPage() {
         nomorRekening: rekening.nomorRekening,
       })
       .from(rekening),
-    db.select({ id: pihakKetiga.id, nama: pihakKetiga.nama }).from(pihakKetiga),
-    db.select({ id: pegawai.id, nama: pegawai.nama }).from(pegawai),
   ]);
 
   return (
@@ -64,12 +47,9 @@ export default async function CreateBastMasukPage() {
       </div>
       <div className="space-y-4">
         <BastMasukForm
-          barangList={barangList}
           satuanList={satuanList}
           asalPembelianList={asalList}
           rekeningList={rekeningList}
-          pihakKetigaList={pihakList}
-          pegawaiList={pegawaiList}
         />
       </div>
     </div>

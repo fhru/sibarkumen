@@ -1,6 +1,18 @@
 import { db } from '@/lib/db';
 import { bastMasuk, bastMasukDetail, pihakKetiga } from '@/drizzle/schema';
-import { count, desc, eq, sql, sum } from 'drizzle-orm';
+import {
+  count,
+  desc,
+  asc,
+  eq,
+  sql,
+  sum,
+  or,
+  and,
+  ilike,
+  gte,
+  lte,
+} from 'drizzle-orm';
 
 export async function getBastMasukStats() {
   // Total BAST
@@ -38,17 +50,106 @@ export async function getBastMasukStats() {
   };
 }
 
-export async function getBastMasukList() {
+export async function getBastMasukList(
+  page: number = 1,
+  limit: number = 50,
+  search?: string,
+  sortBy: string = 'tanggalBast',
+  sortOrder: 'asc' | 'desc' = 'desc',
+  // Filters
+  pihakKetigaId?: number,
+  pptkPpkId?: number,
+  asalPembelianId?: number,
+  rekeningId?: number,
+  startDate?: Date,
+  endDate?: Date
+) {
+  const offset = (page - 1) * limit;
+
+  const filters = [];
+
+  // Search filter
+  if (search) {
+    filters.push(
+      or(
+        ilike(bastMasuk.nomorBast, `%${search}%`),
+        ilike(bastMasuk.nomorReferensi, `%${search}%`),
+        ilike(bastMasuk.nomorBapb, `%${search}%`)
+      )
+    );
+  }
+
+  // Date range filter
+  if (startDate) {
+    filters.push(
+      gte(bastMasuk.tanggalBast, startDate.toISOString().split('T')[0])
+    );
+  }
+  if (endDate) {
+    filters.push(
+      lte(bastMasuk.tanggalBast, endDate.toISOString().split('T')[0])
+    );
+  }
+
+  // ID filters
+  if (pihakKetigaId) {
+    filters.push(eq(bastMasuk.pihakKetigaId, pihakKetigaId));
+  }
+  if (pptkPpkId) {
+    filters.push(eq(bastMasuk.pptkPpkId, pptkPpkId));
+  }
+  if (asalPembelianId) {
+    filters.push(eq(bastMasuk.asalPembelianId, asalPembelianId));
+  }
+  if (rekeningId) {
+    filters.push(eq(bastMasuk.rekeningId, rekeningId));
+  }
+
+  const whereClause = filters.length > 0 ? and(...filters) : undefined;
+
+  // Get total count
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(bastMasuk)
+    .where(whereClause);
+
+  const total = totalResult?.count ?? 0;
+  const pageCount = Math.ceil(total / limit);
+
+  // Get paginated data
   const data = await db.query.bastMasuk.findMany({
+    where: whereClause,
     with: {
       pihakKetiga: true,
       pptkPpk: true,
       asalPembelian: true,
+      rekening: true,
     },
-    orderBy: [desc(bastMasuk.createdAt)],
+    orderBy:
+      sortBy === 'nomorBast'
+        ? sortOrder === 'asc'
+          ? asc(bastMasuk.nomorBast)
+          : desc(bastMasuk.nomorBast)
+        : sortBy === 'tanggalBast'
+          ? sortOrder === 'asc'
+            ? asc(bastMasuk.tanggalBast)
+            : desc(bastMasuk.tanggalBast)
+          : sortOrder === 'asc'
+            ? asc(bastMasuk.createdAt)
+            : desc(bastMasuk.createdAt),
+    limit,
+    offset,
   });
 
-  return data;
+  return {
+    data,
+    meta: {
+      total,
+      pageCount,
+      page,
+      limit,
+    },
+  };
 }
 
 export async function getBastMasukById(id: number) {

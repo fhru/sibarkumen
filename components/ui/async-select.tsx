@@ -35,6 +35,7 @@ interface AsyncSelectProps {
   className?: string;
   disabled?: boolean;
   formatLabel?: (option: AsyncSelectOption) => string;
+  initialOption?: AsyncSelectOption;
 }
 
 export function AsyncSelect({
@@ -47,20 +48,68 @@ export function AsyncSelect({
   className,
   disabled = false,
   formatLabel = (option) => option.nama,
+  initialOption,
 }: AsyncSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [options, setOptions] = React.useState<AsyncSelectOption[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const debouncedSearch = useDebounce(searchQuery, 300);
+  const cache = React.useRef<Record<string, AsyncSelectOption[]>>({});
 
-  // Load initial options
+  // Set initial option if provided
   React.useEffect(() => {
-    const loadInitialOptions = async () => {
+    if (initialOption) {
+      setOptions((prev) => {
+        const exists = prev.find((o) => o.id === initialOption.id);
+        if (exists) return prev;
+        return [...prev, initialOption];
+      });
+    }
+  }, [initialOption]);
+
+  // Load options ONLY when open and empty, or when searching
+  React.useEffect(() => {
+    const fetchOptions = async () => {
+      // Don't fetch if closed and we're not doing a search (searchQuery empty)
+      // Exception: we need to fetch initial list once when first opened
+      if (!open && searchQuery === '') return;
+
+      // Use debouncedSearch as the key for caching consistency
+      const queryKey = debouncedSearch;
+
+      if (cache.current[queryKey]) {
+        setOptions((prev) => {
+          const results = cache.current[queryKey];
+          // Merge with initialOption if it exists to preserve selection
+          if (initialOption) {
+            const resultIds = new Set(results.map((r) => r.id));
+            if (!resultIds.has(initialOption.id)) {
+              return [initialOption, ...results];
+            }
+          }
+          return results;
+        });
+        return;
+      }
+
       setLoading(true);
       try {
-        const results = await loadOptions('');
-        setOptions(results);
+        const results = await loadOptions(queryKey);
+
+        // Cache the results
+        cache.current[queryKey] = results;
+
+        setOptions((prev) => {
+          // Merge with initialOption if it exists to preserve selection
+          if (initialOption) {
+            const resultIds = new Set(results.map((r) => r.id));
+            if (!resultIds.has(initialOption.id)) {
+              return [initialOption, ...results];
+            }
+          }
+          return results;
+        });
       } catch (error) {
         console.error('Failed to load options:', error);
       } finally {
@@ -68,29 +117,13 @@ export function AsyncSelect({
       }
     };
 
-    loadInitialOptions();
-  }, [loadOptions]);
+    if (open || (debouncedSearch !== '' && debouncedSearch.length >= 2)) {
+      fetchOptions();
+    }
+  }, [open, debouncedSearch, loadOptions, initialOption]);
 
-  // Search when debounced query changes
-  React.useEffect(() => {
-    const search = async () => {
-      if (debouncedSearch.length < 2 && debouncedSearch.length > 0) return;
-
-      setLoading(true);
-      try {
-        const results = await loadOptions(debouncedSearch);
-        setOptions(results);
-      } catch (error) {
-        console.error('Search failed:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    search();
-  }, [debouncedSearch, loadOptions]);
-
-  const selectedOption = options.find((option) => option.id === value);
+  const selectedOption =
+    options.find((option) => option.id === value) || initialOption;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

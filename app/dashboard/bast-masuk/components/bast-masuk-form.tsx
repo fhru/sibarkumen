@@ -46,24 +46,34 @@ type Option = { id: number; nama: string };
 type RekeningOption = Option & { namaBank: string; nomorRekening: string };
 
 const bastMasukDetailSchema = z.object({
-  barangId: z.number().min(1, 'Barang wajib dipilih'),
-  qtyKemasan: z.number().min(1, 'Qty minimal 1'),
-  satuanKemasanId: z.number().min(1, 'Satuan wajib dipilih'),
-  isiPerKemasan: z.number().min(1, 'Isi per kemasan minimal 1'),
-  hargaSatuan: z.number().min(0, 'Harga tidak boleh negatif'),
+  barangId: z.number('Barang wajib dipilih').min(1, 'Barang wajib dipilih'),
+  qtyKemasan: z.number('Qty minimal 1').min(1, 'Qty minimal 1'),
+  satuanKemasanId: z
+    .number('Satuan wajib dipilih')
+    .min(1, 'Satuan wajib dipilih'),
+  isiPerKemasan: z
+    .number('Isi per kemasan minimal 1')
+    .min(1, 'Isi per kemasan minimal 1'),
+  hargaSatuan: z
+    .number('Harga tidak boleh negatif')
+    .min(0, 'Harga tidak boleh negatif'),
   keterangan: z.string().optional(),
 });
 
 const createBastMasukSchema = z.object({
   nomorReferensi: z.string().min(1, 'Nomor Referensi wajib diisi'),
   nomorBast: z.string().min(1, 'Nomor BAST wajib diisi'),
-  tanggalBast: z.date(),
+  tanggalBast: z.date('Tanggal BAST wajib diisi'),
   nomorBapb: z.string().min(1, 'Nomor BAPB wajib diisi'),
-  tanggalBapb: z.date(),
-  asalPembelianId: z.number().min(1, 'Asal pembelian wajib dipilih'),
-  rekeningId: z.number().min(1, 'Rekening wajib dipilih'),
-  pihakKetigaId: z.number().min(1, 'Pihak ketiga wajib dipilih'),
-  pptkPpkId: z.number().min(1, 'PPTK/PPK wajib dipilih'),
+  tanggalBapb: z.date('Tanggal BAPB wajib diisi'),
+  asalPembelianId: z
+    .number('Asal pembelian wajib diisi')
+    .min(1, 'Asal pembelian wajib dipilih'),
+  rekeningId: z.number('Rekening wajib diisi').min(1, 'Rekening wajib dipilih'),
+  pihakKetigaId: z
+    .number('Pihak ketiga wajib diisi')
+    .min(1, 'Pihak ketiga wajib dipilih'),
+  pptkPpkId: z.number('PPTK/PPK wajib diisi').min(1, 'PPTK/PPK wajib dipilih'),
   peruntukkan: z.string().optional(),
   keterangan: z.string().optional(),
   items: z
@@ -74,13 +84,13 @@ const createBastMasukSchema = z.object({
 type BastMasukFormValues = z.infer<typeof createBastMasukSchema>;
 
 interface BastMasukFormProps {
-  barangList: Option[];
+  barangList?: Option[];
   satuanList: Option[];
   asalPembelianList: Option[];
   rekeningList: RekeningOption[];
-  pihakKetigaList: Option[];
-  pegawaiList: Option[];
-  initialData?: any; // Use specific type if available, e.g. from getBastMasukById
+  pihakKetigaList?: Option[];
+  pegawaiList?: Option[];
+  initialData?: any;
 }
 
 export function BastMasukForm({
@@ -360,6 +370,7 @@ export function BastMasukForm({
                       placeholder="Pilih Pihak Ketiga"
                       searchPlaceholder="Cari pihak ketiga..."
                       className="w-full"
+                      initialOption={initialData?.pihakKetiga}
                     />
                     <FieldError errors={[errors.pihakKetigaId]} />
                   </FieldContent>
@@ -387,6 +398,7 @@ export function BastMasukForm({
                         `${option.nama} - ${option.nip || ''}`
                       }
                       className="w-full"
+                      initialOption={initialData?.pptkPpk}
                     />
                     <FieldError errors={[errors.pptkPpkId]} />
                   </FieldContent>
@@ -482,6 +494,7 @@ export function BastMasukForm({
                             `${option.nama}${option.kodeBarang ? ` (${option.kodeBarang})` : ''}`
                           }
                           className="h-9"
+                          initialOption={initialData?.items?.[index]?.barang}
                         />
                         <FieldError
                           errors={[errors.items?.[index]?.barangId]}
@@ -521,7 +534,7 @@ export function BastMasukForm({
                         value={field.value?.toString()}
                       >
                         <FieldContent>
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-9 w-full">
                             <SelectValue placeholder="Satuan" />
                           </SelectTrigger>
                           <SelectContent>

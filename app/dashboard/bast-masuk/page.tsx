@@ -8,9 +8,52 @@ export const metadata = {
   description: 'Kelola Berita Acara Serah Terima Masuk',
 };
 
-export default async function BastMasukPage() {
-  const [data, stats] = await Promise.all([
-    getBastMasukList(),
+interface PageProps {
+  searchParams: {
+    page?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    pihakKetiga?: string;
+    pptk?: string;
+    asalPembelian?: string;
+    rekening?: string;
+    startDate?: string;
+    endDate?: string;
+  };
+}
+
+export default async function BastMasukPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const page = Number(params.page) || 1;
+  const search = params.search;
+  const sortBy = params.sortBy || 'tanggalBast';
+  const sortOrder = (params.sortOrder as 'asc' | 'desc') || 'desc';
+  const pihakKetigaId = params.pihakKetiga
+    ? Number(params.pihakKetiga)
+    : undefined;
+  const pptkPpkId = params.pptk ? Number(params.pptk) : undefined;
+  const asalPembelianId = params.asalPembelian
+    ? Number(params.asalPembelian)
+    : undefined;
+  const rekeningId = params.rekening ? Number(params.rekening) : undefined;
+  const startDate = params.startDate ? new Date(params.startDate) : undefined;
+  const endDate = params.endDate ? new Date(params.endDate) : undefined;
+
+  const [result, stats] = await Promise.all([
+    getBastMasukList(
+      page,
+      50,
+      search,
+      sortBy,
+      sortOrder,
+      pihakKetigaId,
+      pptkPpkId,
+      asalPembelianId,
+      rekeningId,
+      startDate,
+      endDate
+    ),
     getBastMasukStats(),
   ]);
 
@@ -33,7 +76,11 @@ export default async function BastMasukPage() {
 
       <div className="flex h-full flex-1 flex-col space-y-8">
         <Suspense fallback={<div>Loading...</div>}>
-          <BastMasukTable data={data} />
+          <BastMasukTable
+            data={result.data}
+            pageCount={result.meta.pageCount}
+            totalItems={result.meta.total}
+          />
         </Suspense>
       </div>
     </div>

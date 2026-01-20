@@ -73,7 +73,7 @@ export default async function BastMasukDetailPage(props: {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card className="rounded-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
               Nomor Referensi
@@ -89,7 +89,7 @@ export default async function BastMasukDetailPage(props: {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
               Asal Pembelian
@@ -104,7 +104,7 @@ export default async function BastMasukDetailPage(props: {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Nilai</CardTitle>
           </CardHeader>
@@ -121,7 +121,7 @@ export default async function BastMasukDetailPage(props: {
 
       <div className="grid gap-4 md:grid-cols-3">
         {/* Main Content (Items) */}
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 rounded-lg">
           <CardHeader>
             <CardTitle>Daftar Barang Diterima</CardTitle>
             <CardDescription>
@@ -172,7 +172,7 @@ export default async function BastMasukDetailPage(props: {
 
         {/* Sidebar Info */}
         <div className="space-y-4">
-          <Card>
+          <Card className="rounded-lg">
             <CardHeader>
               <CardTitle>Informasi Lainnya</CardTitle>
             </CardHeader>

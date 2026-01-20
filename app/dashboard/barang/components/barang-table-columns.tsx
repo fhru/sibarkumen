@@ -31,9 +31,14 @@ import { useBarangTableContext } from './barang-table';
 
 const BarangActionCell = ({ barang }: { barang: Barang }) => {
   const { kategoriList, satuanList } = useBarangTableContext();
+  const router = useRouter();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleViewMutasi = () => {
+    router.push(`/dashboard/mutasi?search=${encodeURIComponent(barang.nama)}`);
+  };
 
   return (
     <>
@@ -50,7 +55,7 @@ const BarangActionCell = ({ barang }: { barang: Barang }) => {
             <Eye className="mr-2 h-4 w-4" />
             Lihat Detail
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleViewMutasi}>
             <History className="mr-2 h-4 w-4" />
             Lihat Mutasi
           </DropdownMenuItem>
@@ -135,9 +140,9 @@ const SortableHeader = ({
       return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
     }
     if (currentOrder === 'asc') {
-      return <ArrowUp className="ml-2 h-4 w-4 text-foreground" />;
+      return <ArrowUp className="ml-2 h-4 w-4 text-primary" />;
     }
-    return <ArrowDown className="ml-2 h-4 w-4 text-foreground" />;
+    return <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
   };
 
   return (
