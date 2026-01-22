@@ -201,8 +201,15 @@ export const columns: ColumnDef<Barang>[] = [
     ),
     cell: ({ row }) => {
       const stok = parseInt(row.getValue('stok'));
+      let textColor = '';
+      if (stok === 0) {
+        textColor = 'text-destructive';
+      } else if (stok < 10) {
+        textColor = 'text-yellow-500';
+      }
+
       return (
-        <div className={`font-medium ${stok < 10 ? 'text-red-500' : ''}`}>
+        <div className={`font-medium ${textColor}`}>
           {stok} {row.original.satuan}
         </div>
       );

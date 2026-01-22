@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 
 const jabatanSchema = z.object({
   nama: z.string().min(1, 'Nama jabatan wajib diisi'),
+  unitKerja: z.string().optional(),
 });
 
 type JabatanFormValues = z.infer<typeof jabatanSchema>;
@@ -32,7 +33,7 @@ type JabatanFormValues = z.infer<typeof jabatanSchema>;
 interface JabatanDialogUpdateProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  jabatan: { id: number; nama: string } | null;
+  jabatan: { id: number; nama: string; unitKerja?: string | null } | null;
 }
 
 export function JabatanDialogUpdate({
@@ -52,6 +53,7 @@ export function JabatanDialogUpdate({
     resolver: zodResolver(jabatanSchema) as any,
     defaultValues: {
       nama: '',
+      unitKerja: '',
     },
   });
 
@@ -59,6 +61,7 @@ export function JabatanDialogUpdate({
     if (jabatan) {
       reset({
         nama: jabatan.nama,
+        unitKerja: jabatan.unitKerja || '',
       });
     }
   }, [jabatan, reset]);
@@ -87,6 +90,9 @@ export function JabatanDialogUpdate({
     const formData = new FormData();
     formData.append('id', jabatan.id.toString());
     formData.append('nama', data.nama);
+    if (data.unitKerja) {
+      formData.append('unitKerja', data.unitKerja);
+    }
     startTransition(() => {
       formAction(formData);
     });
@@ -110,6 +116,17 @@ export function JabatanDialogUpdate({
               </FieldLabel>
               <Input {...register('nama')} placeholder="Contoh: Staff Gudang" />
               <FieldError errors={[{ message: errors.nama?.message }]} />
+            </Field>
+          </FieldGroup>
+
+          <FieldGroup>
+            <Field>
+              <FieldLabel>Unit Kerja</FieldLabel>
+              <Input
+                {...register('unitKerja')}
+                placeholder="Contoh: Divisi Logistik"
+              />
+              <FieldError errors={[{ message: errors.unitKerja?.message }]} />
             </Field>
           </FieldGroup>
 

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   ColumnDef,
   flexRender,
@@ -10,7 +10,7 @@ import {
   SortingState,
   getPaginationRowModel,
   getFilteredRowModel,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -18,30 +18,30 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   MoreHorizontal,
   ArrowUpDown,
   Pencil,
   Trash2,
   Search,
-} from 'lucide-react';
-import { JabatanDialogUpdate } from './jabatan-dialog-update';
-import { JabatanAlertDelete } from './jabatan-alert-delete';
-import { JabatanDialogCreate } from './jabatan-dialog-create';
+} from "lucide-react";
+import { JabatanDialogUpdate } from "./jabatan-dialog-update";
+import { JabatanAlertDelete } from "./jabatan-alert-delete";
 
 export type Jabatan = {
   id: number;
   nama: string;
+  unitKerja: string | null;
 };
 
 interface JabatanTableProps {
@@ -50,11 +50,11 @@ interface JabatanTableProps {
 
 export function JabatanTable({ data }: JabatanTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = React.useState('');
+  const [globalFilter, setGlobalFilter] = React.useState("");
 
   const [openUpdate, setOpenUpdate] = React.useState(false);
   const [editingJabatan, setEditingJabatan] = React.useState<Jabatan | null>(
-    null
+    null,
   );
 
   const [openDelete, setOpenDelete] = React.useState(false);
@@ -74,27 +74,27 @@ export function JabatanTable({ data }: JabatanTableProps) {
 
   const columns: ColumnDef<Jabatan>[] = [
     {
-      accessorKey: 'id',
+      accessorKey: "id",
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             ID
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
-      cell: ({ row }) => <div className="ml-4">{row.getValue('id')}</div>,
+      cell: ({ row }) => <div className="ml-4">{row.getValue("id")}</div>,
     },
     {
-      accessorKey: 'nama',
+      accessorKey: "nama",
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Nama Jabatan
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -103,7 +103,22 @@ export function JabatanTable({ data }: JabatanTableProps) {
       },
     },
     {
-      id: 'actions',
+      accessorKey: "unitKerja",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Unit Kerja
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }) => <div>{row.getValue("unitKerja") || "-"}</div>,
+    },
+    {
+      id: "actions",
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -143,7 +158,7 @@ export function JabatanTable({ data }: JabatanTableProps) {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: 'includesString', // Case-insensitive text search
+    globalFilterFn: "includesString", // Case-insensitive text search
     getRowId: (row) => row.id.toString(), // Ensure row stability
     state: {
       sorting,
@@ -153,20 +168,21 @@ export function JabatanTable({ data }: JabatanTableProps) {
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari jabatan..."
-              value={globalFilter ?? ''}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="pl-8 bg-background! dark:bg-sidebar!"
-            />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 items-center space-x-2">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari jabatan..."
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="pl-8 bg-background dark:bg-input/30"
+              />
+            </div>
           </div>
-          <JabatanDialogCreate />
         </div>
-        <div className="rounded-md border bg-background! dark:bg-sidebar!">
+        <div className="rounded-md border bg-background dark:bg-input/30">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -178,7 +194,7 @@ export function JabatanTable({ data }: JabatanTableProps) {
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
                       </TableHead>
                     );
@@ -191,13 +207,13 @@ export function JabatanTable({ data }: JabatanTableProps) {
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
+                    data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}
@@ -216,23 +232,28 @@ export function JabatanTable({ data }: JabatanTableProps) {
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-muted-foreground">
+            Menampilkan {table.getRowModel().rows.length} data
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
 

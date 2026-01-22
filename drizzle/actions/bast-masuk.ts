@@ -12,6 +12,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/lib/auth'; // Adjust if needed
 import { headers } from 'next/headers';
+import { generateDocumentNumber } from '@/lib/document-numbering-utils';
 
 // Helper to check authentication
 async function checkAuth() {
@@ -27,15 +28,13 @@ async function checkAuth() {
 // Zod Schema for Create/Update
 const bastMasukDetailSchema = z.object({
   barangId: z.number(),
-  qtyKemasan: z.number().min(1),
-  satuanKemasanId: z.number(),
-  isiPerKemasan: z.number().min(1),
+  qty: z.number().min(1),
   hargaSatuan: z.number().min(0),
   keterangan: z.string().optional(),
 });
 
 const createBastMasukSchema = z.object({
-  nomorReferensi: z.string().min(1),
+  nomorReferensi: z.string().optional(), // Auto-generated
   nomorBast: z.string().min(1),
   tanggalBast: z.union([z.string(), z.date()]),
   nomorBapb: z.string().min(1),
@@ -90,8 +89,11 @@ export async function getBastMasukById(id: number) {
     with: {
       items: {
         with: {
-          barang: true,
-          satuanKemasan: true,
+          barang: {
+            with: {
+              satuan: true,
+            },
+          },
         },
       },
       pihakKetiga: true,
@@ -118,73 +120,108 @@ export async function createBastMasuk(
     const tglBast = formatDateForDB(validated.tanggalBast);
     const tglBapb = formatDateForDB(validated.tanggalBapb);
 
-    await db.transaction(async (tx) => {
-      // 1. Create Header
-      const [newBast] = await tx
-        .insert(bastMasuk)
-        .values({
-          nomorReferensi: validated.nomorReferensi,
-          nomorBast: validated.nomorBast,
-          tanggalBast: tglBast,
-          nomorBapb: validated.nomorBapb,
-          tanggalBapb: tglBapb,
-          asalPembelianId: validated.asalPembelianId,
-          rekeningId: validated.rekeningId,
-          pihakKetigaId: validated.pihakKetigaId,
-          pptkPpkId: validated.pptkPpkId,
-          peruntukkan: validated.peruntukkan,
-          keterangan: validated.keterangan,
-        })
-        .returning();
+    const maxRetries = 3;
+    let attempt = 0;
+    let lastError: any;
 
-      // 2. Process Items
-      for (const item of validated.items) {
-        // Calculate Total Qty (Satuan Terkecil)
-        const qtyTotal = item.qtyKemasan * item.isiPerKemasan;
+    while (attempt < maxRetries) {
+      try {
+        await db.transaction(async (tx) => {
+          // Always generate a fresh number inside the retry loop
+          // Note: In a real transaction, we might want to lock, but retry is optimistic and simpler for now
+          // We pass 'retry' or similar context if generateDocumentNumber supported it,
+          // but here we just rely on counting again.
+          const nomorRef = await generateDocumentNumber('bastMasuk');
 
-        // Insert Detail
-        await tx.insert(bastMasukDetail).values({
-          bastMasukId: newBast.id,
-          barangId: item.barangId,
-          qtyKemasan: item.qtyKemasan,
-          satuanKemasanId: item.satuanKemasanId,
-          isiPerKemasan: item.isiPerKemasan,
-          qtyTotal: qtyTotal,
-          hargaSatuan: item.hargaSatuan.toString(),
-          keterangan: item.keterangan,
+          // 1. Create Header
+          const [newBast] = await tx
+            .insert(bastMasuk)
+            .values({
+              nomorReferensi: nomorRef,
+              nomorBast: validated.nomorBast,
+              tanggalBast: tglBast,
+              nomorBapb: validated.nomorBapb,
+              tanggalBapb: tglBapb,
+              asalPembelianId: validated.asalPembelianId,
+              rekeningId: validated.rekeningId,
+              pihakKetigaId: validated.pihakKetigaId,
+              pptkPpkId: validated.pptkPpkId,
+              peruntukkan: validated.peruntukkan,
+              keterangan: validated.keterangan,
+            })
+            .returning();
+
+          // 2. Process Items
+          for (const item of validated.items) {
+            // Insert Detail
+            await tx.insert(bastMasukDetail).values({
+              bastMasukId: newBast.id,
+              barangId: item.barangId,
+              qty: item.qty,
+              hargaSatuan: item.hargaSatuan.toString(),
+              keterangan: item.keterangan,
+            });
+
+            const qtyTotal = item.qty;
+
+            // Update Stock Barang
+            // First get current stock to be safe
+            const [currentItem] = await tx
+              .select({ stok: barang.stok })
+              .from(barang)
+              .where(eq(barang.id, item.barangId));
+
+            const newStock = (currentItem?.stok || 0) + qtyTotal;
+
+            await tx
+              .update(barang)
+              .set({ stok: newStock })
+              .where(eq(barang.id, item.barangId));
+
+            // Create Mutation Record
+            await tx.insert(mutasiBarang).values({
+              barangId: item.barangId,
+              tanggal: new Date(),
+              jenisMutasi: 'MASUK',
+              qtyMasuk: qtyTotal,
+              qtyKeluar: 0,
+              stokAkhir: newStock,
+              referensiId: newBast.nomorBast,
+              sumberTransaksi: 'BAST_MASUK',
+              keterangan: `Penerimaan Barang via BAST ${newBast.nomorBast}`,
+            });
+          }
         });
 
-        // Update Stock Barang
-        // First get current stock to be safe
-        const [currentItem] = await tx
-          .select({ stok: barang.stok })
-          .from(barang)
-          .where(eq(barang.id, item.barangId));
+        // If transaction succeeds, break the loop
+        revalidatePath('/dashboard/bast-masuk');
+        return { success: true, message: 'BAST Masuk berhasil disimpan' };
+      } catch (error: any) {
+        lastError = error;
+        const pgError = error.cause || error;
+        // Check for unique constraint on nomor_referensi
+        if (
+          (pgError.code === '23505' ||
+            error.message?.includes('unique constraint')) &&
+          (pgError.constraint_name?.includes('nomor_referensi') ||
+            error.message?.includes('nomor_referensi'))
+        ) {
+          console.warn(
+            `Unique constraint collision on nomor_referensi, retrying... (Attempt ${attempt + 1}/${maxRetries})`
+          );
+          attempt++;
+          // Wait a bit before retrying to reduce contention
+          await new Promise((res) => setTimeout(res, 100));
+          continue;
+        }
 
-        const newStock = (currentItem?.stok || 0) + qtyTotal;
-
-        await tx
-          .update(barang)
-          .set({ stok: newStock })
-          .where(eq(barang.id, item.barangId));
-
-        // Create Mutation Record
-        await tx.insert(mutasiBarang).values({
-          barangId: item.barangId,
-          tanggal: new Date(),
-          jenisMutasi: 'MASUK',
-          qtyMasuk: qtyTotal,
-          qtyKeluar: 0,
-          stokAkhir: newStock,
-          referensiId: newBast.nomorBast,
-          sumberTransaksi: 'BAST_MASUK',
-          keterangan: `Penerimaan Barang via BAST ${newBast.nomorBast}`,
-        });
+        // If it's another error, throw immediately
+        throw error;
       }
-    });
+    }
 
-    revalidatePath('/dashboard/bast-masuk');
-    return { success: true, message: 'BAST Masuk berhasil disimpan' };
+    // If we exhausted retries
+    throw lastError;
   } catch (error: any) {
     console.error('Create BAST Error:', error);
 
@@ -204,7 +241,11 @@ export async function createBastMasuk(
         constraintName.includes('nomor_referensi') ||
         errorMessage.includes('nomor_referensi')
       ) {
-        return { success: false, message: 'Nomor Referensi sudah digunakan' };
+        return {
+          success: false,
+          message:
+            'Gagal membuat Nomor Referensi unik setelah beberapa percobaan. Silakan coba lagi.',
+        };
       }
       if (
         constraintName.includes('nomor_bast') ||
@@ -246,7 +287,6 @@ export async function updateBastMasuk(
     const tglBapb = formatDateForDB(validated.tanggalBapb);
 
     await db.transaction(async (tx) => {
-      // 1. Revert Old Stock
       const oldDetails = await tx.query.bastMasukDetail.findMany({
         where: eq(bastMasukDetail.bastMasukId, id),
       });
@@ -263,7 +303,7 @@ export async function updateBastMasuk(
           .from(barang)
           .where(eq(barang.id, item.barangId));
 
-        const revertedStock = (currentBarang?.stok || 0) - item.qtyTotal;
+        const revertedStock = (currentBarang?.stok || 0) - item.qty;
 
         if (revertedStock < 0) {
           throw new Error(
@@ -282,7 +322,7 @@ export async function updateBastMasuk(
           tanggal: new Date(),
           jenisMutasi: 'PENYESUAIAN',
           qtyMasuk: 0,
-          qtyKeluar: item.qtyTotal,
+          qtyKeluar: item.qty,
           stokAkhir: revertedStock,
           referensiId: oldBast.nomorBast,
           sumberTransaksi: 'EDIT_BAST_MASUK',
@@ -316,18 +356,16 @@ export async function updateBastMasuk(
 
       // 4. Insert New Details & Update Stock
       for (const item of validated.items) {
-        const qtyTotal = item.qtyKemasan * item.isiPerKemasan;
-
+        // Insert Detail
         await tx.insert(bastMasukDetail).values({
           bastMasukId: id,
           barangId: item.barangId,
-          qtyKemasan: item.qtyKemasan,
-          satuanKemasanId: item.satuanKemasanId,
-          isiPerKemasan: item.isiPerKemasan,
-          qtyTotal: qtyTotal,
+          qty: item.qty,
           hargaSatuan: item.hargaSatuan.toString(),
           keterangan: item.keterangan,
         });
+
+        const qtyTotal = item.qty;
 
         // Update Stock
         const [currentBarang] = await tx
@@ -429,11 +467,11 @@ export async function deleteBastMasuk(id: number) {
           .from(barang)
           .where(eq(barang.id, item.barangId));
 
-        const newStock = (currentBarang?.stok || 0) - item.qtyTotal;
+        const newStock = (currentBarang?.stok || 0) - item.qty;
 
         if (newStock < 0) {
           throw new Error(
-            `Gagal! Barang "${currentBarang?.nama || 'Unknown'}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini (Butuh: ${item.qtyTotal}).`
+            `Gagal! Barang "${currentBarang?.nama || 'Unknown'}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini (Butuh: ${item.qty}).`
           );
         }
 
@@ -448,7 +486,7 @@ export async function deleteBastMasuk(id: number) {
           tanggal: new Date(),
           jenisMutasi: 'PENYESUAIAN', // Or should we use KELUAR? Use PENYESUAIAN for correction.
           qtyMasuk: 0,
-          qtyKeluar: item.qtyTotal, // Treated as reducing stock
+          qtyKeluar: item.qty, // Treated as reducing stock
           stokAkhir: newStock,
           referensiId: bastion.nomorBast,
           sumberTransaksi: 'PEMBATALAN_BAST_MASUK',

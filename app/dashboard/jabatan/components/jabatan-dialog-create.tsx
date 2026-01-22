@@ -27,6 +27,7 @@ import { Plus } from 'lucide-react';
 
 const jabatanSchema = z.object({
   nama: z.string().min(1, 'Nama jabatan wajib diisi'),
+  unitKerja: z.string().optional(),
 });
 
 type JabatanFormValues = z.infer<typeof jabatanSchema>;
@@ -45,6 +46,7 @@ export function JabatanDialogCreate() {
     resolver: zodResolver(jabatanSchema) as any,
     defaultValues: {
       nama: '',
+      unitKerja: '',
     },
   });
 
@@ -69,6 +71,9 @@ export function JabatanDialogCreate() {
   const onSubmit = (data: JabatanFormValues) => {
     const formData = new FormData();
     formData.append('nama', data.nama);
+    if (data.unitKerja) {
+      formData.append('unitKerja', data.unitKerja);
+    }
     startTransition(() => {
       formAction(formData);
     });
@@ -95,6 +100,17 @@ export function JabatanDialogCreate() {
               </FieldLabel>
               <Input {...register('nama')} placeholder="Contoh: Staff Gudang" />
               <FieldError errors={[{ message: errors.nama?.message }]} />
+            </Field>
+          </FieldGroup>
+
+          <FieldGroup>
+            <Field>
+              <FieldLabel>Unit Kerja</FieldLabel>
+              <Input
+                {...register('unitKerja')}
+                placeholder="Contoh: Divisi Logistik"
+              />
+              <FieldError errors={[{ message: errors.unitKerja?.message }]} />
             </Field>
           </FieldGroup>
 

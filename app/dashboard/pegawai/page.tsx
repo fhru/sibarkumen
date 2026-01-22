@@ -1,10 +1,24 @@
-import { db } from '@/lib/db';
-import { pegawai, jabatan } from '@/drizzle/schema';
-import { desc } from 'drizzle-orm';
-import { PegawaiTable } from './components/pegawai-table';
-import { PegawaiStats } from './components/pegawai-stats';
+import { db } from "@/lib/db";
+import { pegawai, jabatan } from "@/drizzle/schema";
+import { desc } from "drizzle-orm";
+import { PegawaiTable } from "./components/pegawai-table";
+import { PegawaiStats } from "./components/pegawai-stats";
+import { PegawaiDialogCreate } from "./components/pegawai-dialog-create";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Pegawai | Sibarkumen",
+  description: "Kelola data pegawai dan staff di sini.",
+};
 
 export default async function PegawaiPage() {
   // Fetch Pegawai with their Jabatan relations
@@ -39,7 +53,19 @@ export default async function PegawaiPage() {
   const jabatanList = await db.select().from(jabatan).orderBy(desc(jabatan.id));
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="flex-1 space-y-6 p-2 lg:p-4">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Pegawai</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="flex items-center justify-between space-y-2">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Pegawai</h2>
@@ -47,7 +73,9 @@ export default async function PegawaiPage() {
             Kelola data pegawai dan staff di sini.
           </p>
         </div>
+        <PegawaiDialogCreate />
       </div>
+
       <PegawaiStats totalPegawai={data.length} />
       <PegawaiTable data={data} jabatanList={jabatanList} />
     </div>

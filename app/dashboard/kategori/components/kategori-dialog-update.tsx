@@ -25,6 +25,10 @@ import { toast } from 'sonner';
 
 const kategoriSchema = z.object({
   nama: z.string().min(1, 'Nama kategori wajib diisi'),
+  prefix: z
+    .string()
+    .min(1, 'Prefix wajib diisi')
+    .max(3, 'Prefix maksimal 3 karakter'),
 });
 
 type KategoriFormValues = z.infer<typeof kategoriSchema>;
@@ -35,6 +39,7 @@ interface KategoriDialogUpdateProps {
   kategori: {
     id: number;
     nama: string;
+    prefix: string;
   };
 }
 
@@ -55,6 +60,7 @@ export function KategoriDialogUpdate({
     resolver: zodResolver(kategoriSchema),
     defaultValues: {
       nama: kategori.nama,
+      prefix: kategori.prefix,
     },
   });
 
@@ -62,6 +68,7 @@ export function KategoriDialogUpdate({
     if (open) {
       reset({
         nama: kategori.nama,
+        prefix: kategori.prefix,
       });
     }
   }, [open, kategori, reset]);
@@ -86,6 +93,7 @@ export function KategoriDialogUpdate({
     const formData = new FormData();
     formData.append('id', kategori.id.toString());
     formData.append('nama', data.nama);
+    formData.append('prefix', data.prefix.toUpperCase());
     startTransition(() => {
       formAction(formData);
     });
@@ -109,6 +117,17 @@ export function KategoriDialogUpdate({
               </FieldLabel>
               <Input {...register('nama')} placeholder="Contoh: Elektronik" />
               <FieldError errors={[{ message: errors.nama?.message }]} />
+            </Field>
+            <Field>
+              <FieldLabel>
+                Prefix <span className="text-red-500 -ml-1">*</span>
+              </FieldLabel>
+              <Input
+                {...register('prefix')}
+                placeholder="Contoh: ELEC"
+                className="uppercase"
+              />
+              <FieldError errors={[{ message: errors.prefix?.message }]} />
             </Field>
           </FieldGroup>
 

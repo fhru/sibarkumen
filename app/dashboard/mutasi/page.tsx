@@ -1,13 +1,21 @@
 import {
   getMutasiBarangStats,
   getMutasiBarangList,
-} from '@/drizzle/data/mutasi-barang';
-import { MutasiBarangStats } from './components/mutasi-barang-stats';
-import { MutasiBarangTable } from './components/mutasi-barang-table';
+} from "@/drizzle/data/mutasi-barang";
+import { MutasiBarangStats } from "./components/mutasi-barang-stats";
+import { MutasiBarangTable } from "./components/mutasi-barang-table";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export const metadata = {
-  title: 'Mutasi Barang',
-  description: 'Riwayat pergerakan stok barang',
+  title: "Mutasi Barang | Sibarkumen",
+  description: "Riwayat pergerakan stok barang",
 };
 
 interface PageProps {
@@ -15,8 +23,8 @@ interface PageProps {
     page?: string;
     search?: string;
     sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-    jenisMutasi?: 'MASUK' | 'KELUAR' | 'PENYESUAIAN';
+    sortOrder?: "asc" | "desc";
+    jenisMutasi?: "MASUK" | "KELUAR" | "PENYESUAIAN";
     startDate?: string;
     endDate?: string;
     sumberTransaksi?: string;
@@ -50,7 +58,19 @@ export default async function MutasiPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="flex-1 space-y-6 p-2 lg:p-4">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Mutasi Barang</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="flex items-center justify-between space-y-2">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Mutasi Barang</h2>
@@ -67,7 +87,7 @@ export default async function MutasiPage({ searchParams }: PageProps) {
         totalTransaksi={stats.totalTransaksi}
       />
 
-      <div className="space-y-4">
+      <div className="flex h-full flex-1 flex-col space-y-4">
         <MutasiBarangTable
           data={result.data}
           pageCount={result.meta.pageCount}

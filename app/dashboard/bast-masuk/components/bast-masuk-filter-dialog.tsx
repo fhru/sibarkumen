@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,21 +9,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Filter, X } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { AsyncSelect } from '@/components/ui/async-select';
-import { searchPihakKetiga, searchPegawai } from '@/drizzle/actions/search';
-import { type DateRange } from 'react-day-picker';
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Filter, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { AsyncSelect } from "@/components/ui/async-select";
+import { searchPihakKetiga, searchPegawai } from "@/drizzle/actions/search";
+import { type DateRange } from "react-day-picker";
 
 interface FilterOption {
   id: string;
@@ -90,33 +90,25 @@ export function BastMasukFilterDialog({
     number | undefined
   >(selectedPihakKetiga);
   const [localPptk, setLocalPptk] = React.useState<number | undefined>(
-    selectedPptk
+    selectedPptk,
   );
   const [localAsalPembelian, setLocalAsalPembelian] = React.useState<
     string | undefined
   >(selectedAsalPembelian);
   const [localRekening, setLocalRekening] = React.useState<string | undefined>(
-    selectedRekening
+    selectedRekening,
   );
 
-  // Sync local state with props when dialog opens
-  React.useEffect(() => {
-    if (open) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
       setLocalDateRange({ from: startDate, to: endDate });
       setLocalPihakKetiga(selectedPihakKetiga);
       setLocalPptk(selectedPptk);
       setLocalAsalPembelian(selectedAsalPembelian);
       setLocalRekening(selectedRekening);
     }
-  }, [
-    open,
-    startDate,
-    endDate,
-    selectedPihakKetiga,
-    selectedPptk,
-    selectedAsalPembelian,
-    selectedRekening,
-  ]);
+    setOpen(nextOpen);
+  };
 
   const handleApplyFilters = () => {
     onApplyFilters({
@@ -141,7 +133,7 @@ export function BastMasukFilterDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" className="relative">
           <Filter className="mr-2 h-4 w-4" />
@@ -213,7 +205,7 @@ export function BastMasukFilterDialog({
                 const results = await searchPegawai(query);
                 return results.map((item) => ({
                   id: item.id,
-                  nama: `${item.nama} ${item.nip ? `(${item.nip})` : ''}`,
+                  nama: `${item.nama} ${item.nip ? `(${item.nip})` : ""}`,
                 }));
               }}
               placeholder="Pilih PPTK/PPK"
@@ -224,9 +216,9 @@ export function BastMasukFilterDialog({
           <div className="space-y-2">
             <Label htmlFor="asal-pembelian">Asal Pembelian</Label>
             <Select
-              value={localAsalPembelian || 'all'}
+              value={localAsalPembelian || "all"}
               onValueChange={(value) =>
-                setLocalAsalPembelian(value === 'all' ? undefined : value)
+                setLocalAsalPembelian(value === "all" ? undefined : value)
               }
             >
               <SelectTrigger id="asal-pembelian" className="w-full">
@@ -247,9 +239,9 @@ export function BastMasukFilterDialog({
           <div className="space-y-2">
             <Label htmlFor="rekening">Rekening</Label>
             <Select
-              value={localRekening || 'all'}
+              value={localRekening || "all"}
               onValueChange={(value) =>
-                setLocalRekening(value === 'all' ? undefined : value)
+                setLocalRekening(value === "all" ? undefined : value)
               }
             >
               <SelectTrigger id="rekening" className="w-full">

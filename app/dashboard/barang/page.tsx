@@ -4,10 +4,19 @@ import { BarangTable } from './components/barang-table';
 import { BarangStats } from './components/barang-stats';
 import { db } from '@/lib/db';
 import { kategori, satuan } from '@/drizzle/schema';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { BarangDialogCreate } from './components/barang-dialog-create';
 
 export const metadata = {
-  title: 'Dashboard Barang',
-  description: 'Manajemen Data Barang',
+  title: 'Barang | Sibarkumen',
+  description: 'Kelola daftar barang di sini.',
 };
 
 export default async function BarangPage(props: {
@@ -41,21 +50,40 @@ export default async function BarangPage(props: {
   const { data, meta } = dataPayload;
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
+    <div className="flex-1 space-y-6 p-2 lg:p-4">
+      {/* 1. Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Data Barang</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {/* 2. Header & Actions */}
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Data Barang</h2>
           <p className="text-muted-foreground">Kelola daftar barang di sini.</p>
         </div>
+        <BarangDialogCreate
+          kategoriList={kategoriList}
+          satuanList={satuanList}
+        />
       </div>
 
+      {/* 3. Stats */}
       <BarangStats
         totalItems={stats.totalItems}
         lowStockCount={stats.lowStockCount}
         topCategory={stats.topCategory}
       />
 
-      <div className="flex h-full flex-1 flex-col space-y-8">
+      <div className="flex h-full flex-1 flex-col space-y-6">
         <Suspense fallback={<div>Loading table...</div>}>
           <BarangTable
             data={data}

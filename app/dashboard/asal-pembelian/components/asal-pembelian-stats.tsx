@@ -11,7 +11,7 @@ export function AsalPembelianStats({
 }: AsalPembelianStatsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <div className="flex flex-col justify-between rounded-lg border bg-card p-6 transition-colors hover:border-foreground/20">
+      <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Total Asal Pembelian

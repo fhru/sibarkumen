@@ -1,26 +1,29 @@
-'use client';
+"use client";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+import Link from "next/link";
 
 type MutasiBarang = {
   id: number;
   barangId: number;
   tanggal: Date;
-  jenisMutasi: 'MASUK' | 'KELUAR' | 'PENYESUAIAN';
+  jenisMutasi: "MASUK" | "KELUAR" | "PENYESUAIAN";
   qtyMasuk: number;
   qtyKeluar: number;
   stokAkhir: number;
   referensiId: string | null;
   sumberTransaksi: string | null;
   keterangan: string | null;
+  bastKeluarId: number | null;
+  bastMasukId: number | null;
   barang: {
     id: number;
     nama: string;
@@ -40,11 +43,18 @@ export function MutasiDetailDialog({
   onOpenChange,
 }: MutasiDetailDialogProps) {
   const jenisBadgeVariant =
-    mutasi.jenisMutasi === 'MASUK'
-      ? 'default'
-      : mutasi.jenisMutasi === 'KELUAR'
-        ? 'destructive'
-        : 'secondary';
+    mutasi.jenisMutasi === "MASUK"
+      ? "default"
+      : mutasi.jenisMutasi === "KELUAR"
+        ? "destructive"
+        : "secondary";
+
+  const bastLink =
+    mutasi.sumberTransaksi?.includes("BAST_MASUK") && mutasi.bastMasukId
+      ? `/dashboard/bast-masuk/${mutasi.bastMasukId}`
+      : mutasi.sumberTransaksi?.includes("BAST_KELUAR") && mutasi.bastKeluarId
+        ? `/dashboard/bast-keluar/${mutasi.bastKeluarId}`
+        : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,7 +96,7 @@ export function MutasiDetailDialog({
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Tanggal</span>
                 <span className="font-medium">
-                  {format(new Date(mutasi.tanggal), 'dd MMMM yyyy, HH:mm', {
+                  {format(new Date(mutasi.tanggal), "dd MMMM yyyy, HH:mm", {
                     locale: localeId,
                   })}
                 </span>
@@ -102,11 +112,11 @@ export function MutasiDetailDialog({
                 <span
                   className={
                     mutasi.qtyMasuk > 0
-                      ? 'font-bold text-green-600'
-                      : 'text-muted-foreground'
+                      ? "font-bold text-green-600"
+                      : "text-muted-foreground"
                   }
                 >
-                  {mutasi.qtyMasuk > 0 ? `+${mutasi.qtyMasuk}` : '-'}
+                  {mutasi.qtyMasuk > 0 ? `+${mutasi.qtyMasuk}` : "-"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -116,11 +126,11 @@ export function MutasiDetailDialog({
                 <span
                   className={
                     mutasi.qtyKeluar > 0
-                      ? 'font-bold text-destructive'
-                      : 'text-muted-foreground'
+                      ? "font-bold text-destructive"
+                      : "text-muted-foreground"
                   }
                 >
-                  {mutasi.qtyKeluar > 0 ? `-${mutasi.qtyKeluar}` : '-'}
+                  {mutasi.qtyKeluar > 0 ? `-${mutasi.qtyKeluar}` : "-"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -130,11 +140,11 @@ export function MutasiDetailDialog({
                 <span
                   className={
                     mutasi.stokAkhir < 0
-                      ? 'font-bold text-destructive'
-                      : 'font-bold'
+                      ? "font-bold text-destructive"
+                      : "font-bold"
                   }
                 >
-                  {mutasi.stokAkhir.toLocaleString('id-ID')}
+                  {mutasi.stokAkhir.toLocaleString("id-ID")}
                 </span>
               </div>
             </div>
@@ -151,7 +161,7 @@ export function MutasiDetailDialog({
                   Nomor Referensi
                 </span>
                 <span className="font-mono text-sm">
-                  {mutasi.referensiId || '-'}
+                  {mutasi.referensiId || "-"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -159,9 +169,20 @@ export function MutasiDetailDialog({
                   Sumber Transaksi
                 </span>
                 <span className="text-sm">
-                  {mutasi.sumberTransaksi?.replace(/_/g, ' ') || '-'}
+                  {mutasi.sumberTransaksi?.replace(/_/g, " ") || "-"}
                 </span>
               </div>
+              {bastLink && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">BAST</span>
+                  <Link
+                    href={bastLink}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Lihat BAST
+                  </Link>
+                </div>
+              )}
               {mutasi.keterangan && (
                 <div className="pt-2 border-t">
                   <span className="text-sm text-muted-foreground">

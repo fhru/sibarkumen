@@ -24,10 +24,7 @@ import {
 } from '@/components/ui/field';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
-
-const kategoriSchema = z.object({
-  nama: z.string().min(1, 'Nama kategori wajib diisi'),
-});
+import { kategoriSchema } from '@/lib/zod/kategori';
 
 type KategoriFormValues = z.infer<typeof kategoriSchema>;
 
@@ -45,6 +42,7 @@ export function KategoriDialogCreate() {
     resolver: zodResolver(kategoriSchema),
     defaultValues: {
       nama: '',
+      prefix: '',
     },
   });
 
@@ -67,6 +65,7 @@ export function KategoriDialogCreate() {
   const onSubmit = (data: KategoriFormValues) => {
     const formData = new FormData();
     formData.append('nama', data.nama);
+    formData.append('prefix', data.prefix.toUpperCase());
     startTransition(() => {
       formAction(formData);
     });
@@ -83,7 +82,7 @@ export function KategoriDialogCreate() {
         <DialogHeader>
           <DialogTitle>Tambah Kategori Baru</DialogTitle>
           <DialogDescription>
-            Masukkan nama kategori baru di sini.
+            Masukkan nama dan prefix kategori baru di sini.
           </DialogDescription>
         </DialogHeader>
 
@@ -95,6 +94,17 @@ export function KategoriDialogCreate() {
               </FieldLabel>
               <Input {...register('nama')} placeholder="Contoh: Elektronik" />
               <FieldError errors={[{ message: errors.nama?.message }]} />
+            </Field>
+            <Field>
+              <FieldLabel>
+                Prefix <span className="text-red-500 -ml-1">*</span>
+              </FieldLabel>
+              <Input
+                {...register('prefix')}
+                placeholder="Contoh: ELK"
+                className="uppercase placeholder:capitalize"
+              />
+              <FieldError errors={[{ message: errors.prefix?.message }]} />
             </Field>
           </FieldGroup>
 

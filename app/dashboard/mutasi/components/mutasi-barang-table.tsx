@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   ColumnDef,
   VisibilityState,
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -15,23 +15,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -40,25 +33,30 @@ import {
   ChevronDown,
   Search,
   X,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
-import { MutasiDetailDialog } from './mutasi-detail-dialog';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useTransition } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
+  SlidersHorizontal,
+} from "lucide-react";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+import { MutasiDetailDialog } from "./mutasi-detail-dialog";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTransition } from "react";
+import { useDebouncedCallback } from "use-debounce";
+import { MutasiFilterDialog } from "./mutasi-filter-dialog";
+import Link from "next/link";
 
 type MutasiBarang = {
   id: number;
   barangId: number;
   tanggal: Date;
-  jenisMutasi: 'MASUK' | 'KELUAR' | 'PENYESUAIAN';
+  jenisMutasi: "MASUK" | "KELUAR" | "PENYESUAIAN";
   qtyMasuk: number;
   qtyKeluar: number;
   stokAkhir: number;
   referensiId: string | null;
   sumberTransaksi: string | null;
   keterangan: string | null;
+  bastKeluarId: number | null;
+  bastMasukId: number | null;
   barang: {
     id: number;
     nama: string;
@@ -87,41 +85,71 @@ export function MutasiBarangTable({
   const [detailOpen, setDetailOpen] = React.useState(false);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({
-      referensiId: false,
       sumberTransaksi: false,
       keterangan: false,
     });
 
   // Get current page and filters from URL
-  const currentPage = Number(searchParams.get('page')) || 1;
-  const currentSearch = searchParams.get('search') || '';
-  const currentJenisMutasi = searchParams.get('jenisMutasi') || 'all';
-  const currentSortBy = searchParams.get('sortBy') || '';
-  const currentSortOrder = searchParams.get('sortOrder') || '';
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const currentSearch = searchParams.get("search") || "";
+  const currentJenisMutasi = searchParams.get("jenisMutasi") || undefined;
+  const startDate = searchParams.get("startDate")
+    ? new Date(searchParams.get("startDate")!)
+    : undefined;
+  const endDate = searchParams.get("endDate")
+    ? new Date(searchParams.get("endDate")!)
+    : undefined;
+  const currentSortBy = searchParams.get("sortBy") || "";
+  const currentSortOrder = searchParams.get("sortOrder") || "";
 
   // Debounced search handler
   const handleSearch = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams);
     if (term) {
-      params.set('search', term);
+      params.set("search", term);
     } else {
-      params.delete('search');
+      params.delete("search");
     }
-    params.set('page', '1');
+    params.set("page", "1");
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`);
     });
   }, 300);
 
   // Filter change handler
-  const handleFilterChange = (key: string, value?: string) => {
+  const formatDateForURL = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleApplyFilters = (filters: {
+    jenisMutasi: string | undefined;
+    startDate?: Date;
+    endDate?: Date;
+  }) => {
     const params = new URLSearchParams(searchParams);
-    if (value && value !== 'all') {
-      params.set(key, value);
+
+    if (filters.jenisMutasi) {
+      params.set("jenisMutasi", filters.jenisMutasi);
     } else {
-      params.delete(key);
+      params.delete("jenisMutasi");
     }
-    params.set('page', '1');
+
+    if (filters.startDate) {
+      params.set("startDate", formatDateForURL(filters.startDate));
+    } else {
+      params.delete("startDate");
+    }
+
+    if (filters.endDate) {
+      params.set("endDate", formatDateForURL(filters.endDate));
+    } else {
+      params.delete("endDate");
+    }
+
+    params.set("page", "1");
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`);
     });
@@ -130,19 +158,19 @@ export function MutasiBarangTable({
   // Sort handler (tri-state)
   const handleSort = (columnId: string) => {
     const params = new URLSearchParams(searchParams);
-    const currentSort = searchParams.get('sortBy');
-    const currentOrder = searchParams.get('sortOrder');
+    const currentSort = searchParams.get("sortBy");
+    const currentOrder = searchParams.get("sortOrder");
 
     if (currentSort === columnId) {
-      if (currentOrder === 'asc') {
-        params.set('sortOrder', 'desc');
-      } else if (currentOrder === 'desc') {
-        params.delete('sortBy');
-        params.delete('sortOrder');
+      if (currentOrder === "asc") {
+        params.set("sortOrder", "desc");
+      } else if (currentOrder === "desc") {
+        params.delete("sortBy");
+        params.delete("sortOrder");
       }
     } else {
-      params.set('sortBy', columnId);
-      params.set('sortOrder', 'asc');
+      params.set("sortBy", columnId);
+      params.set("sortOrder", "asc");
     }
 
     startTransition(() => {
@@ -155,7 +183,7 @@ export function MutasiBarangTable({
     if (currentSortBy !== columnId) {
       return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
     }
-    if (currentSortOrder === 'asc') {
+    if (currentSortOrder === "asc") {
       return <ArrowUp className="ml-2 h-4 w-4 text-primary" />;
     }
     return <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
@@ -163,37 +191,37 @@ export function MutasiBarangTable({
 
   const columns: ColumnDef<MutasiBarang>[] = [
     {
-      accessorKey: 'tanggal',
+      accessorKey: "tanggal",
       header: () => {
         return (
           <Button
             variant="ghost"
-            onClick={() => handleSort('tanggal')}
+            onClick={() => handleSort("tanggal")}
             className="h-8 px-2"
           >
             Tanggal
-            {getSortIcon('tanggal')}
+            {getSortIcon("tanggal")}
           </Button>
         );
       },
       cell: ({ row }) => {
-        return format(new Date(row.getValue('tanggal')), 'dd MMM yyyy HH:mm', {
+        return format(new Date(row.getValue("tanggal")), "dd MMM yyyy HH:mm", {
           locale: localeId,
         });
       },
     },
     {
-      id: 'barang',
+      id: "barang",
       accessorFn: (row) => row.barang.nama,
       header: () => {
         return (
           <Button
             variant="ghost"
-            onClick={() => handleSort('barang')}
+            onClick={() => handleSort("barang")}
             className="h-8 px-2"
           >
             Barang
-            {getSortIcon('barang')}
+            {getSortIcon("barang")}
           </Button>
         );
       },
@@ -209,24 +237,24 @@ export function MutasiBarangTable({
       },
     },
     {
-      accessorKey: 'jenisMutasi',
-      header: 'Jenis',
+      accessorKey: "jenisMutasi",
+      header: "Jenis",
       cell: ({ row }) => {
-        const jenis = row.getValue('jenisMutasi') as string;
+        const jenis = row.getValue("jenisMutasi") as string;
         const variant =
-          jenis === 'MASUK'
-            ? 'default'
-            : jenis === 'KELUAR'
-              ? 'destructive'
-              : 'secondary';
+          jenis === "MASUK"
+            ? "default"
+            : jenis === "KELUAR"
+              ? "destructive"
+              : "secondary";
         return <Badge variant={variant}>{jenis}</Badge>;
       },
     },
     {
-      accessorKey: 'qtyMasuk',
-      header: 'Qty Masuk',
+      accessorKey: "qtyMasuk",
+      header: "Qty Masuk",
       cell: ({ row }) => {
-        const qty = row.getValue('qtyMasuk') as number;
+        const qty = row.getValue("qtyMasuk") as number;
         return qty > 0 ? (
           <span className="text-green-600 font-medium">+{qty}</span>
         ) : (
@@ -235,10 +263,10 @@ export function MutasiBarangTable({
       },
     },
     {
-      accessorKey: 'qtyKeluar',
-      header: 'Qty Keluar',
+      accessorKey: "qtyKeluar",
+      header: "Qty Keluar",
       cell: ({ row }) => {
-        const qty = row.getValue('qtyKeluar') as number;
+        const qty = row.getValue("qtyKeluar") as number;
         return qty > 0 ? (
           <span className="text-destructive font-medium">-{qty}</span>
         ) : (
@@ -247,46 +275,67 @@ export function MutasiBarangTable({
       },
     },
     {
-      accessorKey: 'stokAkhir',
-      header: 'Stok Akhir',
+      accessorKey: "stokAkhir",
+      header: "Stok Akhir",
       cell: ({ row }) => {
-        const stok = row.getValue('stokAkhir') as number;
+        const stok = row.getValue("stokAkhir") as number;
         return (
-          <span className={stok < 0 ? 'text-red-600 font-bold' : ''}>
-            {stok.toLocaleString('id-ID')}
+          <span className={stok < 0 ? "text-red-600 font-bold" : ""}>
+            {stok.toLocaleString("id-ID")}
           </span>
         );
       },
     },
     {
-      accessorKey: 'referensiId',
-      header: 'Referensi',
+      accessorKey: "referensiId",
+      header: "Referensi",
       cell: ({ row }) => {
-        return row.getValue('referensiId') || '-';
-      },
-    },
-    {
-      accessorKey: 'sumberTransaksi',
-      header: 'Sumber',
-      cell: ({ row }) => {
-        const sumber = row.getValue('sumberTransaksi') as string | null;
-        return sumber ? (
-          <span className="text-xs">{sumber.replace(/_/g, ' ')}</span>
-        ) : (
-          '-'
+        const referensi = row.getValue("referensiId") as string | null;
+        const { sumberTransaksi, bastMasukId, bastKeluarId } = row.original;
+        const bastLink =
+          sumberTransaksi?.includes("BAST_MASUK") && bastMasukId
+            ? `/dashboard/bast-masuk/${bastMasukId}`
+            : sumberTransaksi?.includes("BAST_KELUAR") && bastKeluarId
+              ? `/dashboard/bast-keluar/${bastKeluarId}`
+              : null;
+
+        if (!referensi) {
+          return "-";
+        }
+
+        if (!bastLink) {
+          return referensi;
+        }
+
+        return (
+          <Link href={bastLink} className="text-primary hover:underline">
+            {referensi}
+          </Link>
         );
       },
     },
     {
-      accessorKey: 'keterangan',
-      header: 'Keterangan',
+      accessorKey: "sumberTransaksi",
+      header: "Sumber",
       cell: ({ row }) => {
-        const keterangan = row.getValue('keterangan') as string | null;
-        return keterangan ? <span className="text-xs">{keterangan}</span> : '-';
+        const sumber = row.getValue("sumberTransaksi") as string | null;
+        return sumber ? (
+          <span className="text-xs">{sumber.replace(/_/g, " ")}</span>
+        ) : (
+          "-"
+        );
       },
     },
     {
-      id: 'actions',
+      accessorKey: "keterangan",
+      header: "Keterangan",
+      cell: ({ row }) => {
+        const keterangan = row.getValue("keterangan") as string | null;
+        return keterangan ? <span className="text-xs">{keterangan}</span> : "-";
+      },
+    },
+    {
+      id: "actions",
       cell: ({ row }) => {
         return (
           <Button
@@ -319,81 +368,99 @@ export function MutasiBarangTable({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Filters and Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari barang, kode, atau referensi..."
-            defaultValue={currentSearch}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-8 bg-background dark:bg-sidebar"
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 items-center space-x-2">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari barang, kode, atau referensi..."
+              defaultValue={currentSearch}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-8 bg-background dark:bg-input/30"
+            />
+            {currentSearch && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={() => {
+                  handleSearch("");
+                  const input = document.querySelector(
+                    'input[placeholder*="Cari"]',
+                  ) as HTMLInputElement;
+                  if (input) input.value = "";
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          <MutasiFilterDialog
+            jenisMutasiValue={currentJenisMutasi}
+            startDate={startDate}
+            endDate={endDate}
+            onApplyFilters={handleApplyFilters}
           />
-          {currentSearch && (
+
+          {(currentJenisMutasi || startDate || endDate) && (
             <Button
               variant="ghost"
-              size="sm"
-              className="absolute right-0 top-0 h-full px-3"
-              onClick={() => {
-                handleSearch('');
-                const input = document.querySelector(
-                  'input[placeholder*="Cari"]'
-                ) as HTMLInputElement;
-                if (input) input.value = '';
-              }}
+              size="icon"
+              className="h-9 w-9"
+              onClick={() =>
+                handleApplyFilters({
+                  jenisMutasi: undefined,
+                  startDate: undefined,
+                  endDate: undefined,
+                })
+              }
             >
               <X className="h-4 w-4" />
+              <span className="sr-only">Reset Filter</span>
             </Button>
           )}
         </div>
 
-        <Select
-          value={currentJenisMutasi}
-          onValueChange={(value) => handleFilterChange('jenisMutasi', value)}
-        >
-          <SelectTrigger className="w-[180px] bg-background dark:bg-sidebar">
-            <SelectValue placeholder="Jenis Mutasi" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua</SelectItem>
-            <SelectItem value="MASUK">Masuk</SelectItem>
-            <SelectItem value="KELUAR">Keluar</SelectItem>
-            <SelectItem value="PENYESUAIAN">Penyesuaian</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Column Visibility */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Kolom <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-44">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          {/* Column Visibility */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="ml-auto bg-background dark:bg-input/30"
+              >
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                Kolom <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[150px]">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-background dark:bg-sidebar">
+      <div className="rounded-md border bg-background dark:bg-input/30">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -405,7 +472,7 @@ export function MutasiBarangTable({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -418,13 +485,13 @@ export function MutasiBarangTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
+                  data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -445,9 +512,9 @@ export function MutasiBarangTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-2">
         <div className="text-sm text-muted-foreground">
-          Menampilkan {data.length} dari {totalItems.toLocaleString('id-ID')}{' '}
+          Menampilkan {data.length} dari {totalItems.toLocaleString("id-ID")}{" "}
           data
         </div>
         <div className="flex items-center space-x-2">
@@ -456,7 +523,7 @@ export function MutasiBarangTable({
             size="sm"
             onClick={() => {
               const params = new URLSearchParams(searchParams);
-              params.set('page', String(currentPage - 1));
+              params.set("page", String(currentPage - 1));
               startTransition(() => {
                 router.push(`${pathname}?${params.toString()}`);
               });
@@ -465,7 +532,7 @@ export function MutasiBarangTable({
           >
             Previous
           </Button>
-          <div className="text-sm">
+          <div className="text-sm text-muted-foreground">
             Halaman {currentPage} dari {pageCount}
           </div>
           <Button
@@ -473,7 +540,7 @@ export function MutasiBarangTable({
             size="sm"
             onClick={() => {
               const params = new URLSearchParams(searchParams);
-              params.set('page', String(currentPage + 1));
+              params.set("page", String(currentPage + 1));
               startTransition(() => {
                 router.push(`${pathname}?${params.toString()}`);
               });

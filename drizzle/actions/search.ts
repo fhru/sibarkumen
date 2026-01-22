@@ -1,8 +1,15 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { barang, pegawai, pihakKetiga } from '@/drizzle/schema';
-import { or, ilike } from 'drizzle-orm';
+import {
+  barang,
+  pegawai,
+  pihakKetiga,
+  satuan,
+  pegawaiJabatan,
+  jabatan,
+} from '@/drizzle/schema';
+import { or, ilike, eq, and } from 'drizzle-orm';
 
 export async function searchBarang(query: string, limit = 20) {
   if (!query || query.length < 2) {
@@ -12,8 +19,12 @@ export async function searchBarang(query: string, limit = 20) {
         id: barang.id,
         nama: barang.nama,
         kodeBarang: barang.kodeBarang,
+        stok: barang.stok,
+        satuanId: barang.satuanId,
+        satuanNama: satuan.nama,
       })
       .from(barang)
+      .leftJoin(satuan, eq(barang.satuanId, satuan.id))
       .limit(limit);
 
     return results;
@@ -24,8 +35,12 @@ export async function searchBarang(query: string, limit = 20) {
       id: barang.id,
       nama: barang.nama,
       kodeBarang: barang.kodeBarang,
+      stok: barang.stok,
+      satuanId: barang.satuanId,
+      satuanNama: satuan.nama,
     })
     .from(barang)
+    .leftJoin(satuan, eq(barang.satuanId, satuan.id))
     .where(
       or(
         ilike(barang.nama, `%${query}%`),
@@ -44,8 +59,17 @@ export async function searchPegawai(query: string, limit = 20) {
         id: pegawai.id,
         nama: pegawai.nama,
         nip: pegawai.nip,
+        jabatan: jabatan.nama,
       })
       .from(pegawai)
+      .leftJoin(
+        pegawaiJabatan,
+        and(
+          eq(pegawaiJabatan.pegawaiId, pegawai.id),
+          eq(pegawaiJabatan.isAktif, true)
+        )
+      )
+      .leftJoin(jabatan, eq(pegawaiJabatan.jabatanId, jabatan.id))
       .limit(limit);
 
     return results;
@@ -56,8 +80,17 @@ export async function searchPegawai(query: string, limit = 20) {
       id: pegawai.id,
       nama: pegawai.nama,
       nip: pegawai.nip,
+      jabatan: jabatan.nama,
     })
     .from(pegawai)
+    .leftJoin(
+      pegawaiJabatan,
+      and(
+        eq(pegawaiJabatan.pegawaiId, pegawai.id),
+        eq(pegawaiJabatan.isAktif, true)
+      )
+    )
+    .leftJoin(jabatan, eq(pegawaiJabatan.jabatanId, jabatan.id))
     .where(
       or(ilike(pegawai.nama, `%${query}%`), ilike(pegawai.nip, `%${query}%`))
     )

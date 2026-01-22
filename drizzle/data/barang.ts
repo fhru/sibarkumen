@@ -1,5 +1,13 @@
+'use server';
+
 import { db } from '@/lib/db';
-import { barang, kategori, satuan } from '@/drizzle/schema';
+import {
+  barang,
+  kategori,
+  satuan,
+  bastMasuk,
+  bastMasukDetail,
+} from '@/drizzle/schema';
 import {
   count,
   desc,
@@ -13,6 +21,21 @@ import {
   gt,
   sql,
 } from 'drizzle-orm';
+
+export async function getLastPurchasePrice(barangId: number) {
+  const result = await db
+    .select({
+      hargaSatuan: bastMasukDetail.hargaSatuan,
+      tanggalBast: bastMasuk.tanggalBast,
+    })
+    .from(bastMasukDetail)
+    .leftJoin(bastMasuk, eq(bastMasukDetail.bastMasukId, bastMasuk.id))
+    .where(eq(bastMasukDetail.barangId, barangId))
+    .orderBy(desc(bastMasuk.tanggalBast))
+    .limit(1);
+
+  return result[0];
+}
 
 export async function getBarangStats() {
   const [totalResult] = await db.select({ count: count() }).from(barang);

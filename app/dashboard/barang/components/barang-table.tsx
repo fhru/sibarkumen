@@ -20,13 +20,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useDebouncedCallback } from 'use-debounce';
-import { motion } from 'framer-motion';
+
 import {
   Search,
-  Plus,
   SlidersHorizontal,
   ChevronDown,
-  BoxIcon,
   PackageOpen,
   X,
 } from 'lucide-react';
@@ -37,10 +35,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { BarangDialogCreate } from './barang-dialog-create';
-import { BarangFacetedFilter } from './barang-filter-faceted';
-import { BarangStatusFilter } from './barang-filter-status';
-
+import { BarangFilterDialog } from './barang-filter-dialog';
 import { columns, Barang } from './barang-table-columns';
 import { createContext, useContext } from 'react';
 
@@ -109,30 +104,28 @@ export function BarangTable({
     router.replace(`${pathname}?${params.toString()}`);
   }, 300);
 
-  const handleCategoryFilter = (values: string[]) => {
+  const handleApplyFilters = (
+    status: string | undefined,
+    categories: string[]
+  ) => {
     const params = new URLSearchParams(searchParams);
-    if (values.length > 0) {
-      params.set('categories', values.join(','));
-    } else {
-      params.delete('categories');
-    }
-    params.set('page', '1');
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
-  };
 
-  const handleStatusFilter = (value: string | undefined) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      params.set('status', value);
+    // Handle Status
+    if (status) {
+      params.set('status', status);
     } else {
       params.delete('status');
     }
+
+    // Handle Categories
+    if (categories.length > 0) {
+      params.set('categories', categories.join(','));
+    } else {
+      params.delete('categories');
+    }
+
     params.set('page', '1');
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
+    router.replace(`${pathname}?${params.toString()}`);
   };
 
   const clearFilters = () => {
@@ -141,9 +134,7 @@ export function BarangTable({
     params.delete('categories');
     params.delete('status');
     params.set('page', '1');
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
+    router.replace(`${pathname}?${params.toString()}`);
   };
 
   const isFiltered =
@@ -184,40 +175,30 @@ export function BarangTable({
 
   return (
     <BarangTableProvider value={{ kategoriList, satuanList }}>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Toolbar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-center space-x-2">
-            <div className="relative w-full max-w-[250px]">
+            <div className="relative w-full max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Cari barang..."
                 defaultValue={search}
                 onChange={(event) => handleSearch(event.target.value)}
-                className="pl-8 bg-background dark:bg-sidebar"
+                className="pl-8 bg-background dark:bg-input/30"
               />
             </div>
 
-            <BarangStatusFilter
-              value={statusParam || undefined}
-              onChange={handleStatusFilter}
-            />
-
-            <BarangFacetedFilter
-              title="Kategori"
-              options={categoryOptions}
-              selectedValues={selectedCategories}
-              setFilterValue={handleCategoryFilter}
+            <BarangFilterDialog
+              statusValue={statusParam || undefined}
+              selectedCategories={selectedCategories}
+              categoryOptions={categoryOptions}
+              onApplyFilters={handleApplyFilters}
             />
 
             {isFiltered && (
-              <Button
-                variant="ghost"
-                onClick={clearFilters}
-                className="h-8 px-2 lg:px-3"
-              >
-                Reset
-                <X className="ml-2 h-4 w-4" />
+              <Button variant="ghost" size={'icon'} onClick={clearFilters}>
+                <X className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -251,15 +232,11 @@ export function BarangTable({
                   })}
               </DropdownMenuContent>
             </DropdownMenu>
-            <BarangDialogCreate
-              kategoriList={kategoriList}
-              satuanList={satuanList}
-            />
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-md border bg-card">
+        <div className="rounded-md border bg-background dark:bg-input/30">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -282,12 +259,8 @@ export function BarangTable({
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row, index) => (
-                  <motion.tr
+                  <TableRow
                     key={row.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                     data-state={row.getIsSelected() && 'selected'}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -298,7 +271,7 @@ export function BarangTable({
                         )}
                       </TableCell>
                     ))}
-                  </motion.tr>
+                  </TableRow>
                 ))
               ) : (
                 <TableRow>
@@ -307,12 +280,8 @@ export function BarangTable({
                     className="h-[200px] text-center"
                   >
                     <div className="flex flex-col items-center justify-center space-y-3">
-                      <div className="flex p-4 items-center justify-center rounded-full bg-muted">
-                        <PackageOpen className="h-10 w-10 text-muted-foreground" />
-                      </div>
-
                       <div className="space-y-1">
-                        <p className="font-medium">Tidak ada data Barang.</p>
+                        <p className="font-medium">Data tidak ditemukan.</p>
                       </div>
                     </div>
                   </TableCell>
@@ -323,26 +292,32 @@ export function BarangTable({
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={!table.getCanPreviousPage() || isPending}
-          >
-            {isPending ? '...' : 'Previous'}
-          </Button>
+        <div className="flex items-center justify-between space-x-2">
           <div className="text-sm text-muted-foreground">
-            Showing {table.getRowModel().rows.length} of {totalItems} entries
+            Menampilkan {table.getRowModel().rows.length} data dari {totalItems}{' '}
+            data
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={!table.getCanNextPage() || isPending}
-          >
-            {isPending ? '...' : 'Next'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(page - 1)}
+              disabled={!table.getCanPreviousPage() || isPending}
+            >
+              {isPending ? '...' : 'Previous'}
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              Halaman {page} dari {pageCount}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(page + 1)}
+              disabled={!table.getCanNextPage() || isPending}
+            >
+              {isPending ? '...' : 'Next'}
+            </Button>
+          </div>
         </div>
       </div>
     </BarangTableProvider>

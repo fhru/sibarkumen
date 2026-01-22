@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 
 const createJabatanSchema = z.object({
   nama: z.string().min(1, 'Nama jabatan wajib diisi'),
+  unitKerja: z.string().optional(),
 });
 
 export async function createJabatan(prevState: any, formData: FormData) {
@@ -17,6 +18,7 @@ export async function createJabatan(prevState: any, formData: FormData) {
 
     await db.insert(jabatan).values({
       nama: validatedData.nama,
+      unitKerja: validatedData.unitKerja,
     });
 
     revalidatePath('/dashboard/jabatan');
@@ -60,6 +62,7 @@ export async function createJabatan(prevState: any, formData: FormData) {
 const updateJabatanSchema = z.object({
   id: z.coerce.number(),
   nama: z.string().min(1, 'Nama jabatan wajib diisi'),
+  unitKerja: z.string().optional(),
 });
 
 export async function updateJabatan(prevState: any, formData: FormData) {
@@ -71,6 +74,7 @@ export async function updateJabatan(prevState: any, formData: FormData) {
       .update(jabatan)
       .set({
         nama: validatedData.nama,
+        unitKerja: validatedData.unitKerja,
       })
       .where(eq(jabatan.id, validatedData.id));
 

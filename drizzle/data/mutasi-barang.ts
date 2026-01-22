@@ -1,5 +1,5 @@
-import { db } from '@/lib/db';
-import { mutasiBarang, barang } from '@/drizzle/schema';
+import { db } from "@/lib/db";
+import { mutasiBarang, barang, bastKeluar, bastMasuk } from "@/drizzle/schema";
 import {
   count,
   desc,
@@ -11,7 +11,7 @@ import {
   asc,
   or,
   like,
-} from 'drizzle-orm';
+} from "drizzle-orm";
 
 export async function getMutasiBarangStats() {
   // Total Qty Masuk
@@ -36,7 +36,7 @@ export async function getMutasiBarangStats() {
       count: count(),
     })
     .from(mutasiBarang)
-    .where(eq(mutasiBarang.jenisMutasi, 'PENYESUAIAN'));
+    .where(eq(mutasiBarang.jenisMutasi, "PENYESUAIAN"));
   const totalPenyesuaian = totalPenyesuaianResult?.count ?? 0;
 
   // Total Transaksi
@@ -60,9 +60,9 @@ export async function getMutasiBarangList(params?: {
   limit?: number;
   search?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   barangId?: number;
-  jenisMutasi?: 'MASUK' | 'KELUAR' | 'PENYESUAIAN';
+  jenisMutasi?: "MASUK" | "KELUAR" | "PENYESUAIAN";
   startDate?: string;
   endDate?: string;
   sumberTransaksi?: string;
@@ -104,8 +104,8 @@ export async function getMutasiBarangList(params?: {
       or(
         sql`LOWER(${barang.nama}) LIKE ${searchTerm}`,
         sql`LOWER(${barang.kodeBarang}) LIKE ${searchTerm}`,
-        sql`LOWER(COALESCE(${mutasiBarang.referensiId}, '')) LIKE ${searchTerm}`
-      )
+        sql`LOWER(COALESCE(${mutasiBarang.referensiId}, '')) LIKE ${searchTerm}`,
+      ),
     );
   }
 
@@ -115,7 +115,7 @@ export async function getMutasiBarangList(params?: {
   const [totalResult] = await db
     .select({ count: count() })
     .from(mutasiBarang)
-    .leftJoin(barang, eq(mutasiBarang.barangId, barang.id))
+    .innerJoin(barang, eq(mutasiBarang.barangId, barang.id))
     .where(whereClause);
 
   const total = totalResult?.count || 0;
@@ -123,18 +123,18 @@ export async function getMutasiBarangList(params?: {
 
   // Determine sort column and order
   let orderByClause;
-  const sortOrder = params?.sortOrder || 'desc';
+  const sortOrder = params?.sortOrder || "desc";
 
   switch (params?.sortBy) {
-    case 'tanggal':
+    case "tanggal":
       orderByClause =
-        sortOrder === 'asc'
+        sortOrder === "asc"
           ? [asc(mutasiBarang.tanggal), asc(mutasiBarang.id)]
           : [desc(mutasiBarang.tanggal), desc(mutasiBarang.id)];
       break;
-    case 'barang':
+    case "barang":
       orderByClause =
-        sortOrder === 'asc'
+        sortOrder === "asc"
           ? [asc(barang.nama), asc(mutasiBarang.id)]
           : [desc(barang.nama), desc(mutasiBarang.id)];
       break;
@@ -155,6 +155,8 @@ export async function getMutasiBarangList(params?: {
       referensiId: mutasiBarang.referensiId,
       sumberTransaksi: mutasiBarang.sumberTransaksi,
       keterangan: mutasiBarang.keterangan,
+      bastKeluarId: bastKeluar.id,
+      bastMasukId: bastMasuk.id,
       barang: {
         id: barang.id,
         nama: barang.nama,
@@ -162,7 +164,9 @@ export async function getMutasiBarangList(params?: {
       },
     })
     .from(mutasiBarang)
-    .leftJoin(barang, eq(mutasiBarang.barangId, barang.id))
+    .innerJoin(barang, eq(mutasiBarang.barangId, barang.id))
+    .leftJoin(bastKeluar, eq(bastKeluar.nomorBast, mutasiBarang.referensiId))
+    .leftJoin(bastMasuk, eq(bastMasuk.nomorBast, mutasiBarang.referensiId))
     .where(whereClause)
     .orderBy(...orderByClause)
     .limit(limit)

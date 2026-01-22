@@ -4,6 +4,14 @@ import * as schema from '@/drizzle/schema';
 
 const connectionString = process.env.DATABASE_URL!;
 
-// Disable prefetch as it is not supported for "Transaction" pool mode
-export const client = postgres(connectionString, { prepare: false });
+// Singleton pattern to prevent multiple connections in development
+const globalForDb = globalThis as unknown as {
+  conn: postgres.Sql | undefined;
+};
+
+export const client =
+  globalForDb.conn ?? postgres(connectionString, { prepare: false });
+
+if (process.env.NODE_ENV !== 'production') globalForDb.conn = client;
+
 export const db = drizzle(client, { schema });

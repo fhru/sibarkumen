@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   ColumnDef,
   flexRender,
@@ -10,7 +10,7 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
   SortingState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -18,16 +18,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   MoreHorizontal,
   ArrowUpDown,
@@ -35,12 +35,11 @@ import {
   Trash2,
   Search,
   Briefcase,
-} from 'lucide-react';
-import { PegawaiDialogUpdate } from './pegawai-dialog-update';
-import { PegawaiAlertDelete } from './pegawai-alert-delete';
-import { PegawaiDialogCreate } from './pegawai-dialog-create';
-import { PegawaiJabatanManager } from './pegawai-jabatan-manager'; // Import Manager
-import { Badge } from '@/components/ui/badge';
+} from "lucide-react";
+import { PegawaiDialogUpdate } from "./pegawai-dialog-update";
+import { PegawaiAlertDelete } from "./pegawai-alert-delete";
+import { PegawaiJabatanManager } from "./pegawai-jabatan-manager"; // Import Manager
+import { Badge } from "@/components/ui/badge";
 
 export type Pegawai = {
   id: number;
@@ -63,11 +62,11 @@ interface PegawaiTableProps {
 
 export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = React.useState('');
+  const [globalFilter, setGlobalFilter] = React.useState("");
 
   const [openUpdate, setOpenUpdate] = React.useState(false);
   const [editingPegawai, setEditingPegawai] = React.useState<Pegawai | null>(
-    null
+    null,
   );
 
   const [openDelete, setOpenDelete] = React.useState(false);
@@ -102,27 +101,27 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
 
   const columns: ColumnDef<Pegawai>[] = [
     {
-      accessorKey: 'id',
+      accessorKey: "id",
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             ID
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
-      cell: ({ row }) => <div className="ml-4">{row.getValue('id')}</div>,
+      cell: ({ row }) => <div className="ml-4">{row.getValue("id")}</div>,
     },
     {
-      accessorKey: 'nama',
+      accessorKey: "nama",
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Nama Pegawai
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -131,12 +130,12 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
       },
     },
     {
-      accessorKey: 'nip',
+      accessorKey: "nip",
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             NIP
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -144,16 +143,16 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
         );
       },
       cell: ({ row }) => {
-        const value = row.getValue('nip');
+        const value = row.getValue("nip");
         return value ? value : <span className="text-muted-foreground">-</span>;
       },
     },
     {
-      id: 'jabatan',
-      header: 'Jabatan Aktif',
+      id: "jabatan",
+      header: "Jabatan Aktif",
       cell: ({ row }) => {
         const activePositions = row.original.pegawaiJabatan.filter(
-          (pj) => pj.isAktif
+          (pj) => pj.isAktif,
         );
         return (
           <div className="flex flex-wrap gap-1">
@@ -171,7 +170,7 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
       },
     },
     {
-      id: 'actions',
+      id: "actions",
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -215,7 +214,7 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: 'includesString', // Case-insensitive text search
+    globalFilterFn: "includesString", // Case-insensitive text search
     getRowId: (row) => row.id.toString(), // Ensure row stability
     state: {
       sorting,
@@ -225,20 +224,21 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari pegawai..."
-              value={globalFilter ?? ''}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="pl-8 bg-background! dark:bg-sidebar!"
-            />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 items-center space-x-2">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari pegawai..."
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="pl-8 bg-background dark:bg-input/30"
+              />
+            </div>
           </div>
-          <PegawaiDialogCreate />
         </div>
-        <div className="rounded-md border bg-background! dark:bg-sidebar!">
+        <div className="rounded-md border bg-background dark:bg-input/30">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -250,7 +250,7 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
                       </TableHead>
                     );
@@ -263,13 +263,13 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
+                    data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}
@@ -288,23 +288,28 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-muted-foreground">
+            Menampilkan {table.getRowModel().rows.length} data
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -41,10 +41,6 @@ export const navItems: NavItem[] = [
         title: 'Satuan',
         href: '/dashboard/satuan',
       },
-      {
-        title: 'Konversi Satuan',
-        href: '/dashboard/konversi-satuan',
-      },
     ],
   },
   {
@@ -116,6 +112,10 @@ export const navItems: NavItem[] = [
       {
         title: 'Mutasi Barang',
         href: '/dashboard/mutasi',
+      },
+      {
+        title: 'Riwayat Harga',
+        href: '/dashboard/riwayat-harga',
       },
     ],
   },

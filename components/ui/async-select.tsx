@@ -36,6 +36,7 @@ interface AsyncSelectProps {
   disabled?: boolean;
   formatLabel?: (option: AsyncSelectOption) => string;
   initialOption?: AsyncSelectOption;
+  onSelectOption?: (option: AsyncSelectOption) => void;
 }
 
 export function AsyncSelect({
@@ -49,6 +50,7 @@ export function AsyncSelect({
   disabled = false,
   formatLabel = (option) => option.nama,
   initialOption,
+  onSelectOption,
 }: AsyncSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [options, setOptions] = React.useState<AsyncSelectOption[]>([]);
@@ -135,7 +137,9 @@ export function AsyncSelect({
           className={cn('w-full justify-between', className)}
           disabled={disabled}
         >
-          {selectedOption ? formatLabel(selectedOption) : placeholder}
+          <span className="truncate">
+            {selectedOption ? formatLabel(selectedOption) : placeholder}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -164,6 +168,7 @@ export function AsyncSelect({
                     value={option.id.toString()}
                     onSelect={() => {
                       onValueChange(option.id);
+                      onSelectOption?.(option);
                       setOpen(false);
                     }}
                   >

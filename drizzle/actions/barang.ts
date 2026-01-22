@@ -5,7 +5,6 @@ import { barang, kategori } from '@/drizzle/schema';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq, desc, and, like } from 'drizzle-orm';
-import { getCategoryPrefix } from '@/lib/string-utils';
 
 const createBarangSchema = z.object({
   nama: z.string().min(1, 'Nama barang wajib diisi'),
@@ -19,10 +18,12 @@ export async function createBarang(prevState: any, formData: FormData) {
     const rawData = Object.fromEntries(formData.entries());
     const validatedData = createBarangSchema.parse(rawData);
 
+    let newKodeBarang = '';
+
     await db.transaction(async (tx) => {
-      // Ambil nama kategori untuk Prefix
+      // Ambil prefix kategori
       const [kategoriData] = await tx
-        .select({ nama: kategori.nama })
+        .select({ prefix: kategori.prefix })
         .from(kategori)
         .where(eq(kategori.id, validatedData.kategoriId))
         .limit(1);
@@ -31,20 +32,22 @@ export async function createBarang(prevState: any, formData: FormData) {
         throw new Error('Kategori tidak ditemukan');
       }
 
-      const prefix = getCategoryPrefix(kategoriData.nama);
+      const prefix = kategoriData.prefix;
 
-      // Cari barang terakhir (Sorting berdasarkan ID desc untuk dapat yang terbaru)
+      // Cari barang terakhir dengan prefix yang sama
+      // Kita cari yang formatnya PREFIX.%
       const [latestBarang] = await tx
         .select({ kodeBarang: barang.kodeBarang })
         .from(barang)
-        .where(like(barang.kodeBarang, `${prefix}-%`))
-        .orderBy(desc(barang.id))
+        .where(like(barang.kodeBarang, `${prefix}.%`))
+        .orderBy(desc(barang.id)) // Asumsi ID increment sejalan dengan waktu
         .limit(1);
 
       // Logic Generator Nomor
       let nextNumber = 1;
       if (latestBarang) {
-        const parts = latestBarang.kodeBarang.split('-');
+        // Format: PRE.1234
+        const parts = latestBarang.kodeBarang.split('.');
         if (parts.length >= 2) {
           const lastNum = parseInt(parts[parts.length - 1], 10);
           if (!isNaN(lastNum)) {
@@ -53,8 +56,8 @@ export async function createBarang(prevState: any, formData: FormData) {
         }
       }
 
-      // Format Kode Baru
-      const newKodeBarang = `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
+      // Format Kode Baru: PREFIX.0001
+      newKodeBarang = `${prefix}.${nextNumber.toString().padStart(4, '0')}`;
 
       // Insert ke Database
       await tx.insert(barang).values({
@@ -68,7 +71,10 @@ export async function createBarang(prevState: any, formData: FormData) {
     });
 
     revalidatePath('/dashboard/barang');
-    return { success: true, message: 'Barang berhasil ditambahkan' };
+    return {
+      success: true,
+      message: `Barang berhasil ditambahkan with kode ${newKodeBarang}`,
+    };
   } catch (error: any) {
     console.error('Failed to create barang:', error);
 

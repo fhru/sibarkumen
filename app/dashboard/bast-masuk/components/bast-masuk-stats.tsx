@@ -14,7 +14,7 @@ export function BastMasukStats({
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {/* Total BAST */}
-      <div className="flex flex-col justify-between rounded-lg border bg-card p-6 transition-colors hover:border-foreground/20">
+      <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Total BAST Masuk
@@ -35,7 +35,7 @@ export function BastMasukStats({
       </div>
 
       {/* Total Nilai Transaksi */}
-      <div className="flex flex-col justify-between rounded-lg border bg-card p-6 transition-colors hover:border-foreground/20">
+      <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Total Nilai
@@ -56,7 +56,7 @@ export function BastMasukStats({
       </div>
 
       {/* Supplier Terbanyak */}
-      <div className="flex flex-col justify-between rounded-lg border bg-card p-6 transition-colors hover:border-foreground/20">
+      <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Supplier Terbanyak

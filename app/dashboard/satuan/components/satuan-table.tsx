@@ -3,6 +3,7 @@
 import * as React from 'react';
 import {
   ColumnDef,
+  VisibilityState,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -23,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -34,8 +36,9 @@ import {
   Search,
   Trash,
   ArrowUpDown,
+  SlidersHorizontal,
+  ChevronDown,
 } from 'lucide-react';
-import { SatuanDialogCreate } from './satuan-dialog-create';
 import { SatuanDialogUpdate } from './satuan-dialog-update';
 import { SatuanAlertDelete } from './satuan-alert-delete';
 
@@ -51,6 +54,8 @@ interface SatuanTableProps {
 export function SatuanTable({ data }: SatuanTableProps) {
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
   // State for Update Dialog
   const [openUpdate, setOpenUpdate] = React.useState(false);
@@ -127,24 +132,68 @@ export function SatuanTable({ data }: SatuanTableProps) {
     state: {
       globalFilter,
       sorting,
+      columnVisibility,
+    },
+    initialState: {
+      pagination: {
+        pageSize: 50,
+      },
     },
     onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between relative">
-        <Search className="absolute h-4 w-4 text-muted-foreground left-2 top-2.5" />
-        <Input
-          placeholder="Cari satuan..."
-          value={globalFilter ?? ''}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm pl-8 bg-background dark:bg-sidebar"
-        />
-        <SatuanDialogCreate />
+    <div className="space-y-6">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 items-center space-x-2">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari satuan..."
+              value={globalFilter ?? ''}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="pl-8 bg-background dark:bg-input/30"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="ml-auto bg-background dark:bg-input/30"
+              >
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                Kolom <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-      <div className="rounded-md border bg-card">
+
+      <div className="rounded-md border bg-background dark:bg-input/30">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -185,32 +234,48 @@ export function SatuanTable({ data }: SatuanTableProps) {
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-[200px] text-center"
                 >
-                  Data tidak ditemukan.
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="space-y-1">
+                      <p className="font-medium">Data tidak ditemukan.</p>
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between space-x-2">
+        <div className="text-sm text-muted-foreground">
+          Menampilkan {table.getFilteredRowModel().rows.length} data dari{' '}
+          {data.length} data
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            Halaman {table.getState().pagination.pageIndex + 1} dari{' '}
+            {table.getPageCount()}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       {editingSatuan && (

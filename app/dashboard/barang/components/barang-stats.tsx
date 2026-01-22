@@ -14,7 +14,7 @@ export function BarangStats({
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {/* Total Barang */}
-      <div className="flex flex-col justify-between rounded-lg border bg-card p-6 transition-colors hover:border-foreground/20">
+      <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Total Barang
@@ -35,7 +35,7 @@ export function BarangStats({
       </div>
 
       {/* Stok Menipis */}
-      <div className="flex flex-col justify-between rounded-lg border bg-card p-6 transition-colors hover:border-foreground/20">
+      <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Stok Menipis
@@ -64,7 +64,7 @@ export function BarangStats({
       </div>
 
       {/* Kategori Terbanyak */}
-      <div className="flex flex-col justify-between rounded-lg border bg-card p-6 transition-colors hover:border-foreground/20">
+      <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Kategori Terbanyak

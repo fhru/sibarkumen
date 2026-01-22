@@ -5,18 +5,16 @@ import { kategori } from '@/drizzle/schema';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-
-const createKategoriSchema = z.object({
-  nama: z.string().min(1, 'Nama kategori wajib diisi'),
-});
+import { kategoriSchema } from '@/lib/zod/kategori';
 
 export async function createKategori(prevState: any, formData: FormData) {
   try {
     const rawData = Object.fromEntries(formData.entries());
-    const validatedData = createKategoriSchema.parse(rawData);
+    const validatedData = kategoriSchema.parse(rawData);
 
     await db.insert(kategori).values({
       nama: validatedData.nama,
+      prefix: validatedData.prefix,
     });
 
     revalidatePath('/dashboard/kategori');
@@ -38,9 +36,12 @@ export async function createKategori(prevState: any, formData: FormData) {
       error.message?.includes('unique constraint') ||
       error.message?.includes('Failed query')
     ) {
+      const duplicateField = error.detail?.includes('prefix')
+        ? 'Prefix'
+        : 'Nama kategori';
       return {
         success: false,
-        message: 'Nama kategori sudah ada (duplikat)',
+        message: `Nama Kategori atau Prefix sudah ada (duplikat)`,
       };
     }
 
@@ -51,9 +52,8 @@ export async function createKategori(prevState: any, formData: FormData) {
   }
 }
 
-const updateKategoriSchema = z.object({
+const updateKategoriSchema = kategoriSchema.extend({
   id: z.coerce.number(),
-  nama: z.string().min(1, 'Nama kategori wajib diisi'),
 });
 
 export async function updateKategori(prevState: any, formData: FormData) {
@@ -65,6 +65,7 @@ export async function updateKategori(prevState: any, formData: FormData) {
       .update(kategori)
       .set({
         nama: validatedData.nama,
+        prefix: validatedData.prefix,
       })
       .where(eq(kategori.id, validatedData.id));
 
@@ -86,7 +87,7 @@ export async function updateKategori(prevState: any, formData: FormData) {
     ) {
       return {
         success: false,
-        message: 'Nama kategori sudah ada (duplikat)',
+        message: 'Nama kategori atau Prefix sudah ada (duplikat)',
       };
     }
     return {
