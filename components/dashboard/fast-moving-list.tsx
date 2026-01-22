@@ -1,0 +1,39 @@
+import { TrendingUp } from 'lucide-react';
+
+interface FastMovingListProps {
+  items: any[];
+}
+
+export function FastMovingList({ items }: FastMovingListProps) {
+  return (
+    <div className="rounded-lg border bg-background dark:bg-input/30 p-4">
+      <h3 className="flex items-center gap-2 font-semibold">
+        <TrendingUp className="h-4 w-4 text-emerald-500" />
+        Terlaris (30 Hari)
+      </h3>
+      <div className="mt-3 space-y-3">
+        {items.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Belum ada data penjualan.
+          </p>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between">
+              <div className="space-y-1 min-w-0">
+                <p className="text-sm font-medium truncate" title={item.nama}>
+                  {item.nama}
+                </p>
+              </div>
+              <div className="text-right ml-4 shrink-0">
+                <span className="text-sm font-bold">{item.totalQtyKeluar}</span>
+                <span className="ml-1 text-xs text-muted-foreground">
+                  {item.satuan}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

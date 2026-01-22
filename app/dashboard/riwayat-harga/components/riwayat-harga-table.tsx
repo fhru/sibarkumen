@@ -1,5 +1,6 @@
 'use client';
 
+import { useDebouncedCallback } from 'use-debounce';
 import * as React from 'react';
 import {
   flexRender,
@@ -66,15 +67,10 @@ export function RiwayatHargaTable({
     ? new Date(searchParams.get('endDate')!)
     : undefined;
 
-  // Get initial options for AsyncSelect from current data (if available on page load)
-  // Note: For Riwayat Harga, getting the entity object might require extra work in server action if it's not present in the data row.
-  // The 'supplier' field in data is a string name, not an object.
-  // We might need to adjust server action to return ID as well if we want perfect reconstruction.
-  // For now, we'll skip initial object reconstruction unless we change the data shape.
-  const initialPihakKetiga = undefined; // Pending: Need ID in data to reconstruct
+  const initialPihakKetiga = undefined;
 
-  // URL update handlers
-  const handleSearch = (term: string) => {
+  // Debounced search handler
+  const handleSearch = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams);
     if (term) {
       params.set('search', term);
@@ -85,7 +81,7 @@ export function RiwayatHargaTable({
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`);
     });
-  };
+  }, 300);
 
   const clearFilters = () => {
     const params = new URLSearchParams();
@@ -95,7 +91,6 @@ export function RiwayatHargaTable({
     });
   };
 
-  // Helper to format date for URL without timezone issues
   const formatDateForURL = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -131,7 +126,7 @@ export function RiwayatHargaTable({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
+        <div className="flex flex-1 items-center space-x-2">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -140,6 +135,22 @@ export function RiwayatHargaTable({
               onChange={(event) => handleSearch(event.target.value)}
               className="pl-8 bg-background dark:bg-input/30"
             />
+            {search && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={() => {
+                  handleSearch('');
+                  const input = document.querySelector(
+                    'input[placeholder="Cari Barang..."]'
+                  ) as HTMLInputElement;
+                  if (input) input.value = '';
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           <RiwayatHargaFilterDialog
@@ -178,8 +189,14 @@ export function RiwayatHargaTable({
           />
 
           {isFiltered && (
-            <Button variant="ghost" size={'icon'} onClick={clearFilters}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={clearFilters}
+            >
               <X className="h-4 w-4" />
+              <span className="sr-only">Reset Filter</span>
             </Button>
           )}
         </div>
@@ -187,13 +204,16 @@ export function RiwayatHargaTable({
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button
+                variant="outline"
+                className="ml-auto bg-background dark:bg-input/30"
+              >
                 <SlidersHorizontal className="mr-2 h-4 w-4" />
                 Kolom
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-[150px]">
               {table
                 .getAllColumns()
                 .filter((column) => column.getCanHide())
@@ -243,11 +263,8 @@ export function RiwayatHargaTable({
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                 >
-                  {row.getVisibleCells().map((cell, index) => (
-                    <TableCell
-                      key={cell.id}
-                      className={index === 0 ? 'ps-4' : ''}
-                    >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -260,12 +277,10 @@ export function RiwayatHargaTable({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-[200px] text-center"
+                  className="h-24 text-center"
                 >
                   <div className="flex flex-col items-center justify-center space-y-3">
-                    <div className="space-y-1">
-                      <p className="font-medium">Data tidak ditemukan.</p>
-                    </div>
+                    <p className="font-medium">Data tidak ditemukan.</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -274,11 +289,12 @@ export function RiwayatHargaTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between space-x-2">
+      <div className="flex items-center justify-between px-2">
         <div className="text-sm text-muted-foreground">
-          Menampilkan {data.length} dari {totalItems} data
+          Menampilkan {data.length} dari {totalItems.toLocaleString('id-ID')}{' '}
+          data
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"

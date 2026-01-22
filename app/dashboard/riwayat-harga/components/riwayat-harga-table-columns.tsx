@@ -126,7 +126,7 @@ export const columns: ColumnDef<RiwayatHarga>[] = [
       return (
         <Link
           href={`/dashboard/bast-masuk?search=${val}`}
-          className="text-blue-600 hover:underline"
+          className="text-primary hover:underline"
         >
           {val}
         </Link>
