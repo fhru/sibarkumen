@@ -387,11 +387,6 @@ export function ChatAssistantPanel({
           </ScrollArea>
 
           <div className="border-t px-3 py-2">
-            {errorMessage && (
-              <div className="mb-2 rounded-lg border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
-                {errorMessage}
-              </div>
-            )}
             <div className="flex items-end gap-2">
               <Textarea
                 value={input}
@@ -428,7 +423,7 @@ export function ChatAssistantPanel({
 
       <Button
         type="button"
-        className="h-12 w-12 rounded-full shadow-lg transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
+        className="h-14 w-14 rounded-full shadow-lg transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
         onClick={() => setOpen((value) => !value)}
         aria-label="Buka chat assistant"
       >
