@@ -45,6 +45,7 @@ export type Pegawai = {
   id: number;
   nama: string;
   nip: string | null;
+  userId: string | null;
   pegawaiJabatan: {
     id: number;
     isAktif: boolean;
