@@ -9,7 +9,7 @@ import {
   pegawaiJabatan,
   jabatan,
 } from '@/drizzle/schema';
-import { or, ilike, eq, and } from 'drizzle-orm';
+import { or, ilike, eq, and, sql } from 'drizzle-orm';
 
 export async function searchBarang(query: string, limit = 20) {
   if (!query || query.length < 2) {
@@ -59,7 +59,8 @@ export async function searchPegawai(query: string, limit = 20) {
         id: pegawai.id,
         nama: pegawai.nama,
         nip: pegawai.nip,
-        jabatan: jabatan.nama,
+        jabatan: sql<string>`min(${jabatan.nama})`.as('jabatan'),
+        jabatanId: sql<number>`min(${jabatan.id})`.as('jabatanId'),
       })
       .from(pegawai)
       .leftJoin(
@@ -70,6 +71,7 @@ export async function searchPegawai(query: string, limit = 20) {
         )
       )
       .leftJoin(jabatan, eq(pegawaiJabatan.jabatanId, jabatan.id))
+      .groupBy(pegawai.id, pegawai.nama, pegawai.nip)
       .limit(limit);
 
     return results;
@@ -80,7 +82,8 @@ export async function searchPegawai(query: string, limit = 20) {
       id: pegawai.id,
       nama: pegawai.nama,
       nip: pegawai.nip,
-      jabatan: jabatan.nama,
+      jabatan: sql<string>`min(${jabatan.nama})`.as('jabatan'),
+      jabatanId: sql<number>`min(${jabatan.id})`.as('jabatanId'),
     })
     .from(pegawai)
     .leftJoin(
@@ -94,6 +97,7 @@ export async function searchPegawai(query: string, limit = 20) {
     .where(
       or(ilike(pegawai.nama, `%${query}%`), ilike(pegawai.nip, `%${query}%`))
     )
+    .groupBy(pegawai.id, pegawai.nama, pegawai.nip)
     .limit(limit);
 
   return results;
@@ -120,6 +124,24 @@ export async function searchPihakKetiga(query: string, limit = 20) {
     .from(pihakKetiga)
     .where(ilike(pihakKetiga.nama, `%${query}%`))
     .limit(limit);
+
+  return results;
+}
+
+export async function getPegawaiJabatanList(pegawaiId: number) {
+  const results = await db
+    .select({
+      id: jabatan.id,
+      nama: jabatan.nama,
+    })
+    .from(pegawaiJabatan)
+    .innerJoin(jabatan, eq(pegawaiJabatan.jabatanId, jabatan.id))
+    .where(
+      and(
+        eq(pegawaiJabatan.pegawaiId, pegawaiId),
+        eq(pegawaiJabatan.isAktif, true)
+      )
+    );
 
   return results;
 }

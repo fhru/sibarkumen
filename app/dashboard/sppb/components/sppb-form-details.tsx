@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { AsyncSelect } from "@/components/ui/async-select";
 import { Textarea } from "@/components/ui/textarea";
-import { searchPegawai } from "@/drizzle/actions/search";
+import { searchPegawai, getPegawaiJabatanList } from "@/drizzle/actions/search";
+import { useState, useEffect, useMemo } from "react";
 import { CalendarIcon, FileText, Building2, Info } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -38,8 +39,58 @@ export function SPPBFormDetails({
 }: SPPBFormDetailsProps) {
   const {
     control,
+    watch,
+    setValue,
+    getValues,
     formState: { errors },
   } = useFormContext<SPPBFormValues>();
+  const [jabatanData, setJabatanData] = useState<{
+    pegawaiId: number;
+    list: any[];
+  } | null>(null);
+  const pejabatId = watch("pejabatPenyetujuId");
+  const jabatanList = useMemo(() => {
+    if (!pejabatId || jabatanData?.pegawaiId !== pejabatId) return [];
+    return jabatanData.list;
+  }, [pejabatId, jabatanData]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!pejabatId) return;
+
+    getPegawaiJabatanList(pejabatId).then((list) => {
+      if (!isActive) return;
+      setJabatanData({ pegawaiId: pejabatId, list });
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [pejabatId]);
+
+  useEffect(() => {
+    const currentJabatanId = getValues("jabatanPejabatPenyetujuId");
+
+    if (jabatanList.length > 0) {
+      if (
+        !currentJabatanId ||
+        !jabatanList.some((jab) => jab.id === currentJabatanId)
+      ) {
+        setValue("jabatanPejabatPenyetujuId", jabatanList[0].id, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+      }
+    } else if (currentJabatanId) {
+      setValue("jabatanPejabatPenyetujuId", undefined, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+    }
+  }, [jabatanList, getValues, setValue]);
 
   return (
     <div className="space-y-8">
@@ -139,7 +190,7 @@ export function SPPBFormDetails({
           <h3 className="font-semibold text-lg">Pihak Terkait</h3>
         </div>
 
-        <div className="p-6 pt-2 grid gap-6">
+        <div className="p-6 pt-2 grid gap-6 md:grid-cols-2">
           {/* Pejabat Penyetuju */}
           <Controller
             control={control}
@@ -157,16 +208,44 @@ export function SPPBFormDetails({
                   placeholder="Pilih Pegawai"
                   searchPlaceholder="Cari pegawai..."
                   formatLabel={(option: any) =>
-                    `${option.nama} - ${
-                      option.jabatan ||
-                      option.pegawaiJabatan?.[0]?.jabatan?.nama ||
-                      "-"
-                    }`
+                    `${option.nama} (${option.nip || ""})`
                   }
                   className="w-full"
                   initialOption={initialData?.pejabatPenyetuju}
                 />
                 <FieldError errors={[errors.pejabatPenyetujuId]} />
+              </Field>
+            )}
+          />
+
+          {/* Pejabat Penyetuju Jabatan */}
+          <Controller
+            control={control}
+            name="jabatanPejabatPenyetujuId"
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Jabatan Pejabat Penyetuju</FieldLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih Jabatan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jabatanList.map((jab) => (
+                      <SelectItem key={jab.id} value={jab.id.toString()}>
+                        {jab.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pejabatId && jabatanList.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    Pegawai belum memiliki jabatan aktif.
+                  </p>
+                )}
+                <FieldError errors={[errors.jabatanPejabatPenyetujuId]} />
               </Field>
             )}
           />

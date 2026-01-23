@@ -24,8 +24,11 @@ export function SPBFormItems({ initialData }: SPBFormItemsProps) {
     control,
     register,
     setValue,
+    watch,
     formState: { errors },
   } = useFormContext<SPBFormValues>();
+
+  const items = watch('items');
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -86,8 +89,15 @@ export function SPBFormItems({ initialData }: SPBFormItemsProps) {
             <div className="space-y-4">
               {/* Header Labels (Desktop) */}
               <div className="hidden md:grid gap-4 md:grid-cols-12 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                <div className="md:col-span-6">Barang</div>
-                <div className="md:col-span-2">Qty</div>
+                <div className="md:col-span-6 flex gap-2">
+                  <div className="flex-1">
+                    Barang <span className="text-destructive">*</span>
+                  </div>
+                  <div className="w-20 shrink-0">Stok</div>
+                </div>
+                <div className="md:col-span-2">
+                  Qty <span className="text-destructive">*</span>
+                </div>
                 <div className="md:col-span-3">Item Keterangan</div>
                 <div className="md:col-span-1 text-center">Aksi</div>
               </div>
@@ -108,29 +118,44 @@ export function SPBFormItems({ initialData }: SPBFormItemsProps) {
                             Barang
                           </FieldLabel>
                           <FieldContent>
-                            <AsyncSelect
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              loadOptions={searchBarang}
-                              placeholder="Pilih Barang"
-                              searchPlaceholder="Cari barang..."
-                              formatLabel={(option) =>
-                                `${option.nama}${option.kodeBarang ? ` (${option.kodeBarang})` : ''} - Stok: ${option.stok} ${option.satuanNama || ''}`
-                              }
-                              className="h-10 md:h-9"
-                              onSelectOption={(option) => {
-                                if (option.stok !== undefined) {
-                                  setValue(
-                                    `items.${index}.stok`,
-                                    Number(option.stok)
-                                  );
-                                  setValue(`items.${index}.nama`, option.nama);
-                                }
-                              }}
-                              initialOption={
-                                initialData?.items?.[index]?.barang
-                              }
-                            />
+                            <div className="flex gap-2">
+                              <div className="flex-1 min-w-0">
+                                <AsyncSelect
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                  loadOptions={searchBarang}
+                                  placeholder="Pilih Barang"
+                                  searchPlaceholder="Cari barang..."
+                                  formatLabel={(option) =>
+                                    `${option.nama}${option.kodeBarang ? ` (${option.kodeBarang})` : ''}`
+                                  }
+                                  className="h-10 md:h-9"
+                                  onSelectOption={(option) => {
+                                    if (option.stok !== undefined) {
+                                      setValue(
+                                        `items.${index}.stok`,
+                                        Number(option.stok)
+                                      );
+                                      setValue(
+                                        `items.${index}.nama`,
+                                        option.nama
+                                      );
+                                    }
+                                  }}
+                                  initialOption={
+                                    initialData?.items?.[index]?.barang
+                                  }
+                                />
+                              </div>
+                              <div className="w-20 shrink-0">
+                                <Input
+                                  readOnly
+                                  className="h-10 md:h-9 text-center bg-muted"
+                                  placeholder="Stok"
+                                  value={items?.[index]?.stok ?? 0}
+                                />
+                              </div>
+                            </div>
                             {/* Hidden inputs to register stok and nama */}
                             <input
                               type="hidden"

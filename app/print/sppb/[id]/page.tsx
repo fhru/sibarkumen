@@ -1,13 +1,13 @@
-import { getSPPBById } from '@/drizzle/actions/sppb';
-import { notFound } from 'next/navigation';
-import { format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
-import Image from 'next/image';
+import { getSPPBById } from "@/drizzle/actions/sppb";
+import { notFound } from "next/navigation";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+import Image from "next/image";
 
-import { PrintButton } from '@/components/print-button';
+import { PrintButton } from "@/components/print-button";
 
-import { PrintStyles } from '@/components/print-styles';
-import { Metadata } from 'next';
+import { PrintStyles } from "@/components/print-styles";
+import { Metadata } from "next";
 
 interface PrintSPPBPageProps {
   params: Promise<{
@@ -21,11 +21,11 @@ export async function generateMetadata({
   const { id } = await params;
   const sppbId = Number(id);
 
-  if (isNaN(sppbId)) return { title: 'Print SPPB' };
+  if (isNaN(sppbId)) return { title: "Print SPPB" };
 
   const result = await getSPPBById(sppbId);
 
-  if (!result.success || !result.data) return { title: 'SPPB Not Found' };
+  if (!result.success || !result.data) return { title: "SPPB Not Found" };
 
   return {
     title: `SPPB - ${result.data.nomorSppb}`,
@@ -51,7 +51,7 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
   return (
     <div
       className="mx-auto w-[210mm] min-h-[297mm] bg-white relative print:w-auto print:h-auto print:min-h-0 text-black leading-tight"
-      style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+      style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
     >
       <PrintStyles />
 
@@ -95,10 +95,10 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
           {/* Body Text */}
           <div className="mb-2 text-justify">
             <p className="mb-2">
-              Pada hari ini {format(new Date(), 'EEEE', { locale: localeId })}{' '}
-              tanggal {format(new Date(), 'd', { locale: localeId })} bulan{' '}
-              {format(new Date(), 'MMMM', { locale: localeId })} tahun{' '}
-              {format(new Date(), 'yyyy', { locale: localeId })}, yang bertanda
+              Pada hari ini {format(new Date(), "EEEE", { locale: localeId })}{" "}
+              tanggal {format(new Date(), "d", { locale: localeId })} bulan{" "}
+              {format(new Date(), "MMMM", { locale: localeId })} tahun{" "}
+              {format(new Date(), "yyyy", { locale: localeId })}, yang bertanda
               tangan dibawah ini:
             </p>
 
@@ -115,25 +115,22 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
                   <td className="align-top">Jabatan</td>
                   <td className="align-top">:</td>
                   <td className="align-top">
-                    {/* @ts-ignore */}
-                    {data.pejabatPenyetuju?.pegawaiJabatan?.[0]?.jabatan
-                      ?.nama || '-'}
+                    {data.jabatanPejabatPenyetuju?.nama || "-"}
                     <br />
-                    {data.pejabatPenyetuju?.pegawaiJabatan?.[0]?.jabatan
-                      ?.unitKerja || '-'}
+                    {data.jabatanPejabatPenyetuju?.unitKerja || "-"}
                   </td>
                 </tr>
               </tbody>
             </table>
 
             <p className="leading-relaxed mb-4">
-              Berdasarkan surat permintaan barang (SPB) dari Nomor:{' '}
-              <span className="font-bold">{data.spb?.nomorSpb}</span>, tanggal{' '}
+              Berdasarkan surat permintaan barang (SPB) dari Nomor:{" "}
+              <span className="font-bold">{data.spb?.nomorSpb}</span>, tanggal{" "}
               {data.spb?.tanggalSpb
-                ? format(new Date(data.spb.tanggalSpb), 'dd MMMM yyyy', {
+                ? format(new Date(data.spb.tanggalSpb), "dd MMMM yyyy", {
                     locale: localeId,
                   })
-                : '-'}
+                : "-"}
               , dengan ini diperintahkan kepada Pengurus Barang/ Pengurus Barang
               Pembantu/ Pengurus Barang UPB untuk mendistribusikan /
               mengeluarkan persediaan, sebagaimana daftar terlampir:
@@ -175,10 +172,10 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
                       {item.qtyDisetujui}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-center align-top">
-                      {item.barang?.satuan?.nama || '-'}
+                      {item.barang?.satuan?.nama || "-"}
                     </td>
                     <td className="py-1 px-2 border-black align-top">
-                      {item.keterangan || ''}
+                      {item.keterangan || ""}
                     </td>
                   </tr>
                 ))}
@@ -207,16 +204,12 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
           <div className="flex justify-end text-[12px] px-8">
             <div className="text-center min-w-[200px]">
               <p className="mb-0.5">
-                Jakarta,{' '}
-                {format(new Date(), 'dd MMM yyyy', {
+                Jakarta,{" "}
+                {format(new Date(), "dd MMM yyyy", {
                   locale: localeId,
                 })}
               </p>
-              {/* @ts-ignore */}
-              <p className="mb-16">
-                {/* @ts-ignore */}
-                PPB-SKPD/PPB-UKPD/PPB-UPB
-              </p>
+              <p className="mb-16">PPB-SKPD/PPB-UKPD/PPB-UPB</p>
 
               <p className="font-bold uppercase">
                 {data.pejabatPenyetuju?.nama}

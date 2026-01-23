@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { AsyncSelect } from "@/components/ui/async-select";
 import { Textarea } from "@/components/ui/textarea";
-import { searchPegawai } from "@/drizzle/actions/search";
+import { searchPegawai, getPegawaiJabatanList } from "@/drizzle/actions/search";
+import { useState, useEffect, useMemo } from "react";
 import { CalendarIcon, FileText, Building2, Info } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -40,8 +41,37 @@ export function BastKeluarFormDetails({
 }: BastKeluarFormDetailsProps) {
   const {
     control,
+    watch,
+    setValue,
+    getValues,
     formState: { errors },
   } = useFormContext<BastKeluarFormValues>();
+  const [jabatanPihakPertamaData, setJabatanPihakPertamaData] = useState<{
+    pegawaiId: number;
+    list: any[];
+  } | null>(null);
+  const [jabatanPihakKeduaData, setJabatanPihakKeduaData] = useState<{
+    pegawaiId: number;
+    list: any[];
+  } | null>(null);
+  const pihakPertamaId = watch("pihakPertamaId");
+  const pihakKeduaId = watch("pihakKeduaId");
+  const jabatanPihakPertamaList = useMemo(() => {
+    if (
+      !pihakPertamaId ||
+      jabatanPihakPertamaData?.pegawaiId !== pihakPertamaId
+    ) {
+      return [];
+    }
+    return jabatanPihakPertamaData.list;
+  }, [pihakPertamaId, jabatanPihakPertamaData]);
+
+  const jabatanPihakKeduaList = useMemo(() => {
+    if (!pihakKeduaId || jabatanPihakKeduaData?.pegawaiId !== pihakKeduaId) {
+      return [];
+    }
+    return jabatanPihakKeduaData.list;
+  }, [pihakKeduaId, jabatanPihakKeduaData]);
 
   const pihakKeduaInitialOption = selectedSPPB?.spb?.pemohon
     ? {
@@ -50,6 +80,82 @@ export function BastKeluarFormDetails({
         nip: selectedSPPB.spb.pemohon.nip,
       }
     : initialData?.pihakKedua;
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!pihakPertamaId) return;
+
+    getPegawaiJabatanList(pihakPertamaId).then((list) => {
+      if (!isActive) return;
+      setJabatanPihakPertamaData({ pegawaiId: pihakPertamaId, list });
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [pihakPertamaId]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!pihakKeduaId) return;
+
+    getPegawaiJabatanList(pihakKeduaId).then((list) => {
+      if (!isActive) return;
+      setJabatanPihakKeduaData({ pegawaiId: pihakKeduaId, list });
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [pihakKeduaId]);
+
+  useEffect(() => {
+    const currentJabatanId = getValues("jabatanPihakPertamaId");
+
+    if (jabatanPihakPertamaList.length > 0) {
+      if (
+        !currentJabatanId ||
+        !jabatanPihakPertamaList.some((jab) => jab.id === currentJabatanId)
+      ) {
+        setValue("jabatanPihakPertamaId", jabatanPihakPertamaList[0].id, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+      }
+    } else if (currentJabatanId) {
+      setValue("jabatanPihakPertamaId", undefined, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+    }
+  }, [jabatanPihakPertamaList, getValues, setValue]);
+
+  useEffect(() => {
+    const currentJabatanId = getValues("jabatanPihakKeduaId");
+
+    if (jabatanPihakKeduaList.length > 0) {
+      if (
+        !currentJabatanId ||
+        !jabatanPihakKeduaList.some((jab) => jab.id === currentJabatanId)
+      ) {
+        setValue("jabatanPihakKeduaId", jabatanPihakKeduaList[0].id, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+      }
+    } else if (currentJabatanId) {
+      setValue("jabatanPihakKeduaId", undefined, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+    }
+  }, [jabatanPihakKeduaList, getValues, setValue]);
 
   return (
     <div className="space-y-8">
@@ -166,12 +272,44 @@ export function BastKeluarFormDetails({
                   placeholder="Pilih Pegawai"
                   searchPlaceholder="Cari pegawai..."
                   formatLabel={(option) =>
-                    `${option.nama} - ${option.nip || ""}`
+                    `${option.nama} (${option.nip || ""})`
                   }
                   className="w-full"
                   initialOption={initialData?.pihakPertama}
                 />
                 <FieldError errors={[errors.pihakPertamaId]} />
+              </Field>
+            )}
+          />
+
+          {/* Pihak Pertama Jabatan */}
+          <Controller
+            control={control}
+            name="jabatanPihakPertamaId"
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Jabatan Pihak Pertama</FieldLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih Jabatan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jabatanPihakPertamaList.map((jab) => (
+                      <SelectItem key={jab.id} value={jab.id.toString()}>
+                        {jab.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pihakPertamaId && jabatanPihakPertamaList.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    Pegawai belum memiliki jabatan aktif.
+                  </p>
+                )}
+                <FieldError errors={[errors.jabatanPihakPertamaId]} />
               </Field>
             )}
           />
@@ -193,12 +331,44 @@ export function BastKeluarFormDetails({
                   placeholder="Pilih Pegawai"
                   searchPlaceholder="Cari pegawai..."
                   formatLabel={(option) =>
-                    `${option.nama} - ${option.nip || ""}`
+                    `${option.nama} (${option.nip || ""})`
                   }
                   className="w-full"
                   initialOption={pihakKeduaInitialOption}
                 />
                 <FieldError errors={[errors.pihakKeduaId]} />
+              </Field>
+            )}
+          />
+
+          {/* Pihak Kedua Jabatan */}
+          <Controller
+            control={control}
+            name="jabatanPihakKeduaId"
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Jabatan Pihak Kedua</FieldLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih Jabatan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jabatanPihakKeduaList.map((jab) => (
+                      <SelectItem key={jab.id} value={jab.id.toString()}>
+                        {jab.nama}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {pihakKeduaId && jabatanPihakKeduaList.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    Pegawai belum memiliki jabatan aktif.
+                  </p>
+                )}
+                <FieldError errors={[errors.jabatanPihakKeduaId]} />
               </Field>
             )}
           />

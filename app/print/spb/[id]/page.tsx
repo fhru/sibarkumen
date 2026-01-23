@@ -1,13 +1,13 @@
-import { getSPBById } from '@/drizzle/actions/spb';
-import { notFound } from 'next/navigation';
-import { format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
-import Image from 'next/image';
+import { getSPBById } from "@/drizzle/actions/spb";
+import { notFound } from "next/navigation";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+import Image from "next/image";
 
-import { PrintButton } from '@/components/print-button';
+import { PrintButton } from "@/components/print-button";
 
-import { PrintStyles } from '@/components/print-styles';
-import { Metadata } from 'next';
+import { PrintStyles } from "@/components/print-styles";
+import { Metadata } from "next";
 
 interface PrintSPBPageProps {
   params: Promise<{
@@ -21,11 +21,11 @@ export async function generateMetadata({
   const { id } = await params;
   const spbId = Number(id);
 
-  if (isNaN(spbId)) return { title: 'Print SPB' };
+  if (isNaN(spbId)) return { title: "Print SPB" };
 
   const data = await getSPBById(spbId);
 
-  if (!data) return { title: 'SPB Not Found' };
+  if (!data) return { title: "SPB Not Found" };
 
   return {
     title: `SPB - ${data.nomorSpb}`,
@@ -50,7 +50,7 @@ export default async function PrintSPBPage({ params }: PrintSPBPageProps) {
   return (
     <div
       className="mx-auto w-[210mm] min-h-[297mm] bg-white relative print:w-auto print:h-auto print:min-h-0 text-black leading-tight"
-      style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+      style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
     >
       <PrintStyles />
 
@@ -125,10 +125,10 @@ export default async function PrintSPBPage({ params }: PrintSPBPageProps) {
                       {item.qtyPermintaan}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-center align-top">
-                      {item.barang.satuan?.nama || '-'}
+                      {item.barang.satuan?.nama || "-"}
                     </td>
                     <td className="py-1 px-2 border-black align-top">
-                      {item.keterangan || ''}
+                      {item.keterangan || ""}
                     </td>
                   </tr>
                 ))}
@@ -151,16 +151,14 @@ export default async function PrintSPBPage({ params }: PrintSPBPageProps) {
         <div className="flex justify-end text-[12px] break-inside-avoid mt-4">
           <div className="text-center min-w-[200px]">
             <p className="mb-0.5">
-              Jakarta,{' '}
-              {format(new Date(data.tanggalSpb), 'dd MMMM yyyy', {
+              Jakarta,{" "}
+              {format(new Date(data.tanggalSpb), "dd MMMM yyyy", {
                 locale: localeId,
               })}
             </p>
             <p className="mb-16">Yang Meminta</p>
 
-            <p className="font-bold underline uppercase">
-              {data.pemohon?.nama}
-            </p>
+            <p className="font-bold uppercase">{data.pemohon?.nama}</p>
             {data.pemohon?.nip && <p>NIP. {data.pemohon.nip}</p>}
           </div>
         </div>

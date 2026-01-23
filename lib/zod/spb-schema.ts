@@ -14,6 +14,7 @@ export const createSpbSchema = z.object({
     message: 'Tanggal SPB wajib diisi',
   }),
   pemohonId: z.number('Pemohon wajib dipilih').min(1, 'Pemohon wajib dipilih'),
+  jabatanId: z.number().optional().nullable(),
   keterangan: z.string().optional(),
   items: z
     .array(spbItemDetailSchema)

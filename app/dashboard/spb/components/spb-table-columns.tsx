@@ -226,7 +226,7 @@ const SPBActionCell = ({ row }: { row: any }) => {
                     e.preventDefault();
                     setShowCancelDialog(true);
                   }}
-                  className="text-destructive focus:text-destructive"
+                  variant="destructive"
                 >
                   <Ban className="mr-2 h-4 w-4" />
                   Batalkan

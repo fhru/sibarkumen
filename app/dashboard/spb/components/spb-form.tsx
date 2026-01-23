@@ -1,19 +1,20 @@
-'use client';
+"use client";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, FormProvider } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { createSPB, updateSPB } from '@/drizzle/actions/spb';
-import { AlertTriangle, Info } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { useState } from 'react';
-import { SPBFormValues, createSpbSchema } from '@/lib/zod/spb-schema';
-import { SPBFormDetails } from './spb-form-details';
-import { SPBFormItems } from './spb-form-items';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, FormProvider } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { createSPB, updateSPB } from "@/drizzle/actions/spb";
+import { AlertTriangle, Info } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { SPBFormValues, createSpbSchema } from "@/lib/zod/spb-schema";
+import { SPBFormDetails } from "./spb-form-details";
+import { SPBFormItems } from "./spb-form-items";
 
-import { Role } from '@/config/nav-items';
-import { authClient } from '@/lib/auth-client';
+import { Role } from "@/config/nav-items";
+import { authClient } from "@/lib/auth-client";
+import { getPegawaiJabatanList } from "@/drizzle/actions/search";
 
 import {
   AlertDialog,
@@ -24,7 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 interface SPBFormProps {
   initialData?: any;
@@ -48,18 +49,70 @@ export function SPBForm({
   const methods = useForm<SPBFormValues>({
     resolver: zodResolver(createSpbSchema),
     defaultValues: initialData || {
-      nomorSpb: generatedNomorSpb || '',
+      nomorSpb: generatedNomorSpb || "",
       tanggalSpb: new Date(),
-      pemohonId: userRole === 'petugas' ? currentPegawai?.id : undefined,
-      keterangan: '',
+      pemohonId: userRole === "petugas" ? currentPegawai?.id : undefined,
+      jabatanId: initialData?.jabatanId,
+      keterangan: "",
       items: [],
     },
   });
+  const [jabatanList, setJabatanList] = useState<any[]>([]);
   const [showStockWarning, setShowStockWarning] = useState(false);
   const [pendingData, setPendingData] = useState<SPBFormValues | null>(null);
   const [warningItems, setWarningItems] = useState<
     { nama: string; stok: number; minta: number }[]
   >([]);
+  const pemohonId = methods.watch("pemohonId");
+
+  useEffect(() => {
+    if (userRole !== "petugas" || !currentPegawai?.id || pemohonId) return;
+    methods.setValue("pemohonId", currentPegawai.id, { shouldValidate: true });
+  }, [userRole, currentPegawai, pemohonId, methods]);
+
+  useEffect(() => {
+    let isActive = true;
+    const targetPegawaiId =
+      pemohonId ?? (userRole === "petugas" ? currentPegawai?.id : undefined);
+
+    if (!targetPegawaiId) {
+      setJabatanList([]);
+      return;
+    }
+
+    getPegawaiJabatanList(targetPegawaiId).then((list) => {
+      if (!isActive) return;
+
+      setJabatanList(list);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [pemohonId, userRole, currentPegawai, methods]);
+
+  useEffect(() => {
+    const currentJabatanId = methods.getValues("jabatanId");
+
+    if (jabatanList.length > 0) {
+      if (
+        !currentJabatanId ||
+        !jabatanList.some((jab) => jab.id === currentJabatanId)
+      ) {
+        methods.setValue("jabatanId", jabatanList[0].id, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+      }
+    } else if (currentJabatanId) {
+      methods.setValue("jabatanId", undefined, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+    }
+  }, [jabatanList, methods]);
 
   const submitData = async (data: SPBFormValues) => {
     setIsSubmitting(true);
@@ -71,12 +124,12 @@ export function SPBForm({
 
       if (result.success) {
         toast.success(result.message);
-        router.push('/dashboard/spb');
+        router.push("/dashboard/spb");
       } else {
         toast.error(result.message);
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan');
+      toast.error("Terjadi kesalahan");
     } finally {
       setIsSubmitting(false);
       setPendingData(null);
@@ -87,34 +140,12 @@ export function SPBForm({
   const onSubmit = async (data: SPBFormValues) => {
     const warnings: { nama: string; stok: number; minta: number }[] = [];
 
-    // Check for stock availability
-    // We iterate through items. Since AsyncSelect sets the 'stok' in the form data (although not in schema strictly sent to server),
-    // we can access it here if we cast or if schema allows.
-    // We added 'stok' to schema, so it should be accessible.
-
-    // Note: We need to access the 'option' details.
-    // Since 'stok' is now in the form values (via our modification to SPBFormItems), we can check it.
-
-    // However, for initialData (edit mode), 'stok' might be missing if we didn't populate it.
-    // For CREATE mode, it should be fine.
-
     for (const item of data.items) {
-      // @ts-ignore - stok is optional in schema but we populated it
-      // item.barang?.stok is for initialData (Edit mode) where we haven't touched the item but it has nested data
       const availableStock = item.stok ?? (item as any).barang?.stok;
-
-      // If stock is known and request > stock
       if (
-        typeof availableStock === 'number' &&
+        typeof availableStock === "number" &&
         item.qtyPermintaan > availableStock
       ) {
-        // We need the name of the item for the warning.
-        // We don't have the name easily reachable here unless we stored it too.
-        // But we can just say "Item with ID ..." or try to get name if possible.
-        // Or we can store the name in the form items too.
-
-        // Let's assume we want to show a generic message or try to improve this later.
-        // Actually, let's just show the count.
         warnings.push({
           nama:
             item.nama ??
@@ -136,7 +167,7 @@ export function SPBForm({
     await submitData(data);
   };
 
-  const items = methods.watch('items');
+  const items = methods.watch("items");
   const totalItems = items?.length || 0;
 
   return (
@@ -145,7 +176,10 @@ export function SPBForm({
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* Main Content (Form) - 70% */}
           <div className="flex-1 w-full min-w-0 space-y-8">
-            <SPBFormDetails currentPegawai={currentPegawai} />
+            <SPBFormDetails
+              currentPegawai={currentPegawai}
+              jabatanList={jabatanList}
+            />
             <SPBFormItems />
           </div>
 
@@ -173,15 +207,15 @@ export function SPBForm({
                     disabled={
                       isSubmitting ||
                       methods.formState.isSubmitting ||
-                      (userRole === 'petugas' && !currentPegawai)
+                      (userRole === "petugas" && !currentPegawai)
                     }
                     className="w-full h-11"
                   >
                     {isSubmitting || methods.formState.isSubmitting
-                      ? 'Menyimpan...'
+                      ? "Menyimpan..."
                       : isEdit
-                        ? 'Simpan Perubahan'
-                        : 'Buat SPB'}
+                        ? "Simpan Perubahan"
+                        : "Buat SPB"}
                   </Button>
 
                   <Button
@@ -212,7 +246,7 @@ export function SPBForm({
                 <ul className="mt-2 list-disc list-inside space-y-1">
                   {warningItems.map((w, idx) => (
                     <li key={idx}>
-                      {w.nama}: Stok <strong>{w.stok}</strong>, Minta{' '}
+                      {w.nama}: Stok <strong>{w.stok}</strong>, Minta{" "}
                       <strong>{w.minta}</strong>
                     </li>
                   ))}

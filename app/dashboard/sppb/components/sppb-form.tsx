@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, FormProvider } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { createSPPBFromSPB, updateSPPB } from "@/drizzle/actions/sppb";
-import { Info } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useState, useEffect } from "react";
-import { SPPBFormValues, sppbFormSchema } from "@/lib/zod/sppb-schema";
-import { SPPBFormDetails } from "./sppb-form-details";
-import { SPPBFormItems } from "./sppb-form-items";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, FormProvider } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { createSPPBFromSPB, updateSPPB } from '@/drizzle/actions/sppb';
+import { Info } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { SPPBFormValues, sppbFormSchema } from '@/lib/zod/sppb-schema';
+import { SPPBFormDetails } from './sppb-form-details';
+import { SPPBFormItems } from './sppb-form-items';
 
 interface SPPBFormProps {
   pendingSPBs: any[];
@@ -36,14 +36,15 @@ export function SPPBForm({
       spbId: preSelectedSpbId || 0,
       tanggalSppb: new Date(),
       pejabatPenyetujuId: 0,
-      keterangan: "",
+      jabatanPejabatPenyetujuId: initialData?.jabatanPejabatPenyetujuId,
+      keterangan: '',
       items: [],
     },
   });
 
   const { watch, reset, setValue, setError } = methods;
-  const watchSpbId = watch("spbId");
-  const items = watch("items");
+  const watchSpbId = watch('spbId');
+  const items = watch('items');
 
   // Load initial SPB data if editing or pre-selected
   useEffect(() => {
@@ -65,9 +66,9 @@ export function SPPBForm({
         const newItems = spb.items.map((item: any) => ({
           barangId: item.barangId,
           qtyDisetujui: item.qtyPermintaan, // Default to requested qty
-          keterangan: item.keterangan || "",
+          keterangan: item.keterangan || '',
         }));
-        setValue("items", newItems);
+        setValue('items', newItems);
       }
     }
   }, [watchSpbId, pendingSPBs, isEdit, setValue]);
@@ -82,12 +83,12 @@ export function SPPBForm({
 
       if (result.success) {
         toast.success(result.message);
-        router.push("/dashboard/sppb");
+        router.push('/dashboard/sppb');
       } else {
         toast.error(result.message);
       }
     } catch (error: any) {
-      toast.error(error.message || "Terjadi kesalahan");
+      toast.error(error.message || 'Terjadi kesalahan');
     } finally {
       setIsSubmitting(false);
     }
@@ -98,12 +99,12 @@ export function SPPBForm({
       const overStock = data.items
         .map((item, index) => {
           const spbItem = selectedSPB.items.find(
-            (spb: any) => spb.barangId === item.barangId,
+            (spb: any) => spb.barangId === item.barangId
           );
           const stok = spbItem?.barang?.stok ?? 0;
           return {
             index,
-            nama: spbItem?.barang?.nama || "Barang",
+            nama: spbItem?.barang?.nama || 'Barang',
             stok,
             qty: item.qtyDisetujui,
           };
@@ -113,12 +114,12 @@ export function SPPBForm({
       if (overStock.length > 0) {
         overStock.forEach((row) => {
           setError(`items.${row.index}.qtyDisetujui`, {
-            type: "validate",
+            type: 'validate',
             message: `Stok saat ini ${row.stok}`,
           });
         });
         toast.error(
-          "Qty disetujui melebihi stok saat ini. Periksa item yang ditandai.",
+          'Qty disetujui melebihi stok saat ini. Periksa item yang ditandai.'
         );
         return;
       }
@@ -168,10 +169,10 @@ export function SPPBForm({
                     className="w-full h-11"
                   >
                     {isSubmitting || methods.formState.isSubmitting
-                      ? "Menyimpan..."
+                      ? 'Menyimpan...'
                       : isEdit
-                        ? "Simpan Perubahan"
-                        : "Simpan SPPB"}
+                        ? 'Simpan Perubahan'
+                        : 'Simpan SPPB'}
                   </Button>
 
                   <Button

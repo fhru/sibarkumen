@@ -347,6 +347,11 @@ export const spb = pgTable('spb', {
       onUpdate: 'cascade',
     }),
 
+  // Relasi ke Jabatan (Nullable, karena diambil dari pemohon)
+  jabatanId: integer('jabatan_id').references(() => jabatan.id, {
+    onDelete: 'set null',
+  }),
+
   status: statusSpbEnum('status').default('MENUNGGU_SPPB').notNull(),
   isPrinted: boolean('is_printed').default(false).notNull(),
   keterangan: text('keterangan'),
@@ -387,17 +392,32 @@ export const sppb = pgTable('sppb', {
   // Pihak-pihak yang bertanda tangan
   pembuatId: integer('pembuat_id') // Admin/Staff Gudang yang input
     .references(() => pegawai.id),
+  jabatanPembuatId: integer('jabatan_pembuat_id').references(() => jabatan.id, {
+    onDelete: 'set null',
+  }),
 
   pejabatPenyetujuId: integer('pejabat_penyetuju_id') // Kepala Bagian/PPK yang menyetujui
     .notNull()
     .references(() => pegawai.id),
+  jabatanPejabatPenyetujuId: integer('jabatan_pejabat_penyetuju_id').references(
+    () => jabatan.id,
+    { onDelete: 'set null' }
+  ),
 
   serahTerimaOlehId: integer('serah_terima_oleh_id') // Petugas Gudang yang menyerahkan fisik
     .references(() => pegawai.id),
+  jabatanSerahTerimaOlehId: integer('jabatan_serah_terima_oleh_id').references(
+    () => jabatan.id,
+    { onDelete: 'set null' }
+  ),
 
   diterimaOlehId: integer('diterima_oleh_id') // User yang mengambil barang
     .notNull()
     .references(() => pegawai.id),
+  jabatanDiterimaOlehId: integer('jabatan_diterima_oleh_id').references(
+    () => jabatan.id,
+    { onDelete: 'set null' }
+  ),
 
   keterangan: text('keterangan'),
   status: statusSppbEnum('status').default('MENUNGGU_BAST').notNull(),
@@ -441,10 +461,22 @@ export const bastKeluar = pgTable('bast_keluar', {
   pihakPertamaId: integer('pihak_pertama_id') // Yang Menyerahkan (Gudang/Pejabat Aset)
     .notNull()
     .references(() => pegawai.id),
+  jabatanPihakPertamaId: integer('jabatan_pihak_pertama_id').references(
+    () => jabatan.id,
+    {
+      onDelete: 'set null',
+    }
+  ),
 
   pihakKeduaId: integer('pihak_kedua_id') // Yang Menerima (User/Pemohon)
     .notNull()
     .references(() => pegawai.id),
+  jabatanPihakKeduaId: integer('jabatan_pihak_kedua_id').references(
+    () => jabatan.id,
+    {
+      onDelete: 'set null',
+    }
+  ),
 
   // Jumlah total harga dasar semua item (Sebelum PPN)
   subtotal: numeric('subtotal', { precision: 18, scale: 2 })
@@ -515,6 +547,16 @@ export const bastKeluarRelations = relations(bastKeluar, ({ one, many }) => ({
     references: [pegawai.id],
     relationName: 'bastKeluarPihakKedua',
   }),
+  jabatanPihakPertama: one(jabatan, {
+    fields: [bastKeluar.jabatanPihakPertamaId],
+    references: [jabatan.id],
+    relationName: 'bastKeluarJabatanPihakPertama',
+  }),
+  jabatanPihakKedua: one(jabatan, {
+    fields: [bastKeluar.jabatanPihakKeduaId],
+    references: [jabatan.id],
+    relationName: 'bastKeluarJabatanPihakKedua',
+  }),
   items: many(bastKeluarDetail),
 }));
 
@@ -558,6 +600,26 @@ export const sppbRelations = relations(sppb, ({ one, many }) => ({
     references: [pegawai.id],
     relationName: 'sppbPenerima',
   }),
+  jabatanPembuat: one(jabatan, {
+    fields: [sppb.jabatanPembuatId],
+    references: [jabatan.id],
+    relationName: 'sppbJabatanPembuat',
+  }),
+  jabatanPejabatPenyetuju: one(jabatan, {
+    fields: [sppb.jabatanPejabatPenyetujuId],
+    references: [jabatan.id],
+    relationName: 'sppbJabatanPejabatPenyetuju',
+  }),
+  jabatanSerahTerimaOleh: one(jabatan, {
+    fields: [sppb.jabatanSerahTerimaOlehId],
+    references: [jabatan.id],
+    relationName: 'sppbJabatanSerahTerimaOleh',
+  }),
+  jabatanDiterimaOleh: one(jabatan, {
+    fields: [sppb.jabatanDiterimaOlehId],
+    references: [jabatan.id],
+    relationName: 'sppbJabatanDiterimaOleh',
+  }),
   items: many(sppbDetail),
   bastKeluarList: many(bastKeluar),
 }));
@@ -578,6 +640,10 @@ export const spbRelations = relations(spb, ({ one, many }) => ({
     fields: [spb.pemohonId],
     references: [pegawai.id],
     relationName: 'spbPemohon',
+  }),
+  jabatan: one(jabatan, {
+    fields: [spb.jabatanId],
+    references: [jabatan.id],
   }),
   items: many(spbDetail),
   sppbList: many(sppb),

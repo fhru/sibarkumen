@@ -86,10 +86,16 @@ export function BastMasukFormItems({ initialData }: BastMasukFormItemsProps) {
             <div className="space-y-4">
               {/* Header Labels (Desktop) */}
               <div className="hidden md:grid gap-4 md:grid-cols-12 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                <div className="md:col-span-4">Barang</div>
-                <div className="md:col-span-2">Qty</div>
+                <div className="md:col-span-4">
+                  Barang <span className="text-destructive">*</span>
+                </div>
+                <div className="md:col-span-2">
+                  Qty <span className="text-destructive">*</span>
+                </div>
                 <div className="md:col-span-2">Satuan</div>
-                <div className="md:col-span-3">Harga Satuan</div>
+                <div className="md:col-span-3">
+                  Harga Satuan <span className="text-destructive">*</span>
+                </div>
                 <div className="md:col-span-1 text-center">Aksi</div>
               </div>
 

@@ -30,6 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 
 export const metadata = {
   title: 'Detail BAST Masuk',
@@ -57,6 +59,9 @@ export default async function DetailBastMasukPage({
   if (!success || !data) {
     notFound();
   }
+
+  const session = await getSession();
+  const userRole = (session?.user.role as Role) || 'petugas';
 
   // Calculate generic total price for display
   const totalEstimasi = data.items.reduce((sum, item) => {
@@ -99,6 +104,16 @@ export default async function DetailBastMasukPage({
               locale: localeId,
             })}
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {userRole === 'admin' && (
+            <Link href={`/dashboard/bast-masuk/${data.id}/edit`}>
+              <Button variant="outline">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
