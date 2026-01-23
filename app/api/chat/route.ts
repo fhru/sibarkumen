@@ -6,6 +6,17 @@ export const runtime = "nodejs";
 
 const MODEL = "openai/gpt-oss-120b:free";
 const MAX_CONTEXT_ITEMS = 50;
+const apiKeys =
+  process.env.OPENROUTER_API_KEYS?.split(",").map((key) => key.trim()) ??
+  (process.env.OPENROUTER_API_KEY ? [process.env.OPENROUTER_API_KEY] : []);
+let apiKeyIndex = 0;
+
+function getNextApiKey() {
+  if (apiKeys.length === 0) return null;
+  const key = apiKeys[apiKeyIndex % apiKeys.length];
+  apiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
+  return key;
+}
 
 function formatDate(value: unknown) {
   if (!value) return "-";
@@ -116,9 +127,9 @@ async function buildContextSummary() {
 }
 
 export async function POST(req: Request) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = getNextApiKey();
   if (!apiKey) {
-    return new Response("Missing OPENROUTER_API_KEY", { status: 500 });
+    return new Response("Missing OPENROUTER_API_KEY(S)", { status: 500 });
   }
 
   const payload = await req.json();
