@@ -22,6 +22,7 @@ import { useState, useTransition, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { stockOpnameItemSchema } from '@/lib/zod/stock-opname-schema';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -264,6 +265,21 @@ function StockOpnameItemRow({
     if (stokFisik === item.stokFisik && keterangan === (item.keterangan || ''))
       return;
 
+    // Validate input using Zod schema
+    const validation = stockOpnameItemSchema.safeParse({
+      stokFisik,
+      keterangan,
+    });
+
+    if (!validation.success) {
+      const errorMessage = validation.error.issues[0]?.message;
+      toast.error(errorMessage || 'Input tidak valid');
+      // Revert to original value
+      setStokFisik(item.stokFisik);
+      setKeterangan(item.keterangan || '');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const result = await updateStockOpnameItem(
@@ -272,8 +288,12 @@ function StockOpnameItemRow({
         keterangan
       );
       if (!result.success) {
-        toast.error('Gagal menyimpan perubahan item');
-        // Revert?
+        toast.error(result.error || 'Gagal menyimpan perubahan item');
+        // Revert on server error
+        setStokFisik(item.stokFisik);
+        setKeterangan(item.keterangan || '');
+      } else {
+        toast.success('Perubahan berhasil disimpan');
       }
     } finally {
       setIsSaving(false);

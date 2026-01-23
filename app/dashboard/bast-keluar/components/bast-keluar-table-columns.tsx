@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+import { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   ArrowUpDown,
   ArrowUp,
@@ -19,14 +19,16 @@ import {
   Printer,
   CheckCircle,
   RotateCcw,
-} from "lucide-react";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toggleBastKeluarPrintStatus } from "@/drizzle/actions/bast-keluar";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { toggleBastKeluarPrintStatus } from '@/drizzle/actions/bast-keluar';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { authClient } from '@/lib/auth-client';
+import { Role } from '@/config/nav-items';
 
 export type BastKeluar = {
   id: number;
@@ -60,7 +62,7 @@ const SortableHeader = ({
     if (currentSortBy !== columnId) {
       return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
     }
-    if (currentSortOrder === "asc") {
+    if (currentSortOrder === 'asc') {
       return <ArrowUp className="ml-2 h-4 w-4 text-primary" />;
     }
     return <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
@@ -81,6 +83,9 @@ const SortableHeader = ({
 const BastKeluarActionCell = ({ row }: { row: { original: BastKeluar } }) => {
   const router = useRouter();
 
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
+
   const handlePrintToggle = async () => {
     try {
       const result = await toggleBastKeluarPrintStatus(row.original.id);
@@ -91,7 +96,7 @@ const BastKeluarActionCell = ({ row }: { row: { original: BastKeluar } }) => {
         toast.error(result.message);
       }
     } catch (error) {
-      toast.error("Gagal mengubah status cetak");
+      toast.error('Gagal mengubah status cetak');
     }
   };
 
@@ -114,30 +119,30 @@ const BastKeluarActionCell = ({ row }: { row: { original: BastKeluar } }) => {
           Lihat Detail
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
-
         <DropdownMenuItem
           onSelect={() => {
-            window.open(`/print/bast-keluar/${row.original.id}`, "_blank");
+            window.open(`/print/bast-keluar/${row.original.id}`, '_blank');
           }}
         >
           <Printer className="mr-2 h-4 w-4" />
           Print BAST
         </DropdownMenuItem>
 
-        <DropdownMenuItem onSelect={handlePrintToggle}>
-          {row.original.isPrinted ? (
-            <>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Tandai Belum Dicetak
-            </>
-          ) : (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Tandai Sudah Dicetak
-            </>
-          )}
-        </DropdownMenuItem>
+        {userRole !== 'supervisor' && (
+          <DropdownMenuItem onSelect={handlePrintToggle}>
+            {row.original.isPrinted ? (
+              <>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Tandai Belum Dicetak
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Tandai Sudah Dicetak
+              </>
+            )}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -146,10 +151,10 @@ const BastKeluarActionCell = ({ row }: { row: { original: BastKeluar } }) => {
 export const createColumns = (
   currentSortBy: string,
   currentSortOrder: string,
-  onSort: (columnId: string) => void,
+  onSort: (columnId: string) => void
 ): ColumnDef<BastKeluar>[] => [
   {
-    accessorKey: "nomorBast",
+    accessorKey: 'nomorBast',
     header: () => (
       <SortableHeader
         columnId="nomorBast"
@@ -164,12 +169,12 @@ export const createColumns = (
         href={`/dashboard/bast-keluar/${row.original.id}`}
         className="font-medium hover:underline"
       >
-        {row.getValue("nomorBast")}
+        {row.getValue('nomorBast')}
       </Link>
     ),
   },
   {
-    accessorKey: "tanggalBast",
+    accessorKey: 'tanggalBast',
     header: () => (
       <SortableHeader
         columnId="tanggalBast"
@@ -180,13 +185,13 @@ export const createColumns = (
       />
     ),
     cell: ({ row }) =>
-      format(new Date(row.getValue("tanggalBast")), "dd MMM yyyy", {
+      format(new Date(row.getValue('tanggalBast')), 'dd MMM yyyy', {
         locale: localeId,
       }),
   },
   {
-    accessorKey: "sppb",
-    header: "Nomor SPPB",
+    accessorKey: 'sppb',
+    header: 'Nomor SPPB',
     cell: ({ row }) => {
       const sppb = row.original.sppb;
       return sppb ? (
@@ -197,32 +202,32 @@ export const createColumns = (
           {sppb.nomorSppb}
         </Link>
       ) : (
-        "-"
+        '-'
       );
     },
   },
   {
-    accessorKey: "pihakPertama",
-    header: "Pihak Pertama",
-    cell: ({ row }) => row.original.pihakPertama?.nama || "-",
+    accessorKey: 'pihakPertama',
+    header: 'Pihak Pertama',
+    cell: ({ row }) => row.original.pihakPertama?.nama || '-',
   },
   {
-    accessorKey: "pihakKedua",
-    header: "Pihak Kedua",
-    cell: ({ row }) => row.original.pihakKedua?.nama || "-",
+    accessorKey: 'pihakKedua',
+    header: 'Pihak Kedua',
+    cell: ({ row }) => row.original.pihakKedua?.nama || '-',
   },
   {
-    accessorKey: "grandTotal",
+    accessorKey: 'grandTotal',
     header: () => <div className="text-right">Grand Total</div>,
     cell: ({ row }) => (
       <div className="text-right font-medium">
-        Rp {parseFloat(row.getValue("grandTotal")).toLocaleString("id-ID")}
+        Rp {parseFloat(row.getValue('grandTotal')).toLocaleString('id-ID')}
       </div>
     ),
   },
   {
-    accessorKey: "isPrinted",
-    header: "Dicetak",
+    accessorKey: 'isPrinted',
+    header: 'Dicetak',
     cell: ({ row }) => {
       const isPrinted = row.original.isPrinted;
       return isPrinted ? (
@@ -243,7 +248,7 @@ export const createColumns = (
     },
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => <BastKeluarActionCell row={row} />,
   },
 ];

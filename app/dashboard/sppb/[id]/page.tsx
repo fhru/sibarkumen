@@ -1,4 +1,4 @@
-import { getSPPBById } from '@/drizzle/data/sppb';
+import { getSPPBById } from '@/drizzle/actions/sppb';
 import { Button } from '@/components/ui/button';
 import { notFound } from 'next/navigation';
 import { SPPBActions } from '@/app/dashboard/sppb/components/sppb-actions';

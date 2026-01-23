@@ -23,6 +23,8 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { BastMasukAlertDelete } from './bast-masuk-alert-delete';
+import { authClient } from '@/lib/auth-client';
+import { Role } from '@/config/nav-items';
 
 export type BastMasuk = {
   id: number;
@@ -43,11 +45,10 @@ export type BastMasuk = {
     id: number;
     nama: string;
   } | null;
-  rekening: {
+  kodeRekening: {
     id: number;
-    namaPemilik: string;
-    namaBank: string;
-    nomorRekening: string;
+    kode: string;
+    uraian: string | null;
   } | null;
   keterangan: string | null;
   createdAt: Date;
@@ -56,6 +57,8 @@ export type BastMasuk = {
 const BastMasukActionCell = ({ item }: { item: BastMasuk }) => {
   const router = useRouter();
   const [openDelete, setOpenDelete] = useState(false);
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
 
   return (
     <>
@@ -74,19 +77,25 @@ const BastMasukActionCell = ({ item }: { item: BastMasuk }) => {
             <Eye className="mr-2 h-4 w-4" />
             Lihat Detail
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/dashboard/bast-masuk/${item.id}/edit`)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => setOpenDelete(true)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Hapus
-          </DropdownMenuItem>
+          {userRole !== 'supervisor' && (
+            <>
+              <DropdownMenuItem
+                onClick={() =>
+                  router.push(`/dashboard/bast-masuk/${item.id}/edit`)
+                }
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => setOpenDelete(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Hapus
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -225,19 +234,19 @@ export const columns: ColumnDef<BastMasuk>[] = [
     enableHiding: true,
   },
   {
-    id: 'rekening',
-    header: 'Rekening',
+    id: 'kodeRekening',
+    header: 'Kode Rekening',
     accessorFn: (row) =>
-      row.rekening
-        ? `${row.rekening.namaPemilik} - ${row.rekening.namaBank}`
+      row.kodeRekening
+        ? `${row.kodeRekening.kode} - ${row.kodeRekening.uraian}`
         : '-',
     cell: ({ row }) => {
-      const rek = row.original.rekening;
+      const rek = row.original.kodeRekening;
       return rek ? (
         <div>
-          <div className="font-medium">{rek.namaPemilik}</div>
+          <div className="font-medium">{rek.kode}</div>
           <div className="text-xs text-muted-foreground">
-            {rek.namaBank} - {rek.nomorRekening}
+            {rek.uraian || '-'}
           </div>
         </div>
       ) : (

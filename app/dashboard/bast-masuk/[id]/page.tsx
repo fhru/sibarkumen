@@ -1,4 +1,4 @@
-import { getBastMasukById } from '@/drizzle/data/bast-masuk';
+import { getBastMasukById } from '@/drizzle/actions/bast-masuk';
 import { notFound } from 'next/navigation';
 import {
   Breadcrumb,
@@ -100,14 +100,6 @@ export default async function DetailBastMasukPage({
             })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/dashboard/bast-masuk/${bastId}/edit`}>
-            <Button variant="outline" size={'sm'}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
-        </div>
       </div>
 
       {/* Top Cards Section */}
@@ -194,14 +186,14 @@ export default async function DetailBastMasukPage({
                 Rp {totalEstimasi.toLocaleString('id-ID')}
               </h3>
             </div>
-            {data.rekening && (
+            {data.kodeRekening && (
               <div className="bg-muted/50 p-3 rounded-md text-xs space-y-1">
-                <p className="font-semibold text-muted-foreground">Rekening:</p>
-                <p>
-                  {data.rekening.namaBank} - {data.rekening.nomorRekening}
+                <p className="font-semibold text-muted-foreground">
+                  Kode Rekening:
                 </p>
+                <p className="font-medium text-sm">{data.kodeRekening.kode}</p>
                 <p className="text-muted-foreground">
-                  a.n {data.rekening.namaPemilik}
+                  {data.kodeRekening.uraian}
                 </p>
               </div>
             )}

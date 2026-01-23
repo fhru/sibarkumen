@@ -1,4 +1,4 @@
-import { getSPBStats, getSPBList } from '@/drizzle/data/spb';
+import { getSPBStats, getSPBList } from '@/drizzle/actions/spb';
 import { getSession } from '@/lib/auth-utils';
 import { Role } from '@/config/nav-items';
 import { SPBStats } from './components/spb-stats';

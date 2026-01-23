@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { sppb } from '@/drizzle/schema';
 import { isNotNull, eq } from 'drizzle-orm';
-import { getBastKeluarById } from '@/drizzle/data/bast-keluar';
+import { getBastKeluarById } from '@/drizzle/actions/bast-keluar';
 import { notFound } from 'next/navigation';
 import {
   Breadcrumb,
@@ -77,11 +77,15 @@ export default async function EditBastKeluarPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/bast-keluar">BAST Keluar</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard/bast-keluar">
+              BAST Keluar
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/dashboard/bast-keluar/${bastId}`}>{bastData.nomorBast}</BreadcrumbLink>
+            <BreadcrumbLink href={`/dashboard/bast-keluar/${bastId}`}>
+              {bastData.nomorBast}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -92,10 +96,10 @@ export default async function EditBastKeluarPage({
 
       <div>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Edit BAST Keluar</h2>
-          <p className="text-muted-foreground text-sm">
-            {bastData.nomorBast}
-          </p>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Edit BAST Keluar
+          </h2>
+          <p className="text-muted-foreground text-sm">{bastData.nomorBast}</p>
         </div>
       </div>
 

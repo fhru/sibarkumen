@@ -1,9 +1,9 @@
-import { getSPPBById } from "@/drizzle/data/sppb";
-import { SPPBForm } from "../../components/sppb-form";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { getSPPBById } from '@/drizzle/actions/sppb';
+import { SPPBForm } from '../../components/sppb-form';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export default async function EditSPPBPage({
   params,
@@ -63,12 +63,12 @@ export default async function EditSPPBPage({
           tanggalSppb: new Date(sppb.tanggalSppb),
           pejabatPenyetujuId: sppb.pejabatPenyetujuId,
           diterimaOlehId: sppb.diterimaOlehId,
-          keterangan: sppb.keterangan || "",
+          keterangan: sppb.keterangan || '',
           items:
             sppb.items?.map((item) => ({
               barangId: item.barangId,
               qtyDisetujui: item.qtyDisetujui,
-              keterangan: item.keterangan || "",
+              keterangan: item.keterangan || '',
             })) || [],
         }}
         sppbId={Number(id)}

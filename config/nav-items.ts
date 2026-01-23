@@ -120,8 +120,8 @@ export const navItems: NavItem[] = [
         href: '/dashboard/asal-pembelian',
       },
       {
-        title: 'Rekening',
-        href: '/dashboard/rekening',
+        title: 'Kode Rekening',
+        href: '/dashboard/kode-rekening',
       },
       {
         title: 'Manajemen User',

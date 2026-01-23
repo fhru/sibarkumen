@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { satuan, asalPembelian, rekening } from '@/drizzle/schema';
+import { satuan, asalPembelian, kodeRekening } from '@/drizzle/schema';
 import { BastMasukForm } from '../components/bast-masuk-form';
 import { generateDocumentNumber } from '@/lib/document-numbering-utils';
 import Link from 'next/link';
@@ -27,12 +27,12 @@ export default async function CreateBastMasukPage() {
       .from(asalPembelian),
     db
       .select({
-        id: rekening.id,
-        nama: rekening.namaPemilik,
-        namaBank: rekening.namaBank,
-        nomorRekening: rekening.nomorRekening,
+        id: kodeRekening.id,
+        nama: kodeRekening.kode, // Mapping kode to nama for Option compatibility
+        kode: kodeRekening.kode,
+        uraian: kodeRekening.uraian,
       })
-      .from(rekening),
+      .from(kodeRekening),
     generateDocumentNumber('bastMasuk'),
   ]);
 

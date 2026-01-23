@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import {
   getRiwayatHarga,
   getRiwayatHargaStats,
-} from '@/drizzle/data/riwayat-harga';
+} from '@/drizzle/actions/riwayat-harga';
 import { RiwayatHargaTable } from './components/riwayat-harga-table';
 import { RiwayatHargaStats } from './components/riwayat-harga-stats';
 import {

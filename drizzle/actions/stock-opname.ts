@@ -11,6 +11,12 @@ import {
 } from '@/drizzle/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
+import { z } from 'zod';
+
+// Zod Schema for Stock Opname Item Update
+import { stockOpnameItemSchema } from '@/lib/zod/stock-opname';
 
 // Helper to generate Stock Opname Number
 async function generateNomorStockOpname() {
@@ -44,6 +50,16 @@ export async function createStockOpnameSession(
   keterangan?: string
 ) {
   try {
+    const session = await getSession();
+    const userRole = (session?.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      return {
+        success: false,
+        error: 'Supervisor tidak dapat membuat Stock Opname',
+      };
+    }
+
     const nomor = await generateNomorStockOpname();
 
     // 1. Create Header
@@ -87,6 +103,9 @@ export async function updateStockOpnameItem(
   keterangan?: string
 ) {
   try {
+    // Validate input
+    const validated = stockOpnameItemSchema.parse({ stokFisik, keterangan });
+
     // Get the detail first to calculate selisih
     const item = await db.query.stockOpnameDetail.findFirst({
       where: eq(stockOpnameDetail.id, detailId),
@@ -94,14 +113,14 @@ export async function updateStockOpnameItem(
 
     if (!item) return { success: false, error: 'Item not found' };
 
-    const selisih = stokFisik - item.stokSistem;
+    const selisih = validated.stokFisik - item.stokSistem;
 
     await db
       .update(stockOpnameDetail)
       .set({
-        stokFisik,
+        stokFisik: validated.stokFisik,
         selisih,
-        keterangan,
+        keterangan: validated.keterangan,
       })
       .where(eq(stockOpnameDetail.id, detailId));
 
@@ -116,6 +135,15 @@ export async function updateStockOpnameItem(
 export async function finalizeStockOpname(stockOpnameId: number) {
   return await db.transaction(async (tx) => {
     try {
+      const authSession = await getSession(); // Variable name change to avoid conflict with 'session' used below
+      const userRole = (authSession?.user.role as Role) || 'petugas';
+
+      if (userRole === 'supervisor') {
+        throw new Error(
+          'Supervisor tidak dapat melakukan finalisasi Stock Opname'
+        );
+      }
+
       const session = await tx.query.stockOpname.findFirst({
         where: eq(stockOpname.id, stockOpnameId),
         with: {

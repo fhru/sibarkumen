@@ -1,19 +1,19 @@
 // Document numbering configuration
 export const documentNumbering = {
   spb: {
-    format: 'SPB/{year}/{number}',
-    startNumber: 2132,
-    numberPadding: 4, // Jumlah digit (2132 -> 2132, tapi jika < 1000 akan jadi 0001)
+    format: '{number}/-077/SPB/{year}',
+    startNumber: 1,
+    numberPadding: 0,
   },
   sppb: {
-    format: 'SPPB/{year}/{number}',
+    format: '{number}/-077/SPPB/{year}',
     startNumber: 1,
-    numberPadding: 4,
+    numberPadding: 0,
   },
   bastKeluar: {
-    format: 'BAST-OUT/{year}/{number}',
+    format: '{number}/-077/BAST/{year}',
     startNumber: 1,
-    numberPadding: 4,
+    numberPadding: 0,
   },
   bastMasuk: {
     format: '00722::BA1.{number}',

@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getBarangList, getBarangStats } from '@/drizzle/data/barang';
+import { getBarangList, getBarangStats } from '@/drizzle/actions/barang';
 import { BarangTable } from './components/barang-table';
 import { BarangStats } from './components/barang-stats';
 import { db } from '@/lib/db';

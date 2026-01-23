@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState, startTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { createRekening } from '@/drizzle/actions/rekening';
+import { updateKodeRekening } from '@/drizzle/actions/kode-rekening';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Field,
@@ -24,15 +23,30 @@ import {
   FieldError,
 } from '@/components/ui/field';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
 
-import { rekeningSchema } from '@/lib/zod/rekening';
+import { kodeRekeningSchema } from '@/lib/zod/kode-rekening-schema';
 
-type RekeningFormValues = z.infer<typeof rekeningSchema>;
+type KodeRekeningFormValues = z.infer<typeof kodeRekeningSchema>;
 
-export function RekeningDialogCreate() {
-  const [open, setOpen] = useState(false);
-  const [state, formAction, isPending] = useActionState(createRekening, null);
+interface RekeningDialogUpdateProps {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  rekening: {
+    id: number;
+    kode: string;
+    uraian: string | null;
+  } | null;
+}
+
+export function RekeningDialogUpdate({
+  open,
+  setOpen,
+  rekening,
+}: RekeningDialogUpdateProps) {
+  const [state, formAction, isPending] = useActionState(
+    updateKodeRekening,
+    null
+  );
 
   const {
     register,
@@ -40,15 +54,22 @@ export function RekeningDialogCreate() {
     reset,
     setError,
     formState: { errors },
-  } = useForm<RekeningFormValues>({
-    resolver: zodResolver(rekeningSchema) as any,
+  } = useForm<KodeRekeningFormValues>({
+    resolver: zodResolver(kodeRekeningSchema) as any,
     defaultValues: {
-      namaBank: '',
-      nomorRekening: '',
-      namaPemilik: '',
-      keterangan: '',
+      kode: '',
+      uraian: '',
     },
   });
+
+  useEffect(() => {
+    if (rekening) {
+      reset({
+        kode: rekening.kode,
+        uraian: rekening.uraian || '',
+      });
+    }
+  }, [rekening, reset]);
 
   useEffect(() => {
     if (state?.success) {
@@ -66,15 +87,16 @@ export function RekeningDialogCreate() {
         });
       }
     }
-  }, [state, reset, setError]);
+  }, [state, reset, setError, setOpen]);
 
-  const onSubmit = (data: RekeningFormValues) => {
+  const onSubmit = (data: KodeRekeningFormValues) => {
+    if (!rekening) return;
+
     const formData = new FormData();
-    formData.append('namaBank', data.namaBank);
-    formData.append('nomorRekening', data.nomorRekening);
-    formData.append('namaPemilik', data.namaPemilik);
-    if (data.keterangan) {
-      formData.append('keterangan', data.keterangan);
+    formData.append('id', rekening.id.toString());
+    formData.append('kode', data.kode);
+    if (data.uraian) {
+      formData.append('uraian', data.uraian);
     }
     startTransition(() => {
       formAction(formData);
@@ -83,76 +105,43 @@ export function RekeningDialogCreate() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Tambah Rekening
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Tambah Rekening</DialogTitle>
+          <DialogTitle>Edit Kode Rekening</DialogTitle>
           <DialogDescription>
-            Masukkan data rekening baru ke dalam sistem.
+            Ubah data kode rekening yang sudah ada.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <FieldGroup className="grid gap-4 sm:grid-cols-2">
+          <FieldGroup>
             <Field>
               <FieldLabel>
-                Nama Bank <span className="text-red-500 -ml-1">*</span>
+                Kode Rekening <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
               <Input
-                {...register('namaBank')}
-                placeholder="Contoh: Bank BCA"
+                {...register('kode')}
+                placeholder="Contoh: 5.1.02.01"
                 maxLength={50}
               />
-              <FieldError errors={[{ message: errors.namaBank?.message }]} />
-            </Field>
-
-            <Field>
-              <FieldLabel>
-                Nomor Rekening <span className="text-red-500 -ml-1">*</span>
-              </FieldLabel>
-              <Input
-                {...register('nomorRekening')}
-                placeholder="Contoh: 1234567890"
-                maxLength={50}
-              />
-              <FieldError
-                errors={[{ message: errors.nomorRekening?.message }]}
-              />
+              <FieldError errors={[{ message: errors.kode?.message }]} />
             </Field>
           </FieldGroup>
 
           <FieldGroup>
             <Field>
               <FieldLabel>
-                Nama Pemilik <span className="text-red-500 -ml-1">*</span>
-              </FieldLabel>
-              <Input
-                {...register('namaPemilik')}
-                placeholder="Contoh: PT. Maju Mundur"
-                maxLength={100}
-              />
-              <FieldError errors={[{ message: errors.namaPemilik?.message }]} />
-            </Field>
-          </FieldGroup>
-
-          <FieldGroup>
-            <Field>
-              <FieldLabel>
-                Keterangan
+                Uraian
                 <span className="text-muted-foreground text-xs -ml-1">
                   (Max 255 Karakter)
                 </span>
               </FieldLabel>
               <Textarea
-                {...register('keterangan')}
-                placeholder="Keterangan tambahan (opsional)"
+                {...register('uraian')}
+                placeholder="Keterangan / Uraian (opsional)"
                 maxLength={255}
               />
-              <FieldError errors={[{ message: errors.keterangan?.message }]} />
+              <FieldError errors={[{ message: errors.uraian?.message }]} />
             </Field>
           </FieldGroup>
 

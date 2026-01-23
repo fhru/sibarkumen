@@ -23,6 +23,7 @@ export function SPBFormItems({ initialData }: SPBFormItemsProps) {
   const {
     control,
     register,
+    setValue,
     formState: { errors },
   } = useFormContext<SPBFormValues>();
 
@@ -49,6 +50,8 @@ export function SPBFormItems({ initialData }: SPBFormItemsProps) {
                 barangId: 0,
                 qtyPermintaan: 1,
                 keterangan: '',
+                stok: 0,
+                nama: '',
               })
             }
           >
@@ -71,6 +74,8 @@ export function SPBFormItems({ initialData }: SPBFormItemsProps) {
                     barangId: 0,
                     qtyPermintaan: 1,
                     keterangan: '',
+                    stok: 0,
+                    nama: '',
                   })
                 }
               >
@@ -113,9 +118,29 @@ export function SPBFormItems({ initialData }: SPBFormItemsProps) {
                                 `${option.nama}${option.kodeBarang ? ` (${option.kodeBarang})` : ''} - Stok: ${option.stok} ${option.satuanNama || ''}`
                               }
                               className="h-10 md:h-9"
+                              onSelectOption={(option) => {
+                                if (option.stok !== undefined) {
+                                  setValue(
+                                    `items.${index}.stok`,
+                                    Number(option.stok)
+                                  );
+                                  setValue(`items.${index}.nama`, option.nama);
+                                }
+                              }}
                               initialOption={
                                 initialData?.items?.[index]?.barang
                               }
+                            />
+                            {/* Hidden inputs to register stok and nama */}
+                            <input
+                              type="hidden"
+                              {...register(`items.${index}.stok`, {
+                                valueAsNumber: true,
+                              })}
+                            />
+                            <input
+                              type="hidden"
+                              {...register(`items.${index}.nama`)}
                             />
                             <FieldError
                               errors={[errors.items?.[index]?.barangId]}

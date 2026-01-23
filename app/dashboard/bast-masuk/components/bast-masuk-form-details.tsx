@@ -313,12 +313,12 @@ export function BastMasukFormDetails({
                 >
                   <FieldContent>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Pilih Rekening" />
+                      <SelectValue placeholder="Pilih Kode Rekening" />
                     </SelectTrigger>
                     <SelectContent>
                       {rekeningList.map((item) => (
                         <SelectItem key={item.id} value={item.id.toString()}>
-                          {item.namaBank} - {item.nomorRekening} ({item.nama})
+                          {item.kode} - {item.uraian}
                         </SelectItem>
                       ))}
                     </SelectContent>

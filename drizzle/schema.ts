@@ -145,12 +145,10 @@ export const asalPembelian = pgTable('asal_pembelian', {
   nama: text('nama').notNull().unique(),
 });
 
-export const rekening = pgTable('rekening', {
+export const kodeRekening = pgTable('kode_rekening', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  namaBank: text('nama_bank').notNull(),
-  nomorRekening: text('nomor_rekening').notNull().unique(),
-  namaPemilik: text('nama_pemilik').notNull(),
-  keterangan: text('keterangan'),
+  kode: text('kode').notNull().unique(),
+  uraian: text('uraian'),
 });
 
 export const jabatan = pgTable('jabatan', {
@@ -211,9 +209,9 @@ export const bastMasuk = pgTable('bast_masuk', {
       onDelete: 'cascade',
       onUpdate: 'cascade',
     }),
-  rekeningId: integer('rekening_id')
+  kodeRekeningId: integer('kode_rekening_id')
     .notNull()
-    .references(() => rekening.id, {
+    .references(() => kodeRekening.id, {
       onDelete: 'cascade',
       onUpdate: 'cascade',
     }),
@@ -608,9 +606,9 @@ export const bastMasukRelations = relations(bastMasuk, ({ one, many }) => ({
     fields: [bastMasuk.asalPembelianId],
     references: [asalPembelian.id],
   }),
-  rekening: one(rekening, {
-    fields: [bastMasuk.rekeningId],
-    references: [rekening.id],
+  kodeRekening: one(kodeRekening, {
+    fields: [bastMasuk.kodeRekeningId],
+    references: [kodeRekening.id],
   }),
   pihakKetiga: one(pihakKetiga, {
     fields: [bastMasuk.pihakKetigaId],
@@ -681,7 +679,7 @@ export const pegawaiJabatanRelations = relations(pegawaiJabatan, ({ one }) => ({
   }),
 }));
 
-export const rekeningRelations = relations(rekening, ({ many }) => ({
+export const kodeRekeningRelations = relations(kodeRekening, ({ many }) => ({
   bastMasuk: many(bastMasuk),
 }));
 

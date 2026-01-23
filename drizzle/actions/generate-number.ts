@@ -32,7 +32,8 @@ export async function generateNextDocumentNumber(
 
     if (latestDoc.length > 0) {
       const parts = latestDoc[0].nomorSpb.split('/');
-      const currentNumber = parseInt(parts[parts.length - 1]) || 0;
+      // New format: {number}/-077/SPB/{year}, so number is the first part
+      const currentNumber = parseInt(parts[0]) || 0;
       nextNumber = currentNumber + 1;
     }
   } else if (documentType === 'sppb') {
@@ -45,7 +46,8 @@ export async function generateNextDocumentNumber(
 
     if (latestDoc.length > 0) {
       const parts = latestDoc[0].nomorSppb.split('/');
-      const currentNumber = parseInt(parts[parts.length - 1]) || 0;
+      // New format: {number}/-077/SPPB/{year}, so number is the first part
+      const currentNumber = parseInt(parts[0]) || 0;
       nextNumber = currentNumber + 1;
     }
   } else if (documentType === 'bastKeluar') {
@@ -58,13 +60,17 @@ export async function generateNextDocumentNumber(
 
     if (latestDoc.length > 0) {
       const parts = latestDoc[0].nomorBast.split('/');
-      const currentNumber = parseInt(parts[parts.length - 1]) || 0;
+      // New format: {number}/-077/BAST/{year}, so number is the first part
+      const currentNumber = parseInt(parts[0]) || 0;
       nextNumber = currentNumber + 1;
     }
   }
 
-  // Format the number with padding
-  const paddedNumber = String(nextNumber).padStart(config.numberPadding, '0');
+  // Format the number with padding (only if numberPadding > 0)
+  const paddedNumber =
+    config.numberPadding > 0
+      ? String(nextNumber).padStart(config.numberPadding, '0')
+      : String(nextNumber);
 
   // Generate the document number
   const documentNumber = config.format

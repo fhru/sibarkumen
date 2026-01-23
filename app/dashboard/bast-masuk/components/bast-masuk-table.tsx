@@ -50,7 +50,7 @@ export function BastMasukTable({
       nomorBapb: false,
       tanggalBapb: false,
       pptkPpk: false,
-      rekening: false,
+      kodeRekening: false,
       keterangan: false,
       createdAt: false,
       asalPembelian: false,
@@ -95,10 +95,10 @@ export function BastMasukTable({
   const rekeningOptions = React.useMemo(() => {
     const unique = new Map();
     data.forEach((item) => {
-      if (item.rekening) {
+      if (item.kodeRekening) {
         unique.set(
-          item.rekening.id,
-          `${item.rekening.namaPemilik} - ${item.rekening.namaBank} (${item.rekening.nomorRekening})`
+          item.kodeRekening.id,
+          `${item.kodeRekening.kode} - ${item.kodeRekening.uraian || ''}`
         );
       }
     });

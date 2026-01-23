@@ -6,13 +6,28 @@ import {
   bastMasukDetail,
   barang,
   mutasiBarang,
+  pihakKetiga,
 } from '@/drizzle/schema';
-import { eq, desc, sql, inArray } from 'drizzle-orm';
+import {
+  eq,
+  desc,
+  sql,
+  inArray,
+  count,
+  or,
+  and,
+  ilike,
+  gte,
+  lte,
+  exists,
+  asc,
+} from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/lib/auth'; // Adjust if needed
 import { headers } from 'next/headers';
 import { generateDocumentNumber } from '@/lib/document-numbering-utils';
+import { Role } from '@/config/nav-items';
 
 // Helper to check authentication
 async function checkAuth() {
@@ -26,27 +41,7 @@ async function checkAuth() {
 }
 
 // Zod Schema for Create/Update
-const bastMasukDetailSchema = z.object({
-  barangId: z.number(),
-  qty: z.number().min(1),
-  hargaSatuan: z.number().min(0),
-  keterangan: z.string().optional(),
-});
-
-const createBastMasukSchema = z.object({
-  nomorReferensi: z.string().optional(), // Auto-generated
-  nomorBast: z.string().min(1),
-  tanggalBast: z.union([z.string(), z.date()]),
-  nomorBapb: z.string().min(1),
-  tanggalBapb: z.union([z.string(), z.date()]),
-  asalPembelianId: z.number(),
-  rekeningId: z.number(),
-  pihakKetigaId: z.number(),
-  pptkPpkId: z.number(),
-  peruntukkan: z.string().optional(),
-  keterangan: z.string().optional(),
-  items: z.array(bastMasukDetailSchema).min(1),
-});
+import { createBastMasukSchema } from '@/lib/zod/bast-masuk';
 
 // Helper to format date without timezone issues
 function formatDateForDB(date: string | Date): string {
@@ -81,39 +76,21 @@ export async function getBastMasuk() {
   return { success: true, data };
 }
 
-export async function getBastMasukById(id: number) {
-  await checkAuth();
-
-  const data = await db.query.bastMasuk.findFirst({
-    where: eq(bastMasuk.id, id),
-    with: {
-      items: {
-        with: {
-          barang: {
-            with: {
-              satuan: true,
-            },
-          },
-        },
-      },
-      pihakKetiga: true,
-      pptkPpk: true,
-      asalPembelian: true,
-      rekening: true,
-    },
-  });
-
-  if (!data) return { success: false, message: 'Data not found' };
-
-  return { success: true, data };
-}
-
 export async function createBastMasuk(
   prevState: any,
   data: z.infer<typeof createBastMasukSchema>
 ) {
   try {
     const session = await checkAuth();
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      return {
+        success: false,
+        message: 'Supervisor tidak diizinkan membuat BAST Masuk',
+      };
+    }
+
     const validated = createBastMasukSchema.parse(data);
 
     // Format dates without timezone conversion
@@ -128,9 +105,6 @@ export async function createBastMasuk(
       try {
         await db.transaction(async (tx) => {
           // Always generate a fresh number inside the retry loop
-          // Note: In a real transaction, we might want to lock, but retry is optimistic and simpler for now
-          // We pass 'retry' or similar context if generateDocumentNumber supported it,
-          // but here we just rely on counting again.
           const nomorRef = await generateDocumentNumber('bastMasuk');
 
           // 1. Create Header
@@ -143,7 +117,7 @@ export async function createBastMasuk(
               nomorBapb: validated.nomorBapb,
               tanggalBapb: tglBapb,
               asalPembelianId: validated.asalPembelianId,
-              rekeningId: validated.rekeningId,
+              kodeRekeningId: validated.rekeningId, // Use correct referenced column (kodeRekeningId) mapped from input (rekeningId)
               pihakKetigaId: validated.pihakKetigaId,
               pptkPpkId: validated.pptkPpkId,
               peruntukkan: validated.peruntukkan,
@@ -280,6 +254,15 @@ export async function updateBastMasuk(
 ) {
   try {
     const session = await checkAuth();
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      return {
+        success: false,
+        message: 'Supervisor tidak diizinkan mengubah BAST Masuk',
+      };
+    }
+
     const validated = createBastMasukSchema.parse(data);
 
     // Format dates without timezone conversion
@@ -345,7 +328,7 @@ export async function updateBastMasuk(
           nomorBapb: validated.nomorBapb,
           tanggalBapb: tglBapb,
           asalPembelianId: validated.asalPembelianId,
-          rekeningId: validated.rekeningId,
+          kodeRekeningId: validated.rekeningId,
           pihakKetigaId: validated.pihakKetigaId,
           pptkPpkId: validated.pptkPpkId,
           peruntukkan: validated.peruntukkan,
@@ -446,7 +429,15 @@ export async function updateBastMasuk(
 
 export async function deleteBastMasuk(id: number) {
   try {
-    await checkAuth();
+    const session = await checkAuth();
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      return {
+        success: false,
+        message: 'Supervisor tidak diizinkan menghapus BAST Masuk',
+      };
+    }
 
     await db.transaction(async (tx) => {
       // 1. Get existing details to reverse stock
@@ -484,7 +475,7 @@ export async function deleteBastMasuk(id: number) {
         await tx.insert(mutasiBarang).values({
           barangId: item.barangId,
           tanggal: new Date(),
-          jenisMutasi: 'PENYESUAIAN', // Or should we use KELUAR? Use PENYESUAIAN for correction.
+          jenisMutasi: 'PENYESUAIAN',
           qtyMasuk: 0,
           qtyKeluar: item.qty, // Treated as reducing stock
           stokAkhir: newStock,
@@ -506,4 +497,211 @@ export async function deleteBastMasuk(id: number) {
       message: error.message || 'Gagal menghapus data',
     };
   }
+}
+
+// --- DATA FETCHING (Previously in drizzle/data/bast-masuk.ts) ---
+
+export async function getBastMasukStats() {
+  // Total BAST
+  const [totalResult] = await db.select({ count: count() }).from(bastMasuk);
+  const totalBast = totalResult?.count ?? 0;
+
+  // Total Nilai Transaksi
+  const [nilaiResult] = await db
+    .select({
+      total: sql<number>`COALESCE(SUM(${bastMasukDetail.qty} * ${bastMasukDetail.hargaSatuan}), 0)`,
+    })
+    .from(bastMasukDetail);
+  const totalNilaiTransaksi = Number(nilaiResult?.total ?? 0);
+
+  // Supplier Terbanyak
+  const topSupplierResult = await db
+    .select({
+      supplierNama: pihakKetiga.nama,
+      count: count(bastMasuk.id),
+    })
+    .from(bastMasuk)
+    .leftJoin(pihakKetiga, eq(bastMasuk.pihakKetigaId, pihakKetiga.id))
+    .groupBy(pihakKetiga.nama)
+    .orderBy(desc(count(bastMasuk.id)))
+    .limit(1);
+
+  const supplierTerbanyak = topSupplierResult[0]
+    ? `${topSupplierResult[0].supplierNama} (${topSupplierResult[0].count})`
+    : '-';
+
+  return {
+    totalBast,
+    totalNilaiTransaksi,
+    supplierTerbanyak,
+  };
+}
+
+export async function getBastMasukList(
+  page: number = 1,
+  limit: number = 50,
+  search?: string,
+  sortBy: string = 'nomorReferensi',
+  sortOrder: 'asc' | 'desc' = 'desc',
+  // Filters
+  pihakKetigaId?: number,
+  pptkPpkId?: number,
+  asalPembelianId?: number,
+  kodeRekeningId?: number,
+  startDate?: Date,
+  endDate?: Date
+) {
+  const offset = (page - 1) * limit;
+
+  const baseFilters = [];
+  let searchFilterCount = undefined;
+  let searchFilterData = undefined;
+
+  // Search filter
+  if (search) {
+    searchFilterCount = or(
+      ilike(bastMasuk.nomorBast, `%${search}%`),
+      ilike(bastMasuk.nomorReferensi, `%${search}%`),
+      ilike(bastMasuk.nomorBapb, `%${search}%`),
+      exists(
+        db
+          .select()
+          .from(pihakKetiga)
+          .where(
+            and(
+              eq(pihakKetiga.id, bastMasuk.pihakKetigaId),
+              ilike(pihakKetiga.nama, `%${search}%`)
+            )
+          )
+      )
+    );
+
+    searchFilterData = or(
+      ilike(bastMasuk.nomorBast, `%${search}%`),
+      ilike(bastMasuk.nomorReferensi, `%${search}%`),
+      ilike(bastMasuk.nomorBapb, `%${search}%`),
+      exists(
+        db
+          .select()
+          .from(pihakKetiga)
+          .where(
+            and(
+              eq(pihakKetiga.id, sql.raw('"bastMasuk"."pihak_ketiga_id"')),
+              ilike(pihakKetiga.nama, `%${search}%`)
+            )
+          )
+      )
+    );
+  }
+
+  // Date range filter
+  if (startDate) {
+    baseFilters.push(
+      gte(bastMasuk.tanggalBast, startDate.toISOString().split('T')[0])
+    );
+  }
+  if (endDate) {
+    baseFilters.push(
+      lte(bastMasuk.tanggalBast, endDate.toISOString().split('T')[0])
+    );
+  }
+
+  // ID filters
+  if (pihakKetigaId) {
+    baseFilters.push(eq(bastMasuk.pihakKetigaId, pihakKetigaId));
+  }
+  if (pptkPpkId) {
+    baseFilters.push(eq(bastMasuk.pptkPpkId, pptkPpkId));
+  }
+  if (asalPembelianId) {
+    baseFilters.push(eq(bastMasuk.asalPembelianId, asalPembelianId));
+  }
+  if (kodeRekeningId) {
+    baseFilters.push(eq(bastMasuk.kodeRekeningId, kodeRekeningId));
+  }
+
+  const whereClauseCount =
+    baseFilters.length > 0 || searchFilterCount
+      ? and(...baseFilters, ...(searchFilterCount ? [searchFilterCount] : []))
+      : undefined;
+
+  const whereClauseData =
+    baseFilters.length > 0 || searchFilterData
+      ? and(...baseFilters, ...(searchFilterData ? [searchFilterData] : []))
+      : undefined;
+
+  // Get total count
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(bastMasuk)
+    .where(whereClauseCount);
+
+  const total = totalResult?.count ?? 0;
+  const pageCount = Math.ceil(total / limit);
+
+  // Get paginated data
+  const data = await db.query.bastMasuk.findMany({
+    where: whereClauseData,
+    with: {
+      pihakKetiga: true,
+      pptkPpk: true,
+      asalPembelian: true,
+      kodeRekening: true,
+    },
+    orderBy:
+      sortBy === 'nomorBast'
+        ? sortOrder === 'asc'
+          ? asc(bastMasuk.nomorBast)
+          : desc(bastMasuk.nomorBast)
+        : sortBy === 'nomorReferensi'
+          ? sortOrder === 'asc'
+            ? asc(bastMasuk.nomorReferensi)
+            : desc(bastMasuk.nomorReferensi)
+          : sortBy === 'tanggalBast'
+            ? sortOrder === 'asc'
+              ? asc(bastMasuk.tanggalBast)
+              : desc(bastMasuk.tanggalBast)
+            : sortOrder === 'asc'
+              ? asc(bastMasuk.createdAt)
+              : desc(bastMasuk.createdAt),
+    limit,
+    offset,
+  });
+
+  return {
+    data,
+    meta: {
+      total,
+      pageCount,
+      page,
+      limit,
+    },
+  };
+}
+
+export async function getBastMasukById(id: number) {
+  await checkAuth();
+
+  const data = await db.query.bastMasuk.findFirst({
+    where: eq(bastMasuk.id, id),
+    with: {
+      items: {
+        with: {
+          barang: {
+            with: {
+              satuan: true,
+            },
+          },
+        },
+      },
+      pihakKetiga: true,
+      pptkPpk: true,
+      asalPembelian: true,
+      kodeRekening: true, // Use the correct relation name 'kodeRekening' instead of 'rekening'
+    },
+  });
+
+  if (!data) return { success: false, message: 'Data not found' };
+
+  return { success: true, data };
 }

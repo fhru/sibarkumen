@@ -11,13 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Edit,
-  Trash,
-  CheckCircle,
-  Printer,
-  RotateCcw,
-} from 'lucide-react';
+import { Edit, Trash, CheckCircle, Printer, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import {
@@ -26,12 +20,16 @@ import {
 } from '@/drizzle/actions/bast-keluar';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { authClient } from '@/lib/auth-client';
+import { Role } from '@/config/nav-items';
 
 export function BastKeluarActions({ bast }: { bast: any }) {
   const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingPrint, startTwTogglingPrint] = useTransition();
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -66,40 +64,46 @@ export function BastKeluarActions({ bast }: { bast: any }) {
         </Button>
       </Link>
 
-      <Button
-        onClick={handleTogglePrintStatus}
-        disabled={isTogglingPrint}
-        variant="outline"
-        size={'sm'}
-      >
-        {bast.isPrinted ? (
-          <>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            {isTogglingPrint ? 'Memproses...' : 'Tandai Belum Dicetak'}
-          </>
-        ) : (
-          <>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            {isTogglingPrint ? 'Memproses...' : 'Tandai Sudah Dicetak'}
-          </>
-        )}
-      </Button>
-
-      <Link href={`/dashboard/bast-keluar/${bast.id}/edit`}>
-        <Button variant="outline" size={'sm'}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
+      {userRole !== 'supervisor' && (
+        <Button
+          onClick={handleTogglePrintStatus}
+          disabled={isTogglingPrint}
+          variant="outline"
+          size={'sm'}
+        >
+          {bast.isPrinted ? (
+            <>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {isTogglingPrint ? 'Memproses...' : 'Tandai Belum Dicetak'}
+            </>
+          ) : (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              {isTogglingPrint ? 'Memproses...' : 'Tandai Sudah Dicetak'}
+            </>
+          )}
         </Button>
-      </Link>
+      )}
 
-      <Button
-        variant="destructive"
-        onClick={() => setShowDeleteDialog(true)}
-        size={'sm'}
-      >
-        <Trash className="mr-2 h-4 w-4" />
-        Hapus
-      </Button>
+      {userRole !== 'supervisor' && (
+        <>
+          <Link href={`/dashboard/bast-keluar/${bast.id}/edit`}>
+            <Button variant="outline" size={'sm'}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </Link>
+
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteDialog(true)}
+            size={'sm'}
+          >
+            <Trash className="mr-2 h-4 w-4" />
+            Hapus
+          </Button>
+        </>
+      )}
 
       {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

@@ -1,14 +1,21 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { spb, spbDetail, barang, mutasiBarang } from '@/drizzle/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { spb, spbDetail, pegawai } from '@/drizzle/schema';
+import {
+  eq,
+  count,
+  desc,
+  sql,
+  and,
+  gte,
+  lte,
+  asc,
+  or,
+  like,
+} from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-
-import { authClient } from '@/lib/auth-client';
 import { getSession, getCurrentPegawai } from '@/lib/auth-utils';
 import { Role } from '@/config/nav-items';
 
@@ -22,19 +29,7 @@ async function checkAuth() {
 }
 
 // Zod Schemas
-const spbDetailSchema = z.object({
-  barangId: z.number(),
-  qtyPermintaan: z.number().min(1),
-  keterangan: z.string().optional(),
-});
-
-const createSPBSchema = z.object({
-  nomorSpb: z.string().min(1),
-  tanggalSpb: z.union([z.string(), z.date()]),
-  pemohonId: z.number(),
-  keterangan: z.string().optional(),
-  items: z.array(spbDetailSchema).min(1),
-});
+import { createSPBSchema } from '@/lib/zod/spb';
 
 // Helper to format date
 function formatDateForDB(date: string | Date): string {
@@ -341,4 +336,252 @@ export async function cancelSPB(id: number) {
       message: error.message || 'Gagal membatalkan SPB',
     };
   }
+}
+
+// --- DATA FETCHING (Previously in drizzle/data/spb.ts) ---
+
+export async function getSPBStats() {
+  const session = await getSession();
+  const user = session?.user;
+  const role = (user?.role as Role) || 'petugas';
+
+  let filter = undefined;
+
+  if (role === 'petugas') {
+    const profile = await getCurrentPegawai();
+    if (profile) {
+      filter = eq(spb.pemohonId, profile.id);
+    } else {
+      // If petugas has no pegawai record, they should see 0
+      return { total: 0, menungguSppb: 0, selesai: 0 };
+    }
+  }
+
+  // Total SPB
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(spb)
+    .where(filter);
+  const total = totalResult?.count || 0;
+
+  // By Status
+  const [draftResult] = await db
+    .select({ count: count() })
+    .from(spb)
+    .where(and(eq(spb.status, 'MENUNGGU_SPPB'), filter));
+  const menungguSppb = draftResult?.count || 0;
+
+  const [selesaiResult] = await db
+    .select({ count: count() })
+    .from(spb)
+    .where(and(eq(spb.status, 'SELESAI'), filter));
+  const selesai = selesaiResult?.count || 0;
+
+  return {
+    total,
+    menungguSppb,
+    selesai,
+  };
+}
+
+export async function getSPBList(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  status?: 'MENUNGGU_SPPB' | 'SELESAI' | 'BATAL';
+  isPrinted?: boolean;
+  pemohonId?: number;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const page = params?.page || 1;
+  const limit = params?.limit || 50;
+  const offset = (page - 1) * limit;
+
+  const conditions = [];
+
+  const session = await getSession();
+  const user = session?.user;
+  const role = (user?.role as Role) || 'petugas';
+
+  if (role === 'petugas') {
+    const profile = await getCurrentPegawai();
+    if (profile) {
+      conditions.push(eq(spb.pemohonId, profile.id));
+    } else {
+      // If petugas has no pegawai record, return empty list
+      return {
+        data: [],
+        meta: { total: 0, pageCount: 0, page: 1, limit },
+      };
+    }
+  }
+
+  // Filter by status
+  if (params?.status) {
+    conditions.push(eq(spb.status, params.status));
+  }
+
+  if (params?.isPrinted !== undefined) {
+    conditions.push(eq(spb.isPrinted, params.isPrinted));
+  }
+
+  // Filter by pemohon (manual filter from params, e.g. by Admin)
+  if (params?.pemohonId) {
+    conditions.push(eq(spb.pemohonId, params.pemohonId));
+  }
+
+  // Filter by date range
+  if (params?.startDate) {
+    conditions.push(gte(spb.tanggalSpb, params.startDate));
+  }
+
+  if (params?.endDate) {
+    conditions.push(lte(spb.tanggalSpb, params.endDate));
+  }
+
+  // Search: nomor SPB or pemohon name
+  if (params?.search) {
+    const searchTerm = `%${params.search.toLowerCase()}%`;
+    conditions.push(
+      or(
+        sql`LOWER(${spb.nomorSpb}) LIKE ${searchTerm}`,
+        sql`LOWER(${pegawai.nama}) LIKE ${searchTerm}`
+      )
+    );
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Get total count
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(spb)
+    .leftJoin(pegawai, eq(spb.pemohonId, pegawai.id))
+    .where(whereClause);
+
+  const total = totalResult?.count || 0;
+  const pageCount = Math.ceil(total / limit);
+
+  // Determine sort column and order
+  let orderByClause;
+  const sortOrder = params?.sortOrder || 'desc';
+
+  switch (params?.sortBy) {
+    case 'nomorSpb':
+      orderByClause =
+        sortOrder === 'asc'
+          ? [asc(spb.nomorSpb), asc(spb.id)]
+          : [desc(spb.nomorSpb), desc(spb.id)];
+      break;
+    case 'tanggalSpb':
+      orderByClause =
+        sortOrder === 'asc'
+          ? [asc(spb.tanggalSpb), asc(spb.id)]
+          : [desc(spb.tanggalSpb), desc(spb.id)];
+      break;
+    case 'pemohon':
+      orderByClause =
+        sortOrder === 'asc'
+          ? [asc(pegawai.nama), asc(spb.id)]
+          : [desc(pegawai.nama), desc(spb.id)];
+      break;
+    case 'status':
+      orderByClause =
+        sortOrder === 'asc'
+          ? [asc(spb.status), asc(spb.id)]
+          : [desc(spb.status), desc(spb.id)];
+      break;
+    default:
+      orderByClause = [desc(spb.nomorSpb), desc(spb.id)];
+  }
+
+  // Subquery to count items per SPB
+  const itemCountSubquery = db
+    .select({
+      spbId: spbDetail.spbId,
+      itemCount: count().as('item_count'),
+    })
+    .from(spbDetail)
+    .groupBy(spbDetail.spbId)
+    .as('item_counts');
+
+  // Get paginated data
+  const data = await db
+    .select({
+      id: spb.id,
+      nomorSpb: spb.nomorSpb,
+      tanggalSpb: spb.tanggalSpb,
+      pemohonId: spb.pemohonId,
+      status: spb.status,
+      isPrinted: spb.isPrinted,
+      keterangan: spb.keterangan,
+      createdAt: spb.createdAt,
+      updatedAt: spb.updatedAt,
+      pemohon: {
+        id: pegawai.id,
+        nama: pegawai.nama,
+        nip: pegawai.nip,
+      },
+      totalItems: sql<number>`COALESCE(${itemCountSubquery.itemCount}, 0)`,
+    })
+    .from(spb)
+    .leftJoin(pegawai, eq(spb.pemohonId, pegawai.id))
+    .leftJoin(itemCountSubquery, eq(spb.id, itemCountSubquery.spbId))
+    .where(whereClause)
+    .orderBy(...orderByClause)
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    data,
+    meta: {
+      total,
+      pageCount,
+      page,
+      limit,
+    },
+  };
+}
+
+export async function getSPBById(id: number) {
+  const data = await db.query.spb.findFirst({
+    where: eq(spb.id, id),
+    with: {
+      pemohon: {
+        columns: {
+          id: true,
+          nama: true,
+          nip: true,
+        },
+      },
+      items: {
+        with: {
+          barang: {
+            columns: {
+              id: true,
+              nama: true,
+              kodeBarang: true,
+              stok: true,
+              satuanId: true,
+            },
+            with: {
+              satuan: true,
+            },
+          },
+        },
+      },
+      sppbList: {
+        columns: {
+          id: true,
+          nomorSppb: true,
+          tanggalSppb: true,
+        },
+      },
+    },
+  });
+
+  return data;
 }

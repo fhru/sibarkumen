@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { deleteRekening } from '@/drizzle/actions/rekening';
+import { deleteKodeRekening } from '@/drizzle/actions/kode-rekening';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -30,7 +30,7 @@ export function RekeningAlertDelete({
   const handleDelete = async () => {
     if (rekeningId) {
       setIsDeleting(true);
-      const result = await deleteRekening(rekeningId);
+      const result = await deleteKodeRekening(rekeningId);
       setIsDeleting(false);
       if (result.success) {
         toast.success(result.message);
@@ -47,7 +47,7 @@ export function RekeningAlertDelete({
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data
+            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data kode
             rekening secara permanen.
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -6,7 +6,7 @@ import {
   jabatan,
   asalPembelian,
   pihakKetiga,
-  rekening,
+  kodeRekening,
   barang,
   pegawai,
 } from '@/drizzle/schema';
@@ -85,28 +85,22 @@ async function main() {
     ])
     .onConflictDoNothing();
 
-  // 6. Rekening
-  console.log('Inserting Rekening...');
+  // 6. kode Rekening
+  console.log('Inserting Kode Rekening...');
   await db
-    .insert(rekening)
+    .insert(kodeRekening)
     .values([
       {
-        namaBank: 'Bank Jatim',
-        nomorRekening: '0012345678',
-        namaPemilik: 'Bendahara Barang',
-        keterangan: 'Rekening Utama',
+        kode: '5.1.02.01',
+        uraian: 'Belanja Alat Tulis Kantor',
       },
       {
-        namaBank: 'BRI',
-        nomorRekening: '1234567890',
-        namaPemilik: 'Kas Daerah',
-        keterangan: 'Rekening Penerimaan',
+        kode: '5.1.02.02',
+        uraian: 'Belanja Bahan Habis Pakai',
       },
       {
-        namaBank: 'BNI',
-        nomorRekening: '0987654321',
-        namaPemilik: 'Dinas Pendidikan',
-        keterangan: 'Rekening Operasional',
+        kode: '5.1.03.01',
+        uraian: 'Belanja Peralatan dan Mesin',
       },
     ])
     .onConflictDoNothing();

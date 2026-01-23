@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
-import { satuan, asalPembelian, rekening } from '@/drizzle/schema';
+import { satuan, asalPembelian, kodeRekening } from '@/drizzle/schema';
 import { BastMasukForm } from '../../components/bast-masuk-form';
-import { getBastMasukById } from '@/drizzle/data/bast-masuk';
+import { getBastMasukById } from '@/drizzle/actions/bast-masuk'; // Assuming action file has this function
 import { notFound } from 'next/navigation';
 import {
   Breadcrumb,
@@ -40,12 +40,12 @@ export default async function EditBastMasukPage({
       .from(asalPembelian),
     db
       .select({
-        id: rekening.id,
-        nama: rekening.namaPemilik,
-        namaBank: rekening.namaBank,
-        nomorRekening: rekening.nomorRekening,
+        id: kodeRekening.id,
+        nama: kodeRekening.kode,
+        kode: kodeRekening.kode,
+        uraian: kodeRekening.uraian,
       })
-      .from(rekening),
+      .from(kodeRekening),
     getBastMasukById(bastId),
   ]);
 

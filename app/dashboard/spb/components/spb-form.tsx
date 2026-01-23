@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, FormProvider } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { createSPB, updateSPB } from '@/drizzle/actions/spb';
-import { Info } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useState } from 'react';
@@ -14,6 +14,17 @@ import { SPBFormItems } from './spb-form-items';
 
 import { Role } from '@/config/nav-items';
 import { authClient } from '@/lib/auth-client';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface SPBFormProps {
   initialData?: any;
@@ -44,8 +55,13 @@ export function SPBForm({
       items: [],
     },
   });
+  const [showStockWarning, setShowStockWarning] = useState(false);
+  const [pendingData, setPendingData] = useState<SPBFormValues | null>(null);
+  const [warningItems, setWarningItems] = useState<
+    { nama: string; stok: number; minta: number }[]
+  >([]);
 
-  const onSubmit = async (data: SPBFormValues) => {
+  const submitData = async (data: SPBFormValues) => {
     setIsSubmitting(true);
     try {
       const result =
@@ -63,7 +79,61 @@ export function SPBForm({
       toast.error('Terjadi kesalahan');
     } finally {
       setIsSubmitting(false);
+      setPendingData(null);
+      setShowStockWarning(false);
     }
+  };
+
+  const onSubmit = async (data: SPBFormValues) => {
+    const warnings: { nama: string; stok: number; minta: number }[] = [];
+
+    // Check for stock availability
+    // We iterate through items. Since AsyncSelect sets the 'stok' in the form data (although not in schema strictly sent to server),
+    // we can access it here if we cast or if schema allows.
+    // We added 'stok' to schema, so it should be accessible.
+
+    // Note: We need to access the 'option' details.
+    // Since 'stok' is now in the form values (via our modification to SPBFormItems), we can check it.
+
+    // However, for initialData (edit mode), 'stok' might be missing if we didn't populate it.
+    // For CREATE mode, it should be fine.
+
+    for (const item of data.items) {
+      // @ts-ignore - stok is optional in schema but we populated it
+      // item.barang?.stok is for initialData (Edit mode) where we haven't touched the item but it has nested data
+      const availableStock = item.stok ?? (item as any).barang?.stok;
+
+      // If stock is known and request > stock
+      if (
+        typeof availableStock === 'number' &&
+        item.qtyPermintaan > availableStock
+      ) {
+        // We need the name of the item for the warning.
+        // We don't have the name easily reachable here unless we stored it too.
+        // But we can just say "Item with ID ..." or try to get name if possible.
+        // Or we can store the name in the form items too.
+
+        // Let's assume we want to show a generic message or try to improve this later.
+        // Actually, let's just show the count.
+        warnings.push({
+          nama:
+            item.nama ??
+            (item as any).barang?.nama ??
+            `Barang (ID: ${item.barangId})`,
+          stok: availableStock,
+          minta: item.qtyPermintaan,
+        });
+      }
+    }
+
+    if (warnings.length > 0) {
+      setWarningItems(warnings);
+      setPendingData(data);
+      setShowStockWarning(true);
+      return;
+    }
+
+    await submitData(data);
   };
 
   const items = methods.watch('items');
@@ -128,6 +198,41 @@ export function SPBForm({
           </div>
         </div>
       </form>
+
+      <AlertDialog open={showStockWarning} onOpenChange={setShowStockWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="text-amber-500" />
+              Peringatan Stok
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="text-muted-foreground text-sm">
+                Beberapa barang yang Anda minta melebihi stok yang tersedia:
+                <ul className="mt-2 list-disc list-inside space-y-1">
+                  {warningItems.map((w, idx) => (
+                    <li key={idx}>
+                      {w.nama}: Stok <strong>{w.stok}</strong>, Minta{' '}
+                      <strong>{w.minta}</strong>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-2">Apakah Anda yakin ingin melanjutkan?</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingData(null)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => pendingData && submitData(pendingData)}
+            >
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </FormProvider>
   );
 }

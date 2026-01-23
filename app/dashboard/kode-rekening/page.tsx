@@ -1,9 +1,9 @@
 import { db } from '@/lib/db';
-import { rekening } from '@/drizzle/schema';
+import { kodeRekening } from '@/drizzle/schema';
 import { desc } from 'drizzle-orm';
-import { RekeningTable } from './components/rekening-table';
-import { RekeningStats } from './components/rekening-stats';
-import { RekeningDialogCreate } from './components/rekening-dialog-create';
+import { RekeningTable } from './components/kode-rekening-table';
+import { RekeningStats } from './components/kode-rekening-stats';
+import { RekeningDialogCreate } from './components/kode-rekening-dialog-create';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,12 +16,15 @@ import {
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Rekening | Sibarkumen',
-  description: 'Kelola daftar rekening bank di sini.',
+  title: 'Kode Rekening | Sibarkumen',
+  description: 'Kelola daftar kode rekening di sini.',
 };
 
 export default async function RekeningPage() {
-  const data = await db.select().from(rekening).orderBy(desc(rekening.id));
+  const data = await db
+    .select()
+    .from(kodeRekening)
+    .orderBy(desc(kodeRekening.id));
 
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4">
@@ -32,16 +35,16 @@ export default async function RekeningPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Rekening</BreadcrumbPage>
+            <BreadcrumbPage>Kode Rekening</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Rekening</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Kode Rekening</h2>
           <p className="text-muted-foreground">
-            Kelola daftar rekening bank di sini.
+            Kelola daftar kode rekening di sini.
           </p>
         </div>
         <RekeningDialogCreate />

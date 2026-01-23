@@ -4,9 +4,11 @@ import { db } from '@/lib/db';
 import { pihakKetiga } from '@/drizzle/schema';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, ilike } from 'drizzle-orm';
 
 import { pihakKetigaSchema } from '@/lib/zod/pihak-ketiga';
+
+// --- ACTIONS ---
 
 const createPihakKetigaSchema = pihakKetigaSchema;
 
@@ -106,4 +108,19 @@ export async function deletePihakKetiga(id: number) {
       message: 'Gagal menghapus pihak ketiga: ' + error.message,
     };
   }
+}
+
+// --- DATA FETCHING (Previously in drizzle/data/pihak-ketiga.ts) ---
+
+export async function searchPihakKetiga(query: string) {
+  const result = await db
+    .select({
+      id: pihakKetiga.id,
+      nama: pihakKetiga.nama,
+    })
+    .from(pihakKetiga)
+    .where(ilike(pihakKetiga.nama, `%${query}%`))
+    .limit(20);
+
+  return result;
 }

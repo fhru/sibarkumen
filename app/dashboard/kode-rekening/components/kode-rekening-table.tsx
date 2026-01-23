@@ -28,10 +28,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
-import { Rekening, columns } from './rekening-table-columns';
+import { KodeRekening, columns } from './kode-rekening-table-columns';
 
 interface RekeningTableProps {
-  data: Rekening[];
+  data: KodeRekening[];
 }
 
 export function RekeningTable({ data }: RekeningTableProps) {
@@ -66,7 +66,7 @@ export function RekeningTable({ data }: RekeningTableProps) {
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Cari rekening..."
+              placeholder="Cari kode rekening..."
               value={globalFilter ?? ''}
               onChange={(event) => setGlobalFilter(event.target.value)}
               className="pl-8 bg-background dark:bg-input/30"

@@ -2,6 +2,8 @@ import {
   fetchStockOpnameSessions,
   fetchPegawaiList,
 } from '@/drizzle/actions/stock-opname';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 import { CreateStockOpnameDialog } from '@/app/dashboard/stock-opname/components/create-stock-opname-dialog';
 import {
   Breadcrumb,
@@ -31,10 +33,13 @@ export default async function StockOpnamePage(props: {
     : undefined;
   const limit = 10;
 
-  const [sessionsResult, pegawaiResult] = await Promise.all([
+  const [sessionsResult, pegawaiResult, session] = await Promise.all([
     fetchStockOpnameSessions(page, limit, search, status, petugasId),
     fetchPegawaiList(),
+    getSession(),
   ]);
+
+  const userRole = (session?.user.role as Role) || 'petugas';
 
   const sessions = sessionsResult.data || [];
   const meta = sessionsResult.meta || { pageCount: 0, total: 0 };
@@ -69,7 +74,9 @@ export default async function StockOpnamePage(props: {
             Kelola sesi stock opname dan penyesuaian stok.
           </p>
         </div>
-        <CreateStockOpnameDialog pegawaiList={pegawaiList} />
+        {userRole !== 'supervisor' && (
+          <CreateStockOpnameDialog pegawaiList={pegawaiList} />
+        )}
       </div>
 
       {/* 3. Content */}

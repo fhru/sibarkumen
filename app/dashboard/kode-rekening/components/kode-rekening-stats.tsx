@@ -12,7 +12,7 @@ export function RekeningStats({ totalRekening }: RekeningStatsProps) {
       <div className="flex flex-col justify-between rounded-lg border bg-background dark:bg-input/30 p-6 transition-colors hover:border-foreground/20">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
-            Total Rekening
+            Total Kode Rekening
           </span>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <CreditCard className="h-4 w-4 text-foreground" />
@@ -24,7 +24,7 @@ export function RekeningStats({ totalRekening }: RekeningStatsProps) {
             {totalRekening}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Akun bank terdaftar
+            Kode rekening terdaftar
           </p>
         </div>
       </div>

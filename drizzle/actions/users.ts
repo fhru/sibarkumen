@@ -98,12 +98,7 @@ export async function deleteUser(userId: string) {
   }
 }
 
-const createUserSchema = z.object({
-  name: z.string().min(1, 'Nama wajib diisi'),
-  email: z.string().email('Email tidak valid'),
-  password: z.string().min(8, 'Password minimal 8 karakter'),
-  role: z.string().optional(),
-});
+import { createUserSchema, updateUserSchema } from '@/lib/zod/users';
 
 export async function createUser(prevState: any, formData: FormData) {
   try {
@@ -138,13 +133,6 @@ export async function createUser(prevState: any, formData: FormData) {
     };
   }
 }
-
-const updateUserSchema = z.object({
-  id: z.string().min(1, 'ID User wajib diisi'),
-  name: z.string().min(1, 'Nama wajib diisi'),
-  role: z.string().min(1, 'Role wajib diisi'),
-  password: z.string().optional(),
-});
 
 export async function updateUser(prevState: any, formData: FormData) {
   try {

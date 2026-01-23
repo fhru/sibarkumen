@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,13 +28,10 @@ import {
   FieldContent,
 } from '@/components/ui/field';
 import { AsyncSelect } from '@/components/ui/async-select';
-
-const formSchema = z.object({
-  petugasId: z.coerce.number().min(1, 'Pilih petugas'),
-  keterangan: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import {
+  createStockOpnameSchema,
+  type CreateStockOpnameFormValues,
+} from '@/lib/zod/stock-opname-schema';
 
 interface Pegawai {
   id: number;
@@ -58,14 +54,14 @@ export function CreateStockOpnameDialog({
     register,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema) as any,
+  } = useForm<CreateStockOpnameFormValues>({
+    resolver: zodResolver(createStockOpnameSchema) as any,
     defaultValues: {
       keterangan: '',
     },
   });
 
-  async function onSubmit(values: FormValues) {
+  async function onSubmit(values: CreateStockOpnameFormValues) {
     try {
       const result = await createStockOpnameSession(
         values.petugasId,

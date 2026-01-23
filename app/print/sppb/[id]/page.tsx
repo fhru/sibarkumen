@@ -1,4 +1,4 @@
-import { getSPPBById } from '@/drizzle/data/sppb';
+import { getSPPBById } from '@/drizzle/actions/sppb';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';

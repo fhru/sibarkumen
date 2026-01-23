@@ -1,4 +1,4 @@
-import { getSPBById } from '@/drizzle/data/spb';
+import { getSPBById } from '@/drizzle/actions/spb';
 import { notFound, redirect } from 'next/navigation';
 import { getSession, getCurrentPegawai } from '@/lib/auth-utils';
 import { Role } from '@/config/nav-items';

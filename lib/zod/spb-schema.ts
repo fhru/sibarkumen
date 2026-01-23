@@ -4,6 +4,8 @@ export const spbItemDetailSchema = z.object({
   barangId: z.number().min(1, 'Barang wajib dipilih'),
   qtyPermintaan: z.number().min(1, 'Qty minimal 1'),
   keterangan: z.string().optional(),
+  stok: z.number().optional(),
+  nama: z.string().optional(),
 });
 
 export const createSpbSchema = z.object({

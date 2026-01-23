@@ -1,5 +1,8 @@
 import { Suspense } from 'react';
-import { getBastMasukList, getBastMasukStats } from '@/drizzle/data/bast-masuk';
+import {
+  getBastMasukList,
+  getBastMasukStats,
+} from '@/drizzle/actions/bast-masuk';
 import { BastMasukTable } from './components/bast-masuk-table';
 import { BastMasukStats } from './components/bast-masuk-stats';
 import {
@@ -13,6 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 
 export const metadata = {
   title: 'BAST Masuk | Sibarkumen',
@@ -51,7 +56,7 @@ export default async function BastMasukPage({ searchParams }: PageProps) {
   const startDate = params.startDate ? new Date(params.startDate) : undefined;
   const endDate = params.endDate ? new Date(params.endDate) : undefined;
 
-  const [result, stats] = await Promise.all([
+  const [result, stats, session] = await Promise.all([
     getBastMasukList(
       page,
       50,
@@ -66,7 +71,10 @@ export default async function BastMasukPage({ searchParams }: PageProps) {
       endDate
     ),
     getBastMasukStats(),
+    getSession(),
   ]);
+
+  const userRole = (session?.user.role as Role) || 'petugas';
 
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4">
@@ -89,12 +97,14 @@ export default async function BastMasukPage({ searchParams }: PageProps) {
             Daftar penerimaan barang (Berita Acara Serah Terima).
           </p>
         </div>
-        <Link href="/dashboard/bast-masuk/create">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Buat BAST Masuk
-          </Button>
-        </Link>
+        {userRole !== 'supervisor' && (
+          <Link href="/dashboard/bast-masuk/create">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Buat BAST Masuk
+            </Button>
+          </Link>
+        )}
       </div>
 
       <BastMasukStats

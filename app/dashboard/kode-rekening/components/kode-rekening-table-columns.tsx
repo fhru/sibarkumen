@@ -11,18 +11,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { RekeningDialogUpdate } from './rekening-dialog-update';
-import { RekeningAlertDelete } from './rekening-alert-delete';
+import { RekeningDialogUpdate } from './kode-rekening-dialog-update';
+import { RekeningAlertDelete } from './kode-rekening-alert-delete';
 
-export type Rekening = {
+export type KodeRekening = {
   id: number;
-  namaBank: string;
-  nomorRekening: string;
-  namaPemilik: string;
-  keterangan: string | null;
+  kode: string;
+  uraian: string | null;
 };
 
-const RekeningActionCell = ({ item }: { item: Rekening }) => {
+const RekeningActionCell = ({ item }: { item: KodeRekening }) => {
   const [openUpdate, setOpenUpdate] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
@@ -66,7 +64,7 @@ const RekeningActionCell = ({ item }: { item: Rekening }) => {
   );
 };
 
-export const columns: ColumnDef<Rekening>[] = [
+export const columns: ColumnDef<KodeRekening>[] = [
   {
     accessorKey: 'id',
     header: ({ column }) => {
@@ -83,52 +81,24 @@ export const columns: ColumnDef<Rekening>[] = [
     cell: ({ row }) => <div className="ml-4">{row.getValue('id')}</div>,
   },
   {
-    accessorKey: 'namaBank',
+    accessorKey: 'kode',
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Nama Bank
+          Kode Rekening
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
     },
   },
   {
-    accessorKey: 'nomorRekening',
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          No. Rekening
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-  },
-  {
-    accessorKey: 'namaPemilik',
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          Pemilik
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-  },
-  {
-    accessorKey: 'keterangan',
-    header: 'Keterangan',
+    accessorKey: 'uraian',
+    header: 'Uraian',
     cell: ({ row }) => {
-      const value = row.getValue('keterangan') as string | null;
+      const value = row.getValue('uraian') as string | null;
       return value ? value : <span className="text-muted-foreground">-</span>;
     },
   },

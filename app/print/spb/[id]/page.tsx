@@ -1,4 +1,4 @@
-import { getSPBById } from '@/drizzle/data/spb';
+import { getSPBById } from '@/drizzle/actions/spb';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';

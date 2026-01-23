@@ -2,10 +2,14 @@ import * as z from 'zod';
 
 export const bastMasukDetailSchema = z.object({
   barangId: z.number().min(1, 'Barang wajib dipilih'),
-  qty: z.number().min(1, 'Qty minimal 1'),
+  qty: z
+    .number('Qty Wajib diisi')
+    .min(1, 'Qty minimal 1')
+    .max(999999999, 'Qty maksimal 999999999'),
   hargaSatuan: z
     .number('Harga tidak boleh negatif')
-    .min(0, 'Harga tidak boleh negatif'),
+    .min(0, 'Harga tidak boleh negatif')
+    .max(999999999, 'Harga satuan maksimal 999999999'),
   keterangan: z.string().max(500, 'Maksimal 500 karakter').optional(),
   satuanNama: z.string().optional(),
 });
@@ -43,6 +47,6 @@ export type BastMasukFormValues = z.infer<typeof createBastMasukSchema>;
 
 export type Option = { id: number; nama: string };
 export type RekeningOption = Option & {
-  namaBank: string;
-  nomorRekening: string;
+  kode: string;
+  uraian?: string | null;
 };

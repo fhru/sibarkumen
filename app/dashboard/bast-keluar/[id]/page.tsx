@@ -1,10 +1,10 @@
-import { getBastKeluarById } from "@/drizzle/data/bast-keluar";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
-import { notFound } from "next/navigation";
-import { BastKeluarActions } from "../components/bast-keluar-actions";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Users, Wallet } from "lucide-react";
+import { getBastKeluarById } from '@/drizzle/actions/bast-keluar';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { notFound } from 'next/navigation';
+import { BastKeluarActions } from '../components/bast-keluar-actions';
+import { Badge } from '@/components/ui/badge';
+import { FileText, Users, Wallet } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,7 +12,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from '@/components/ui/breadcrumb';
 import {
   Table,
   TableBody,
@@ -20,8 +20,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import Link from "next/link";
+} from '@/components/ui/table';
+import Link from 'next/link';
 
 export default async function BastKeluarDetailPage({
   params,
@@ -69,8 +69,8 @@ export default async function BastKeluarDetailPage({
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Dibuat pada{" "}
-            {format(new Date(bast.createdAt), "PPP HH:mm", {
+            Dibuat pada{' '}
+            {format(new Date(bast.createdAt), 'PPP HH:mm', {
               locale: localeId,
             })}
           </p>
@@ -95,7 +95,7 @@ export default async function BastKeluarDetailPage({
               </dt>
               <dd className="font-medium mt-0.5">{bast.nomorBast}</dd>
               <dd className="text-muted-foreground text-xs">
-                {format(new Date(bast.tanggalBast), "dd MMMM yyyy", {
+                {format(new Date(bast.tanggalBast), 'dd MMMM yyyy', {
                   locale: localeId,
                 })}
               </dd>
@@ -110,12 +110,12 @@ export default async function BastKeluarDetailPage({
                   href={`/dashboard/sppb/${bast.sppb?.id}`}
                   className="text-primary hover:underline"
                 >
-                  {bast.sppb?.nomorSppb || "-"}
+                  {bast.sppb?.nomorSppb || '-'}
                 </Link>
               </dd>
               {bast.sppb?.tanggalSppb && (
                 <dd className="text-muted-foreground text-xs">
-                  {format(new Date(bast.sppb.tanggalSppb), "dd MMMM yyyy", {
+                  {format(new Date(bast.sppb.tanggalSppb), 'dd MMMM yyyy', {
                     locale: localeId,
                   })}
                 </dd>
@@ -136,7 +136,7 @@ export default async function BastKeluarDetailPage({
                 Pihak Pertama
               </dt>
               <dd className="font-medium mt-0.5">
-                {bast.pihakPertama?.nama || "-"}
+                {bast.pihakPertama?.nama || '-'}
               </dd>
             </div>
             <div>
@@ -144,7 +144,7 @@ export default async function BastKeluarDetailPage({
                 Pihak Kedua
               </dt>
               <dd className="font-medium mt-0.5">
-                {bast.pihakKedua?.nama || "-"}
+                {bast.pihakKedua?.nama || '-'}
               </dd>
             </div>
           </dl>
@@ -160,17 +160,17 @@ export default async function BastKeluarDetailPage({
             <div>
               <p className="text-sm text-muted-foreground">Grand Total</p>
               <h3 className="text-2xl font-bold tracking-tight text-primary mt-1">
-                Rp {grandTotal.toLocaleString("id-ID")}
+                Rp {grandTotal.toLocaleString('id-ID')}
               </h3>
             </div>
             <div className="bg-muted/50 p-3 rounded-md text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>Rp {subtotal.toLocaleString("id-ID")}</span>
+                <span>Rp {subtotal.toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total PPN</span>
-                <span>Rp {totalPpn.toLocaleString("id-ID")}</span>
+                <span>Rp {totalPpn.toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default async function BastKeluarDetailPage({
                   <TableRow key={item.id} className="hover:bg-muted/50">
                     <TableCell className="py-3">{index + 1}</TableCell>
                     <TableCell className="font-medium py-3">
-                      {item.barang?.nama || "-"}
+                      {item.barang?.nama || '-'}
                       {item.keterangan && (
                         <div className="text-xs text-muted-foreground mt-0.5">
                           {item.keterangan}
@@ -216,20 +216,20 @@ export default async function BastKeluarDetailPage({
                       )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell py-3">
-                      {item.barang?.kodeBarang || "-"}
+                      {item.barang?.kodeBarang || '-'}
                     </TableCell>
                     <TableCell className="text-right py-3">
                       {item.qtySerahTerima}
                     </TableCell>
                     <TableCell className="text-right hidden sm:table-cell py-3">
-                      Rp {Number(item.hargaSatuan).toLocaleString("id-ID")}
+                      Rp {Number(item.hargaSatuan).toLocaleString('id-ID')}
                     </TableCell>
                     <TableCell className="text-right py-3">
-                      {item.persentasePpn}% (Rp{" "}
-                      {Number(item.nilaiPpn).toLocaleString("id-ID")})
+                      {item.persentasePpn}% (Rp{' '}
+                      {Number(item.nilaiPpn).toLocaleString('id-ID')})
                     </TableCell>
                     <TableCell className="text-right font-medium py-3">
-                      Rp {Number(item.totalHarga).toLocaleString("id-ID")}
+                      Rp {Number(item.totalHarga).toLocaleString('id-ID')}
                     </TableCell>
                   </TableRow>
                 ))
@@ -248,7 +248,7 @@ export default async function BastKeluarDetailPage({
                   TOTAL
                 </TableCell>
                 <TableCell className="text-right text-primary py-4 text-lg">
-                  Rp {grandTotal.toLocaleString("id-ID")}
+                  Rp {grandTotal.toLocaleString('id-ID')}
                 </TableCell>
               </TableRow>
             </TableBody>

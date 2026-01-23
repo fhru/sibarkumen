@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Filter } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { AsyncSelect } from '@/components/ui/async-select';
-import { searchPihakKetiga } from '@/drizzle/data/pihak-ketiga';
+import { searchPihakKetiga } from '@/drizzle/actions/pihak-ketiga';
 import { type DateRange } from 'react-day-picker';
 
 interface FilterState {
