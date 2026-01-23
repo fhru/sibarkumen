@@ -26,21 +26,7 @@ import {
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 
-const rekeningSchema = z.object({
-  namaBank: z.string().min(1, 'Nama bank wajib diisi'),
-  nomorRekening: z
-    .string()
-    .min(1, 'Nomor rekening wajib diisi')
-    .regex(
-      /^[0-9]+$/,
-      'Nomor rekening harus berupa angka dan tidak boleh desimal'
-    ),
-  namaPemilik: z.string().min(1, 'Nama pemilik wajib diisi'),
-  keterangan: z
-    .string()
-    .max(500, 'Keterangan maksimal 500 karakter')
-    .optional(),
-});
+import { rekeningSchema } from '@/lib/zod/rekening';
 
 type RekeningFormValues = z.infer<typeof rekeningSchema>;
 
@@ -116,7 +102,11 @@ export function RekeningDialogCreate() {
               <FieldLabel>
                 Nama Bank <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
-              <Input {...register('namaBank')} placeholder="Contoh: Bank BCA" />
+              <Input
+                {...register('namaBank')}
+                placeholder="Contoh: Bank BCA"
+                maxLength={50}
+              />
               <FieldError errors={[{ message: errors.namaBank?.message }]} />
             </Field>
 
@@ -127,6 +117,7 @@ export function RekeningDialogCreate() {
               <Input
                 {...register('nomorRekening')}
                 placeholder="Contoh: 1234567890"
+                maxLength={50}
               />
               <FieldError
                 errors={[{ message: errors.nomorRekening?.message }]}
@@ -142,6 +133,7 @@ export function RekeningDialogCreate() {
               <Input
                 {...register('namaPemilik')}
                 placeholder="Contoh: PT. Maju Mundur"
+                maxLength={100}
               />
               <FieldError errors={[{ message: errors.namaPemilik?.message }]} />
             </Field>
@@ -152,12 +144,13 @@ export function RekeningDialogCreate() {
               <FieldLabel>
                 Keterangan
                 <span className="text-muted-foreground text-xs -ml-1">
-                  (Max 500 Karakter)
+                  (Max 255 Karakter)
                 </span>
               </FieldLabel>
               <Textarea
                 {...register('keterangan')}
                 placeholder="Keterangan tambahan (opsional)"
+                maxLength={255}
               />
               <FieldError errors={[{ message: errors.keterangan?.message }]} />
             </Field>

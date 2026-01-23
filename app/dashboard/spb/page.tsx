@@ -1,4 +1,6 @@
 import { getSPBStats, getSPBList } from '@/drizzle/data/spb';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 import { SPBStats } from './components/spb-stats';
 import { SPBTable } from './components/spb-table';
 import Link from 'next/link';
@@ -69,6 +71,9 @@ export default async function SPBPage({ searchParams }: PageProps) {
     }),
   ]);
 
+  const session = await getSession();
+  const role = (session?.user.role as Role) || 'petugas';
+
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4">
       <Breadcrumb>
@@ -92,12 +97,14 @@ export default async function SPBPage({ searchParams }: PageProps) {
             Kelola permintaan barang dari unit kerja
           </p>
         </div>
-        <Link href="/dashboard/spb/create">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Buat SPB
-          </Button>
-        </Link>
+        {role !== 'supervisor' && (
+          <Link href="/dashboard/spb/create">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Buat SPB
+            </Button>
+          </Link>
+        )}
       </div>
 
       <SPBStats

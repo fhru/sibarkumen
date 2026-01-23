@@ -34,10 +34,16 @@ import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 
 const barangSchema = z.object({
-  nama: z.string().min(1, 'Nama barang wajib diisi'),
+  nama: z
+    .string()
+    .min(1, 'Nama barang wajib diisi')
+    .max(100, 'Nama maksimal 100 karakter'),
   kategoriId: z.string().min(1, 'Kategori wajib dipilih'),
   satuanId: z.string().min(1, 'Satuan wajib dipilih'),
-  spesifikasi: z.string().max(500, 'Spesifikasi maksimal 500 karakter').optional(),
+  spesifikasi: z
+    .string()
+    .max(500, 'Spesifikasi maksimal 500 karakter')
+    .optional(),
 });
 
 type BarangFormValues = z.infer<typeof barangSchema>;
@@ -124,6 +130,7 @@ export function BarangDialogCreate({
               </FieldLabel>
               <Input
                 {...register('nama')}
+                maxLength={255}
                 placeholder="Contoh: Laptop Dell XPS 13"
               />
               <FieldError errors={[{ message: errors.nama?.message }]} />
@@ -192,6 +199,7 @@ export function BarangDialogCreate({
               </FieldLabel>
               <Textarea
                 {...register('spesifikasi')}
+                maxLength={500}
                 placeholder="Detail spesifikasi barang (opsional)"
               />
               <FieldError errors={[{ message: errors.spesifikasi?.message }]} />

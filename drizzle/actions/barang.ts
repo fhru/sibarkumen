@@ -5,18 +5,33 @@ import { barang, kategori } from '@/drizzle/schema';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq, desc, and, like } from 'drizzle-orm';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 
 const createBarangSchema = z.object({
-  nama: z.string().min(1, 'Nama barang wajib diisi'),
+  nama: z
+    .string()
+    .min(1, 'Nama barang wajib diisi')
+    .max(100, 'Nama maksimal 100 karakter'),
   kategoriId: z.coerce.number().min(1, 'Kategori wajib dipilih'),
   satuanId: z.coerce.number().min(1, 'Satuan wajib dipilih'),
-  spesifikasi: z.string().optional(),
+  spesifikasi: z
+    .string()
+    .max(500, 'Spesifikasi maksimal 500 karakter')
+    .optional(),
 });
 
 export async function createBarang(prevState: any, formData: FormData) {
   try {
     const rawData = Object.fromEntries(formData.entries());
     const validatedData = createBarangSchema.parse(rawData);
+
+    const session = await getSession();
+    const userRole = (session?.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      throw new Error('Supervisor tidak dapat menambah barang');
+    }
 
     let newKodeBarang = '';
 
@@ -112,17 +127,33 @@ export async function createBarang(prevState: any, formData: FormData) {
 
 const updateBarangSchema = z.object({
   id: z.coerce.number(),
-  nama: z.string().min(1, 'Nama barang wajib diisi'),
-  stok: z.coerce.number().min(0, 'Stok tidak boleh kurang dari 0'),
+  nama: z
+    .string()
+    .min(1, 'Nama barang wajib diisi')
+    .max(100, 'Nama maksimal 100 karakter'),
+  stok: z.coerce
+    .number()
+    .min(0, 'Stok tidak boleh kurang dari 0')
+    .max(1000000, 'Stok maksimal 1.000.000'),
   kategoriId: z.coerce.number().min(1, 'Kategori wajib dipilih'),
   satuanId: z.coerce.number().min(1, 'Satuan wajib dipilih'),
-  spesifikasi: z.string().optional(),
+  spesifikasi: z
+    .string()
+    .max(500, 'Spesifikasi maksimal 500 karakter')
+    .optional(),
 });
 
 export async function updateBarang(prevState: any, formData: FormData) {
   try {
     const rawData = Object.fromEntries(formData.entries());
     const validatedData = updateBarangSchema.parse(rawData);
+
+    const session = await getSession();
+    const userRole = (session?.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      throw new Error('Supervisor tidak dapat mengubah data barang');
+    }
 
     await db
       .update(barang)
@@ -166,6 +197,13 @@ export async function updateBarang(prevState: any, formData: FormData) {
 
 export async function deleteBarang(id: number) {
   try {
+    const session = await getSession();
+    const userRole = (session?.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      throw new Error('Supervisor tidak dapat menghapus barang');
+    }
+
     await db.delete(barang).where(eq(barang.id, id));
     revalidatePath('/dashboard/barang');
     return { success: true, message: 'Barang berhasil dihapus' };

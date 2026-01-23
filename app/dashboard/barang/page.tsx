@@ -4,6 +4,8 @@ import { BarangTable } from './components/barang-table';
 import { BarangStats } from './components/barang-stats';
 import { db } from '@/lib/db';
 import { kategori, satuan } from '@/drizzle/schema';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -40,12 +42,16 @@ export default async function BarangPage(props: {
   const status = searchParams?.status;
   const limit = 50;
 
-  const [dataPayload, stats, kategoriList, satuanList] = await Promise.all([
-    getBarangList(page, limit, search, sort, order, categories, status),
-    getBarangStats(),
-    db.select({ id: kategori.id, nama: kategori.nama }).from(kategori),
-    db.select({ id: satuan.id, nama: satuan.nama }).from(satuan),
-  ]);
+  const [dataPayload, stats, kategoriList, satuanList, session] =
+    await Promise.all([
+      getBarangList(page, limit, search, sort, order, categories, status),
+      getBarangStats(),
+      db.select({ id: kategori.id, nama: kategori.nama }).from(kategori),
+      db.select({ id: satuan.id, nama: satuan.nama }).from(satuan),
+      getSession(),
+    ]);
+
+  const userRole = (session?.user.role as Role) || 'petugas';
 
   const { data, meta } = dataPayload;
 
@@ -65,15 +71,17 @@ export default async function BarangPage(props: {
       </Breadcrumb>
 
       {/* 2. Header & Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Data Barang</h2>
           <p className="text-muted-foreground">Kelola daftar barang di sini.</p>
         </div>
-        <BarangDialogCreate
-          kategoriList={kategoriList}
-          satuanList={satuanList}
-        />
+        {userRole !== 'supervisor' && (
+          <BarangDialogCreate
+            kategoriList={kategoriList}
+            satuanList={satuanList}
+          />
+        )}
       </div>
 
       {/* 3. Stats */}

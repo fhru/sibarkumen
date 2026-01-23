@@ -13,17 +13,36 @@ import {
 } from '@/components/ui/popover';
 import { AsyncSelect } from '@/components/ui/async-select';
 import { searchPegawai } from '@/drizzle/actions/search';
-import { CalendarIcon, Hash, User, Info, FileText } from 'lucide-react';
+import {
+  CalendarIcon,
+  Hash,
+  User,
+  Info,
+  FileText,
+  AlertCircle,
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { SPBFormValues } from '@/lib/zod/spb-schema';
 
-export function SPBFormDetails() {
+import { Role } from '@/config/nav-items';
+import { authClient } from '@/lib/auth-client';
+import { useEffect } from 'react';
+
+interface SPBFormDetailsProps {
+  currentPegawai?: any;
+}
+
+export function SPBFormDetails({ currentPegawai }: SPBFormDetailsProps) {
   const {
     control,
     formState: { errors },
   } = useFormContext<SPBFormValues>();
+
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
 
   return (
     <div className="rounded-lg border bg-background dark:bg-input/30">
@@ -31,6 +50,21 @@ export function SPBFormDetails() {
         <FileText className="h-5 w-5 text-primary" />
         <h3 className="font-semibold text-lg">Informasi Dokumen</h3>
       </div>
+
+      {userRole === 'petugas' && !currentPegawai && (
+        <div className="px-6 py-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Profil Belum Terhubung</AlertTitle>
+            <AlertDescription>
+              Akun Anda belum terhubung dengan data Pegawai. Silahkan
+              hubungi Admin untuk melakukan klaim data pegawai agar dapat
+              memproses SPB.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       <div className="p-6 pt-2 grid gap-6 md:grid-cols-2">
         {/* Nomor SPB - Visual Styling */}
         <Field>
@@ -104,15 +138,32 @@ export function SPBFormDetails() {
           <Controller
             control={control}
             name="pemohonId"
-            render={({ field }) => (
-              <AsyncSelect
-                value={field.value}
-                onValueChange={field.onChange}
-                loadOptions={searchPegawai}
-                placeholder="Cari nama pegawai..."
-                formatLabel={(option) => `${option.nama} (${option.nip})`}
-              />
-            )}
+            render={({ field }) =>
+              userRole === 'petugas' ? (
+                currentPegawai ? (
+                  <Input
+                    value={`${currentPegawai.nama} - ${currentPegawai.nip || 'No NIP'}`}
+                    readOnly
+                    className="bg-muted text-muted-foreground"
+                  />
+                ) : (
+                  <Input
+                    value="-"
+                    readOnly
+                    className="bg-muted text-muted-foreground"
+                  />
+                )
+              ) : (
+                <AsyncSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  loadOptions={searchPegawai}
+                  placeholder="Cari nama pegawai..."
+                  formatLabel={(option) => `${option.nama} (${option.nip})`}
+                  disabled={userRole === ('petugas' as Role)}
+                />
+              )
+            }
           />
           <FieldError errors={errors.pemohonId ? [errors.pemohonId] : []} />
         </Field>

@@ -97,8 +97,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useState } from 'react';
 
+import { authClient } from '@/lib/auth-client';
+import { Role } from '@/config/nav-items';
+
 const SPBActionCell = ({ row }: { row: any }) => {
   const router = useRouter();
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const handlePrintToggle = async () => {
@@ -170,57 +175,64 @@ const SPBActionCell = ({ row }: { row: any }) => {
             Lihat Detail
           </DropdownMenuItem>
 
-          {row.original.status === 'MENUNGGU_SPPB' && (
+          {row.original.status === 'MENUNGGU_SPPB' &&
+            userRole !== 'petugas' &&
+            userRole !== 'supervisor' && (
+              <DropdownMenuItem
+                onSelect={() =>
+                  router.push(`/dashboard/sppb/create?spbId=${row.original.id}`)
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Buat SPPB
+              </DropdownMenuItem>
+            )}
+
+          {userRole !== 'supervisor' &&
+            (userRole !== 'petugas' || row.original.status === 'SELESAI') && (
+              <DropdownMenuItem onSelect={handlePrintToggle}>
+                {!row.original.isPrinted ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Tandai Sudah Dicetak
+                  </>
+                ) : (
+                  <>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Tandai Belum Dicetak
+                  </>
+                )}
+              </DropdownMenuItem>
+            )}
+
+          {(userRole !== 'petugas' || row.original.status === 'SELESAI') && (
             <DropdownMenuItem
-              onSelect={() =>
-                router.push(`/dashboard/sppb/create?spbId=${row.original.id}`)
-              }
+              onSelect={() => {
+                window.open(`/print/spb/${row.original.id}`, '_blank');
+              }}
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Buat SPPB
+              <Printer className="mr-2 h-4 w-4" />
+              Print SPB
             </DropdownMenuItem>
           )}
 
-          <DropdownMenuSeparator />
-
-          <DropdownMenuItem onSelect={handlePrintToggle}>
-            {!row.original.isPrinted ? (
+          {row.original.status === 'MENUNGGU_SPPB' &&
+            userRole !== 'supervisor' &&
+            userRole !== 'petugas' && (
               <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Tandai Sudah Dicetak
-              </>
-            ) : (
-              <>
-                <Clock className="mr-2 h-4 w-4" />
-                Tandai Belum Dicetak
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setShowCancelDialog(true);
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Batalkan
+                </DropdownMenuItem>
               </>
             )}
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onSelect={() => {
-              window.open(`/print/spb/${row.original.id}`, '_blank');
-            }}
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Print SPB
-          </DropdownMenuItem>
-
-          {row.original.status === 'MENUNGGU_SPPB' && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setShowCancelDialog(true);
-                }}
-                className="text-destructive focus:text-destructive"
-              >
-                <Ban className="mr-2 h-4 w-4" />
-                Batalkan
-              </DropdownMenuItem>
-            </>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>

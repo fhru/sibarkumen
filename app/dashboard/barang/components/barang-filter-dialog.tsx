@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -10,17 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Filter } from "lucide-react";
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Filter } from 'lucide-react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface BarangFilterDialogProps {
   statusValue: string | undefined;
@@ -49,7 +49,7 @@ export function BarangFilterDialog({
   };
 
   const handleApply = () => {
-    console.log("Applying filters:", { tempStatus, tempCategories });
+    console.log('Applying filters:', { tempStatus, tempCategories });
     onApplyFilters(tempStatus, tempCategories);
     setOpen(false);
   };
@@ -63,7 +63,7 @@ export function BarangFilterDialog({
     setTempCategories((prev) =>
       prev.includes(categoryValue)
         ? prev.filter((v) => v !== categoryValue)
-        : [...prev, categoryValue],
+        : [...prev, categoryValue]
     );
   };
 
@@ -94,9 +94,9 @@ export function BarangFilterDialog({
           <div className="space-y-2">
             <Label htmlFor="status">Status Stok</Label>
             <Select
-              value={tempStatus || "all"}
+              value={tempStatus || 'all'}
               onValueChange={(value) =>
-                setTempStatus(value === "all" ? undefined : value)
+                setTempStatus(value === 'all' ? undefined : value)
               }
             >
               <SelectTrigger id="status" className="w-full">
@@ -128,7 +128,7 @@ export function BarangFilterDialog({
                     />
                     <label
                       htmlFor={`category-${option.value}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer max-w-[200px] truncate"
                     >
                       {option.label}
                     </label>

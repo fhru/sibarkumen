@@ -12,27 +12,34 @@ import { SPBFormValues, createSpbSchema } from '@/lib/zod/spb-schema';
 import { SPBFormDetails } from './spb-form-details';
 import { SPBFormItems } from './spb-form-items';
 
+import { Role } from '@/config/nav-items';
+import { authClient } from '@/lib/auth-client';
+
 interface SPBFormProps {
   initialData?: any;
   spbId?: number;
   generatedNomorSpb?: string;
+  currentPegawai?: any;
 }
 
 export function SPBForm({
   initialData,
   spbId,
   generatedNomorSpb,
+  currentPegawai,
 }: SPBFormProps) {
   const router = useRouter();
   const isEdit = !!initialData;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
 
   const methods = useForm<SPBFormValues>({
     resolver: zodResolver(createSpbSchema),
     defaultValues: initialData || {
       nomorSpb: generatedNomorSpb || '',
       tanggalSpb: new Date(),
-      pemohonId: undefined,
+      pemohonId: userRole === 'petugas' ? currentPegawai?.id : undefined,
       keterangan: '',
       items: [],
     },
@@ -68,7 +75,7 @@ export function SPBForm({
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* Main Content (Form) - 70% */}
           <div className="flex-1 w-full min-w-0 space-y-8">
-            <SPBFormDetails />
+            <SPBFormDetails currentPegawai={currentPegawai} />
             <SPBFormItems />
           </div>
 
@@ -93,7 +100,11 @@ export function SPBForm({
                 <div className="pt-4 border-t space-y-3">
                   <Button
                     type="submit"
-                    disabled={isSubmitting || methods.formState.isSubmitting}
+                    disabled={
+                      isSubmitting ||
+                      methods.formState.isSubmitting ||
+                      (userRole === 'petugas' && !currentPegawai)
+                    }
                     className="w-full h-11"
                   >
                     {isSubmitting || methods.formState.isSubmitting

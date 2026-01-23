@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -10,7 +10,7 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
   SortingState,
-} from "@tanstack/react-table";
+} from '@tanstack/react-table';
 import {
   Table,
   TableBody,
@@ -18,16 +18,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   MoreHorizontal,
   ArrowUpDown,
@@ -37,12 +37,12 @@ import {
   Search,
   CheckCircle,
   Pencil,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { UserDialogBan } from "./user-dialog-ban";
-import { UserAlertDelete } from "./user-alert-delete";
-import { UserDialogEdit } from "./user-dialog-edit";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { UserDialogBan } from './user-dialog-ban';
+import { UserAlertDelete } from './user-alert-delete';
+import { UserDialogEdit } from './user-dialog-edit';
+import { toast } from 'sonner';
 
 export type User = {
   id: string;
@@ -59,7 +59,7 @@ interface UserTableProps {
 
 export function UserTable({ data }: UserTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [globalFilter, setGlobalFilter] = React.useState('');
 
   const [openEdit, setOpenEdit] = React.useState(false);
   const [openBan, setOpenBan] = React.useState(false);
@@ -83,12 +83,12 @@ export function UserTable({ data }: UserTableProps) {
 
   const columns: ColumnDef<User>[] = [
     {
-      accessorKey: "name",
+      accessorKey: 'name',
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             Nama
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -97,12 +97,12 @@ export function UserTable({ data }: UserTableProps) {
       },
     },
     {
-      accessorKey: "email",
+      accessorKey: 'email',
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             Email
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -111,20 +111,21 @@ export function UserTable({ data }: UserTableProps) {
       },
     },
     {
-      accessorKey: "role",
-      header: "Role",
+      accessorKey: 'role',
+      header: 'Role',
       cell: ({ row }) => {
-        const role = row.getValue("role") as string;
+        const role = row.getValue('role') as string;
         return (
-          <Badge variant={role === "admin" ? "default" : "secondary"}>
-            {role || "user"}
+          <Badge variant={role === 'admin' ? 'default' : 'secondary'}>
+            {(role || 'user').charAt(0).toUpperCase() +
+              (role || 'user').slice(1)}
           </Badge>
         );
       },
     },
     {
-      id: "status",
-      header: "Status",
+      id: 'status',
+      header: 'Status',
       cell: ({ row }) => {
         const isBanned = row.original.banned;
         return isBanned ? (
@@ -145,7 +146,7 @@ export function UserTable({ data }: UserTableProps) {
       },
     },
     {
-      id: "actions",
+      id: 'actions',
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -164,7 +165,7 @@ export function UserTable({ data }: UserTableProps) {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleBanComp(item)}>
                 <Ban className="mr-2 h-4 w-4" />
-                {item.banned ? "Unban User" : "Ban User"}
+                {item.banned ? 'Unban User' : 'Ban User'}
               </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
@@ -189,7 +190,7 @@ export function UserTable({ data }: UserTableProps) {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: "includesString", // Case-insensitive text search
+    globalFilterFn: 'includesString', // Case-insensitive text search
     getRowId: (row) => row.id,
     state: {
       sorting,
@@ -206,7 +207,7 @@ export function UserTable({ data }: UserTableProps) {
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Cari user..."
-                value={globalFilter ?? ""}
+                value={globalFilter ?? ''}
                 onChange={(event) => setGlobalFilter(event.target.value)}
                 className="pl-8 bg-background dark:bg-input/30"
               />
@@ -225,7 +226,7 @@ export function UserTable({ data }: UserTableProps) {
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext(),
+                              header.getContext()
                             )}
                       </TableHead>
                     );
@@ -238,13 +239,13 @@ export function UserTable({ data }: UserTableProps) {
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
+                    data-state={row.getIsSelected() && 'selected'}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext(),
+                          cell.getContext()
                         )}
                       </TableCell>
                     ))}

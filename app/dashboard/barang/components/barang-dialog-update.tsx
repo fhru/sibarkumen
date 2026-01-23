@@ -32,8 +32,14 @@ import {
 import { toast } from 'sonner';
 
 const barangSchema = z.object({
-  nama: z.string().min(1, 'Nama barang wajib diisi'),
-  stok: z.coerce.number().min(0, 'Stok tidak boleh kurang dari 0'),
+  nama: z
+    .string()
+    .min(1, 'Nama barang wajib diisi')
+    .max(100, 'Nama maksimal 100 karakter'),
+  stok: z.coerce
+    .number()
+    .min(0, 'Stok tidak boleh kurang dari 0')
+    .max(1000000, 'Stok maksimal 1.000.000'),
   kategoriId: z.string().min(1, 'Kategori wajib dipilih'),
   satuanId: z.string().min(1, 'Satuan wajib dipilih'),
   spesifikasi: z
@@ -140,7 +146,12 @@ export function BarangDialogUpdate({
               </Field>
               <Field>
                 <FieldLabel>Stok</FieldLabel>
-                <Input type="number" {...register('stok')} min={0} />
+                <Input
+                  type="number"
+                  {...register('stok')}
+                  min={0}
+                  max={1000000}
+                />
                 <FieldError errors={[{ message: errors.stok?.message }]} />
               </Field>
             </div>
@@ -149,6 +160,7 @@ export function BarangDialogUpdate({
               <FieldLabel>Nama Barang</FieldLabel>
               <Input
                 {...register('nama')}
+                maxLength={255}
                 placeholder="Contoh: Laptop Dell XPS 13"
               />
               <FieldError errors={[{ message: errors.nama?.message }]} />
@@ -213,6 +225,7 @@ export function BarangDialogUpdate({
               </FieldLabel>
               <Textarea
                 {...register('spesifikasi')}
+                maxLength={500}
                 placeholder="Detail spesifikasi barang (opsional)"
               />
               <FieldError errors={[{ message: errors.spesifikasi?.message }]} />

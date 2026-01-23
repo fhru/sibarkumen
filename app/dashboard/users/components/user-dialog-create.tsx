@@ -60,7 +60,7 @@ export function UserDialogCreate() {
       name: '',
       email: '',
       password: '',
-      role: 'user',
+      role: 'petugas',
     },
   });
 
@@ -172,9 +172,8 @@ export function UserDialogCreate() {
                   <SelectValue placeholder="Pilih role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="pegawai">Pegawai</SelectItem>
-                  <SelectItem value="auditor">Auditor</SelectItem>
+                  <SelectItem value="petugas">Petugas</SelectItem>
+                  <SelectItem value="supervisor">Supervisor</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

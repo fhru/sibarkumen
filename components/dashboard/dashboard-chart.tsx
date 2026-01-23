@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { fetchDashboardChartData } from '../../drizzle/actions/dashboard-actions';
+import { fetchDashboardChartData } from '../../drizzle/actions/dashboard';
 import { Loader2 } from 'lucide-react';
 
 const timeRanges = [

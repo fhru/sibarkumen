@@ -22,6 +22,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Trash, Printer, Plus, CheckCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
+import { authClient } from '@/lib/auth-client';
+import { Role } from '@/config/nav-items';
 
 interface SPBActionsProps {
   id: number;
@@ -40,6 +42,8 @@ export function SPBActions({
   const router = useRouter();
   const [isToggling, setIsToggling] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
 
   const handleTogglePrintStatus = async () => {
     setIsToggling(true);
@@ -80,7 +84,7 @@ export function SPBActions({
 
   return (
     <div className="flex items-center gap-2">
-      {status === 'MENUNGGU_SPPB' && (
+      {status === 'MENUNGGU_SPPB' && userRole !== 'petugas' && (
         <Link href={`/dashboard/sppb/create?spbId=${id}`}>
           <Button variant="outline" size={'sm'}>
             <Plus className="mr-2 h-4 w-4" />
@@ -89,33 +93,37 @@ export function SPBActions({
         </Link>
       )}
 
-      <Link href={`/print/spb/${id}`} target="_blank">
-        <Button variant="outline" size={'sm'}>
-          <Printer className="mr-2 h-4 w-4" />
-          Print
+      {(userRole !== 'petugas' || status === 'SELESAI') && (
+        <Link href={`/print/spb/${id}`} target="_blank">
+          <Button variant="outline" size={'sm'}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print
+          </Button>
+        </Link>
+      )}
+
+      {(userRole !== 'petugas' || status === 'SELESAI') && (
+        <Button
+          onClick={handleTogglePrintStatus}
+          disabled={isToggling}
+          variant="outline"
+          size={'sm'}
+        >
+          {isPrinted ? (
+            <>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {isToggling ? 'Memproses...' : 'Tandai Belum Dicetak'}
+            </>
+          ) : (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              {isToggling ? 'Memproses...' : 'Tandai Sudah Dicetak'}
+            </>
+          )}
         </Button>
-      </Link>
+      )}
 
-      <Button
-        onClick={handleTogglePrintStatus}
-        disabled={isToggling}
-        variant="outline"
-        size={'sm'}
-      >
-        {isPrinted ? (
-          <>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            {isToggling ? 'Memproses...' : 'Tandai Belum Dicetak'}
-          </>
-        ) : (
-          <>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            {isToggling ? 'Memproses...' : 'Tandai Sudah Dicetak'}
-          </>
-        )}
-      </Button>
-
-      {status === 'MENUNGGU_SPPB' && (
+      {status === 'MENUNGGU_SPPB' && userRole !== 'petugas' && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" disabled={isCanceling} size={'sm'}>

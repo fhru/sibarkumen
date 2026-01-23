@@ -117,7 +117,7 @@ export function PegawaiJabatanManager({
                 value={selectedJabatanId}
                 onValueChange={setSelectedJabatanId}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Pilih Jabatan" />
                 </SelectTrigger>
                 <SelectContent>

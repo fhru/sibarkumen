@@ -25,9 +25,7 @@ import {
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 
-const satuanSchema = z.object({
-  nama: z.string().min(1, 'Nama satuan wajib diisi'),
-});
+import { satuanSchema } from '@/lib/zod/satuan';
 
 type SatuanFormValues = z.infer<typeof satuanSchema>;
 
@@ -88,7 +86,11 @@ export function SatuanDialogCreate() {
               <FieldLabel>
                 Nama Satuan <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
-              <Input {...register('nama')} placeholder="Contoh: Pcs, Box, Kg" />
+              <Input
+                {...register('nama')}
+                placeholder="Contoh: Pcs, Box, Kg"
+                maxLength={50}
+              />
               <FieldError errors={[{ message: errors.nama?.message }]} />
             </Field>
           </FieldGroup>

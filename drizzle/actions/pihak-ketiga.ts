@@ -6,9 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-const createPihakKetigaSchema = z.object({
-  nama: z.string().min(1, 'Nama pihak ketiga wajib diisi'),
-});
+import { pihakKetigaSchema } from '@/lib/zod/pihak-ketiga';
+
+const createPihakKetigaSchema = pihakKetigaSchema;
 
 export async function createPihakKetiga(prevState: any, formData: FormData) {
   try {
@@ -51,9 +51,8 @@ export async function createPihakKetiga(prevState: any, formData: FormData) {
   }
 }
 
-const updatePihakKetigaSchema = z.object({
+const updatePihakKetigaSchema = pihakKetigaSchema.extend({
   id: z.coerce.number(),
-  nama: z.string().min(1, 'Nama pihak ketiga wajib diisi'),
 });
 
 export async function updatePihakKetiga(prevState: any, formData: FormData) {

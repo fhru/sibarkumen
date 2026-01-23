@@ -1,5 +1,5 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+import { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,7 +7,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   ArrowUpDown,
   ArrowUp,
@@ -18,14 +18,16 @@ import {
   CheckCircle,
   Clock,
   Plus,
-} from "lucide-react";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { toggleSPPBPrintStatus } from "@/drizzle/actions/sppb";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { toggleSPPBPrintStatus } from '@/drizzle/actions/sppb';
+import { toast } from 'sonner';
+import { authClient } from '@/lib/auth-client';
+import { Role } from '@/config/nav-items';
 
 export type SPPB = {
   id: number;
@@ -36,7 +38,7 @@ export type SPPB = {
   diterimaOlehId: number;
   serahTerimaOlehId: number | null;
   keterangan: string | null;
-  status: "MENUNGGU_BAST" | "SELESAI" | "BATAL";
+  status: 'MENUNGGU_BAST' | 'SELESAI' | 'BATAL';
   isPrinted: boolean;
   createdAt: Date;
   updatedAt: Date | null;
@@ -80,7 +82,7 @@ const SortableHeader = ({
     if (currentSortBy !== columnId) {
       return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
     }
-    if (currentSortOrder === "asc") {
+    if (currentSortOrder === 'asc') {
       return <ArrowUp className="ml-2 h-4 w-4 text-primary" />;
     }
     return <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
@@ -100,6 +102,8 @@ const SortableHeader = ({
 
 const SPPBActionCell = ({ row }: { row: { original: SPPB } }) => {
   const router = useRouter();
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
 
   const handlePrintToggle = async () => {
     try {
@@ -111,7 +115,7 @@ const SPPBActionCell = ({ row }: { row: { original: SPPB } }) => {
         toast.error(result.message);
       }
     } catch (error) {
-      toast.error("Gagal mengubah status cetak");
+      toast.error('Gagal mengubah status cetak');
     }
   };
 
@@ -132,40 +136,43 @@ const SPPBActionCell = ({ row }: { row: { original: SPPB } }) => {
           Lihat Detail
         </DropdownMenuItem>
 
-        {row.original.status === "MENUNGGU_BAST" && (
-          <DropdownMenuItem
-            onSelect={() =>
-              router.push(
-                `/dashboard/bast-keluar/create?sppbId=${row.original.id}`,
-              )
-            }
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Buat BAST
-          </DropdownMenuItem>
-        )}
+        {row.original.status === 'MENUNGGU_BAST' &&
+          userRole !== 'supervisor' && (
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/dashboard/bast-keluar/create?sppbId=${row.original.id}`
+                )
+              }
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Buat BAST
+            </DropdownMenuItem>
+          )}
         <DropdownMenuItem
           onSelect={() => {
-            window.open(`/print/sppb/${row.original.id}`, "_blank");
+            window.open(`/print/sppb/${row.original.id}`, '_blank');
           }}
         >
           <Printer className="mr-2 h-4 w-4" />
           Print SPPB
         </DropdownMenuItem>
 
-        <DropdownMenuItem onSelect={handlePrintToggle}>
-          {row.original.isPrinted ? (
-            <>
-              <Clock className="mr-2 h-4 w-4" />
-              Tandai Belum Dicetak
-            </>
-          ) : (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Tandai Sudah Dicetak
-            </>
-          )}
-        </DropdownMenuItem>
+        {userRole !== 'supervisor' && (
+          <DropdownMenuItem onSelect={handlePrintToggle}>
+            {row.original.isPrinted ? (
+              <>
+                <Clock className="mr-2 h-4 w-4" />
+                Tandai Belum Dicetak
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Tandai Sudah Dicetak
+              </>
+            )}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -174,10 +181,10 @@ const SPPBActionCell = ({ row }: { row: { original: SPPB } }) => {
 export const createColumns = (
   currentSortBy: string,
   currentSortOrder: string,
-  onSort: (columnId: string) => void,
+  onSort: (columnId: string) => void
 ): ColumnDef<SPPB>[] => [
   {
-    accessorKey: "nomorSppb",
+    accessorKey: 'nomorSppb',
     header: () => (
       <SortableHeader
         columnId="nomorSppb"
@@ -192,12 +199,12 @@ export const createColumns = (
         href={`/dashboard/sppb/${row.original.id}`}
         className="font-medium hover:underline"
       >
-        {row.getValue("nomorSppb")}
+        {row.getValue('nomorSppb')}
       </Link>
     ),
   },
   {
-    accessorKey: "tanggalSppb",
+    accessorKey: 'tanggalSppb',
     header: () => (
       <SortableHeader
         columnId="tanggalSppb"
@@ -208,13 +215,13 @@ export const createColumns = (
       />
     ),
     cell: ({ row }) =>
-      format(new Date(row.getValue("tanggalSppb")), "dd MMM yyyy", {
+      format(new Date(row.getValue('tanggalSppb')), 'dd MMM yyyy', {
         locale: localeId,
       }),
   },
   {
-    id: "spb",
-    header: "Nomor SPB",
+    id: 'spb',
+    header: 'Nomor SPB',
     cell: ({ row }) => {
       const spb = row.original.spb;
       return spb ? (
@@ -225,22 +232,22 @@ export const createColumns = (
           {spb.nomorSpb}
         </Link>
       ) : (
-        "-"
+        '-'
       );
     },
   },
   {
-    id: "pejabat",
-    header: "Pejabat Penyetuju",
-    cell: ({ row }) => row.original.pejabatPenyetuju?.nama || "-",
+    id: 'pejabat',
+    header: 'Pejabat Penyetuju',
+    cell: ({ row }) => row.original.pejabatPenyetuju?.nama || '-',
   },
   {
-    id: "penerima",
-    header: "Diterima Oleh",
-    cell: ({ row }) => row.original.diterimaOleh?.nama || "-",
+    id: 'penerima',
+    header: 'Diterima Oleh',
+    cell: ({ row }) => row.original.diterimaOleh?.nama || '-',
   },
   {
-    id: "status",
+    id: 'status',
     header: () => (
       <SortableHeader
         columnId="status"
@@ -253,28 +260,28 @@ export const createColumns = (
     cell: ({ row }) => {
       const status = row.original.status;
 
-      let badgeVariant = "secondary";
-      let badgeClass = "bg-gray-100 text-gray-800 hover:bg-gray-200";
+      let badgeVariant = 'secondary';
+      let badgeClass = 'bg-gray-100 text-gray-800 hover:bg-gray-200';
       let label: string = status;
 
       switch (status) {
-        case "MENUNGGU_BAST":
-          badgeVariant = "secondary";
+        case 'MENUNGGU_BAST':
+          badgeVariant = 'secondary';
           badgeClass =
-            "bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400";
-          label = "Menunggu BAST";
+            'bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400';
+          label = 'Menunggu BAST';
           break;
-        case "SELESAI":
-          badgeVariant = "secondary";
+        case 'SELESAI':
+          badgeVariant = 'secondary';
           badgeClass =
-            "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400";
-          label = "Selesai";
+            'bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400';
+          label = 'Selesai';
           break;
-        case "BATAL":
-          badgeVariant = "destructive";
+        case 'BATAL':
+          badgeVariant = 'destructive';
           badgeClass =
-            "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400";
-          label = "Batal";
+            'bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400';
+          label = 'Batal';
           break;
       }
 
@@ -286,8 +293,8 @@ export const createColumns = (
     },
   },
   {
-    id: "isPrinted",
-    header: "Dicetak",
+    id: 'isPrinted',
+    header: 'Dicetak',
     cell: ({ row }) => {
       const isPrinted = row.original.isPrinted;
       return isPrinted ? (
@@ -308,19 +315,19 @@ export const createColumns = (
     },
   },
   {
-    accessorKey: "keterangan",
-    header: "Keterangan",
+    accessorKey: 'keterangan',
+    header: 'Keterangan',
     cell: ({ row }) => {
-      const keterangan = row.getValue("keterangan") as string | null;
+      const keterangan = row.getValue('keterangan') as string | null;
       return keterangan ? (
         <span className="text-sm text-muted-foreground">{keterangan}</span>
       ) : (
-        "-"
+        '-'
       );
     },
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => <SPPBActionCell row={row} />,
   },
 ];

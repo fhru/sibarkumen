@@ -6,10 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-const createJabatanSchema = z.object({
-  nama: z.string().min(1, 'Nama jabatan wajib diisi'),
-  unitKerja: z.string().optional(),
-});
+import { jabatanSchema } from '@/lib/zod/jabatan';
+
+const createJabatanSchema = jabatanSchema;
 
 export async function createJabatan(prevState: any, formData: FormData) {
   try {
@@ -59,10 +58,8 @@ export async function createJabatan(prevState: any, formData: FormData) {
   }
 }
 
-const updateJabatanSchema = z.object({
+const updateJabatanSchema = jabatanSchema.extend({
   id: z.coerce.number(),
-  nama: z.string().min(1, 'Nama jabatan wajib diisi'),
-  unitKerja: z.string().optional(),
 });
 
 export async function updateJabatan(prevState: any, formData: FormData) {

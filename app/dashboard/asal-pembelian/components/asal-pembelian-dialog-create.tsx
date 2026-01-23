@@ -25,9 +25,7 @@ import {
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 
-const asalPembelianSchema = z.object({
-  nama: z.string().min(1, 'Nama asal pembelian wajib diisi'),
-});
+import { asalPembelianSchema } from '@/lib/zod/asal-pembelian';
 
 type AsalPembelianFormValues = z.infer<typeof asalPembelianSchema>;
 
@@ -99,7 +97,11 @@ export function AsalPembelianDialogCreate() {
                 Nama Asal Pembelian{' '}
                 <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
-              <Input {...register('nama')} placeholder="Contoh: APBD" />
+              <Input
+                {...register('nama')}
+                placeholder="Contoh: APBD"
+                maxLength={100}
+              />
               <FieldError errors={[{ message: errors.nama?.message }]} />
             </Field>
           </FieldGroup>

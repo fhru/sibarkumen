@@ -23,13 +23,7 @@ import {
 } from '@/components/ui/field';
 import { toast } from 'sonner';
 
-const kategoriSchema = z.object({
-  nama: z.string().min(1, 'Nama kategori wajib diisi'),
-  prefix: z
-    .string()
-    .min(1, 'Prefix wajib diisi')
-    .max(3, 'Prefix maksimal 3 karakter'),
-});
+import { kategoriSchema } from '@/lib/zod/kategori';
 
 type KategoriFormValues = z.infer<typeof kategoriSchema>;
 
@@ -115,7 +109,11 @@ export function KategoriDialogUpdate({
               <FieldLabel>
                 Nama Kategori <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
-              <Input {...register('nama')} placeholder="Contoh: Elektronik" />
+              <Input
+                {...register('nama')}
+                placeholder="Contoh: Elektronik"
+                maxLength={100}
+              />
               <FieldError errors={[{ message: errors.nama?.message }]} />
             </Field>
             <Field>
@@ -126,6 +124,7 @@ export function KategoriDialogUpdate({
                 {...register('prefix')}
                 placeholder="Contoh: ELEC"
                 className="uppercase"
+                maxLength={3}
               />
               <FieldError errors={[{ message: errors.prefix?.message }]} />
             </Field>

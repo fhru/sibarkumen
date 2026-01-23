@@ -68,6 +68,12 @@ export async function createSPPBFromSPB(
 ) {
   try {
     const session = await checkAuth();
+    const userRole = (session.user.role as any) || 'petugas';
+
+    if (userRole === 'supervisor' || userRole === 'petugas') {
+      throw new Error('Anda tidak memiliki akses untuk membuat SPPB');
+    }
+
     const validated = createSPPBSchema.parse(data);
 
     // 1. Verify SPB exists and is approved
@@ -141,6 +147,12 @@ export async function updateSPPB(
 ) {
   try {
     const session = await checkAuth();
+    const userRole = (session.user.role as any) || 'petugas';
+
+    if (userRole === 'supervisor' || userRole === 'petugas') {
+      throw new Error('Anda tidak memiliki akses untuk mengupdate SPPB');
+    }
+
     const validated = createSPPBSchema.parse(data);
 
     // Check if SPPB exists and not completed
@@ -202,6 +214,11 @@ export async function updateSPPB(
 export async function deleteSPPB(id: number) {
   try {
     const session = await checkAuth();
+    const userRole = (session.user.role as any) || 'petugas';
+
+    if (userRole === 'supervisor' || userRole === 'petugas') {
+      throw new Error('Anda tidak memiliki akses untuk menghapus SPPB');
+    }
 
     // Check if SPPB exists and not completed
     const existingSppb = await db.query.sppb.findFirst({
@@ -239,6 +256,12 @@ export async function completeSPPB(
 ) {
   try {
     const session = await checkAuth();
+    const userRole = (session.user.role as any) || 'petugas';
+
+    if (userRole === 'supervisor' || userRole === 'petugas') {
+      throw new Error('Anda tidak memiliki akses untuk menyelesaikan SPPB');
+    }
+
     const validated = completeSPPBSchema.parse(data);
 
     // Get SPPB with items
@@ -322,6 +345,14 @@ export async function completeSPPB(
 
 export async function toggleSPPBPrintStatus(id: number) {
   try {
+    const session = await checkAuth();
+    const userRole = (session.user.role as any) || 'petugas';
+
+    if (userRole === 'supervisor' || userRole === 'petugas') {
+      throw new Error(
+        'Anda tidak memiliki akses untuk mengubah status cetak SPPB'
+      );
+    }
     const existingSPPB = await db.query.sppb.findFirst({
       where: eq(sppb.id, id),
     });

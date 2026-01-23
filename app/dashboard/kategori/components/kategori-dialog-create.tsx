@@ -92,7 +92,11 @@ export function KategoriDialogCreate() {
               <FieldLabel>
                 Nama Kategori <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
-              <Input {...register('nama')} placeholder="Contoh: Elektronik" />
+              <Input
+                {...register('nama')}
+                placeholder="Contoh: Elektronik"
+                maxLength={100}
+              />
               <FieldError errors={[{ message: errors.nama?.message }]} />
             </Field>
             <Field>
@@ -103,6 +107,7 @@ export function KategoriDialogCreate() {
                 {...register('prefix')}
                 placeholder="Contoh: ELK"
                 className="uppercase placeholder:capitalize"
+                maxLength={3}
               />
               <FieldError errors={[{ message: errors.prefix?.message }]} />
             </Field>

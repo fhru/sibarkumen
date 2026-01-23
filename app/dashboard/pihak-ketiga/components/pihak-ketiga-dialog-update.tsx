@@ -23,9 +23,7 @@ import {
 } from '@/components/ui/field';
 import { toast } from 'sonner';
 
-const pihakKetigaSchema = z.object({
-  nama: z.string().min(1, 'Nama pihak ketiga wajib diisi'),
-});
+import { pihakKetigaSchema } from '@/lib/zod/pihak-ketiga';
 
 type PihakKetigaFormValues = z.infer<typeof pihakKetigaSchema>;
 
@@ -114,6 +112,7 @@ export function PihakKetigaDialogUpdate({
               <Input
                 {...register('nama')}
                 placeholder="Contoh: PT. Maju Jaya"
+                maxLength={100}
               />
               <FieldError errors={[{ message: errors.nama?.message }]} />
             </Field>

@@ -111,6 +111,14 @@ export function KategoriTable({ data }: KategoriTableProps) {
           </Button>
         );
       },
+      cell: ({ row }) => {
+        const nama = row.getValue('nama') as string;
+        return (
+          <div className="font-medium" title={nama}>
+            {nama}
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'prefix',

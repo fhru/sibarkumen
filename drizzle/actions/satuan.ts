@@ -6,9 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-const createSatuanSchema = z.object({
-  nama: z.string().min(1, 'Nama satuan wajib diisi'),
-});
+import { satuanSchema } from '@/lib/zod/satuan';
+
+const createSatuanSchema = satuanSchema;
 
 export async function createSatuan(prevState: any, formData: FormData) {
   try {
@@ -51,9 +51,8 @@ export async function createSatuan(prevState: any, formData: FormData) {
   }
 }
 
-const updateSatuanSchema = z.object({
+const updateSatuanSchema = satuanSchema.extend({
   id: z.coerce.number(),
-  nama: z.string().min(1, 'Nama satuan wajib diisi'),
 });
 
 export async function updateSatuan(prevState: any, formData: FormData) {

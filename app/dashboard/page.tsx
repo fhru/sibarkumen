@@ -5,7 +5,8 @@ import {
   fetchFastMovingItems,
   fetchDeadStockItems,
   fetchCategoryDistribution,
-} from '../../drizzle/actions/dashboard-actions';
+} from '../../drizzle/actions/dashboard';
+import { redirect } from 'next/navigation';
 import { DashboardChart } from '../../components/dashboard/dashboard-chart';
 import { QuickActions } from '../../components/dashboard/quick-actions';
 import { LowStockList } from '../../components/dashboard/low-stock-list';
@@ -14,6 +15,8 @@ import { StatCards } from '../../components/dashboard/stat-cards';
 import { FastMovingList } from '../../components/dashboard/fast-moving-list';
 import { DeadStockList } from '../../components/dashboard/dead-stock-list';
 import { CategoryPieChart } from '../../components/dashboard/category-distribution-chart';
+import { getSession } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 
 export const metadata = {
   title: 'Dashboard | Sibarkumen',
@@ -21,6 +24,13 @@ export const metadata = {
 };
 
 export default async function DashboardPage() {
+  const session = await getSession();
+  const userRole = (session?.user.role as Role) || 'petugas';
+
+  if (userRole === 'petugas') {
+    redirect('/dashboard/spb');
+  }
+
   const [
     lowStockItems,
     recentActivity,
@@ -59,7 +69,7 @@ export default async function DashboardPage() {
 
           {/* 2. Quick Actions */}
           <section>
-            <QuickActions />
+            <QuickActions role={userRole} />
           </section>
 
           {/* 3. Chart */}

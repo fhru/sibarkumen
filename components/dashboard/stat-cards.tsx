@@ -26,9 +26,7 @@ export function StatCards({ stats }: StatCardsProps) {
       </Card>
       <Card className="rounded-lg border bg-background dark:bg-input/30 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            SPB Pending
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">SPB Pending</CardTitle>
           <FileClock className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
@@ -38,9 +36,7 @@ export function StatCards({ stats }: StatCardsProps) {
       </Card>
       <Card className="rounded-lg border bg-background dark:bg-input/30 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            SPPB Pending
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">SPPB Pending</CardTitle>
           <Truck className="h-4 w-4 text-blue-500" />
         </CardHeader>
         <CardContent>

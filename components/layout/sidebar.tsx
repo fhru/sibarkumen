@@ -2,10 +2,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { navItems, NavItem } from '@/config/nav-items';
+import { navItems, NavItem, Role } from '@/config/nav-items';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -13,10 +14,41 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed }: SidebarProps) {
   const pathname = usePathname();
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
+
+  const filteredNavItems = navItems
+    .map((item) => {
+      // Create a shallow copy of the item to avoid mutating the original
+      const newItem = { ...item };
+
+      // Check top level roles
+      if (newItem.roles && !newItem.roles.includes(userRole || 'petugas')) {
+        return null;
+      }
+
+      // Filter sub items if they exist
+      if (newItem.items) {
+        newItem.items = newItem.items.filter((subItem) => {
+          if (subItem.roles && !subItem.roles.includes(userRole || 'petugas')) {
+            return false;
+          }
+          return true;
+        });
+
+        // If all sub-items were filtered out, hide the group parent if it has no standalone href
+        if (newItem.items.length === 0 && newItem.href === '#') {
+          return null;
+        }
+      }
+
+      return newItem;
+    })
+    .filter(Boolean) as NavItem[];
 
   return (
     <nav className="flex flex-col space-y-1">
-      {navItems.map((item, index) => (
+      {filteredNavItems.map((item, index) => (
         <SidebarItem
           key={index}
           item={item}

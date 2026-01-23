@@ -12,23 +12,44 @@ import {
   or,
   like,
 } from 'drizzle-orm';
+import { getSession, getCurrentPegawai } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 
 export async function getSPBStats() {
+  const session = await getSession();
+  const user = session?.user;
+  const role = (user?.role as Role) || 'petugas';
+
+  let filter = undefined;
+
+  if (role === 'petugas') {
+    const profile = await getCurrentPegawai();
+    if (profile) {
+      filter = eq(spb.pemohonId, profile.id);
+    } else {
+      // If petugas has no pegawai record, they should see 0
+      return { total: 0, menungguSppb: 0, selesai: 0 };
+    }
+  }
+
   // Total SPB
-  const [totalResult] = await db.select({ count: count() }).from(spb);
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(spb)
+    .where(filter);
   const total = totalResult?.count || 0;
 
   // By Status
   const [draftResult] = await db
     .select({ count: count() })
     .from(spb)
-    .where(eq(spb.status, 'MENUNGGU_SPPB'));
+    .where(and(eq(spb.status, 'MENUNGGU_SPPB'), filter));
   const menungguSppb = draftResult?.count || 0;
 
   const [selesaiResult] = await db
     .select({ count: count() })
     .from(spb)
-    .where(eq(spb.status, 'SELESAI'));
+    .where(and(eq(spb.status, 'SELESAI'), filter));
   const selesai = selesaiResult?.count || 0;
 
   return {
@@ -56,6 +77,23 @@ export async function getSPBList(params?: {
 
   const conditions = [];
 
+  const session = await getSession();
+  const user = session?.user;
+  const role = (user?.role as Role) || 'petugas';
+
+  if (role === 'petugas') {
+    const profile = await getCurrentPegawai();
+    if (profile) {
+      conditions.push(eq(spb.pemohonId, profile.id));
+    } else {
+      // If petugas has no pegawai record, return empty list
+      return {
+        data: [],
+        meta: { total: 0, pageCount: 0, page: 1, limit },
+      };
+    }
+  }
+
   // Filter by status
   if (params?.status) {
     conditions.push(eq(spb.status, params.status));
@@ -65,7 +103,7 @@ export async function getSPBList(params?: {
     conditions.push(eq(spb.isPrinted, params.isPrinted));
   }
 
-  // Filter by pemohon
+  // Filter by pemohon (manual filter from params, e.g. by Admin)
   if (params?.pemohonId) {
     conditions.push(eq(spb.pemohonId, params.pemohonId));
   }

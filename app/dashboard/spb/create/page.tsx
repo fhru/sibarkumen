@@ -1,5 +1,6 @@
 import { SPBForm } from '../components/spb-form';
 import { generateNextSPBNumber } from '@/drizzle/actions/generate-number';
+import { getCurrentPegawai } from '@/lib/auth-utils';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,7 +16,10 @@ export const metadata = {
 };
 
 export default async function CreateSPBPage() {
-  const nomorSpb = await generateNextSPBNumber();
+  const [nomorSpb, currentPegawai] = await Promise.all([
+    generateNextSPBNumber(),
+    getCurrentPegawai(),
+  ]);
 
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4">
@@ -45,7 +49,7 @@ export default async function CreateSPBPage() {
         </div>
       </div>
 
-      <SPBForm generatedNomorSpb={nomorSpb} />
+      <SPBForm generatedNomorSpb={nomorSpb} currentPegawai={currentPegawai} />
     </div>
   );
 }

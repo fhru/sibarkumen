@@ -6,9 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-const createAsalPembelianSchema = z.object({
-  nama: z.string().min(1, 'Nama asal pembelian wajib diisi'),
-});
+import { asalPembelianSchema } from '@/lib/zod/asal-pembelian';
+
+const createAsalPembelianSchema = asalPembelianSchema;
 
 export async function createAsalPembelian(prevState: any, formData: FormData) {
   try {
@@ -51,9 +51,8 @@ export async function createAsalPembelian(prevState: any, formData: FormData) {
   }
 }
 
-const updateAsalPembelianSchema = z.object({
+const updateAsalPembelianSchema = asalPembelianSchema.extend({
   id: z.coerce.number(),
-  nama: z.string().min(1, 'Nama asal pembelian wajib diisi'),
 });
 
 export async function updateAsalPembelian(prevState: any, formData: FormData) {

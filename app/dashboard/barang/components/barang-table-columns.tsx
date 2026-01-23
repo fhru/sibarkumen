@@ -28,6 +28,8 @@ import { BarangDialogUpdate } from './barang-dialog-update';
 import { BarangDialogDetail } from './barang-dialog-detail';
 import { BarangAlertDelete } from './barang-alert-delete';
 import { useBarangTableContext } from './barang-table';
+import { authClient } from '@/lib/auth-client';
+import { Role } from '@/config/nav-items';
 
 const BarangActionCell = ({ barang }: { barang: Barang }) => {
   const { kategoriList, satuanList } = useBarangTableContext();
@@ -35,6 +37,9 @@ const BarangActionCell = ({ barang }: { barang: Barang }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const session = authClient.useSession();
+  const userRole = session.data?.user.role as Role | undefined;
 
   const handleViewMutasi = () => {
     router.push(`/dashboard/mutasi?search=${encodeURIComponent(barang.nama)}`);
@@ -59,18 +64,22 @@ const BarangActionCell = ({ barang }: { barang: Barang }) => {
             <History className="mr-2 h-4 w-4" />
             Lihat Mutasi
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => setShowDeleteDialog(true)}
-            variant="destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Hapus
-          </DropdownMenuItem>
+          {userRole !== 'supervisor' && (
+            <>
+              <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => setShowDeleteDialog(true)}
+                variant="destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Hapus
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -186,12 +195,24 @@ export const columns: ColumnDef<Barang>[] = [
     header: ({ column }) => (
       <SortableHeader column={column} title="Nama Barang" sortKey="nama" />
     ),
+    cell: ({ row }) => {
+      const nama = row.getValue('nama') as string;
+      return (
+        <div className="max-w-[250px] truncate font-medium" title={nama}>
+          {nama}
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'kategori',
     header: 'Kategori',
     cell: ({ row }) => {
-      return <Badge variant="outline">{row.getValue('kategori') || '-'}</Badge>;
+      return (
+        <Badge variant="outline" className="max-w-[200px] truncate">
+          {row.getValue('kategori') || '-'}
+        </Badge>
+      );
     },
   },
   {

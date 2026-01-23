@@ -2,10 +2,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import LightRays from '@/components/ui/light-rays';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, LayoutDashboard } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
-export default function Page() {
+export default async function Page() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground font-sans selection:bg-primary/20 flex flex-col">
       {/* Background Rays */}
@@ -29,7 +35,6 @@ export default function Page() {
         <div className="flex px-6 h-14 items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="relative h-8 w-8">
-              {/* Using placeholder or actual logo path if known, assuming /logo.png exists from previous context */}
               <Image
                 src="/logo.png"
                 alt="Sibarkumen Logo"
@@ -42,15 +47,27 @@ export default function Page() {
 
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Link href="/sign-in">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="px-6 shadow-sm hover:shadow-md transition-all"
-              >
-                Sign In
-              </Button>
-            </Link>
+            {session ? (
+              <Link href="/dashboard">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="px-6 shadow-sm hover:shadow-md transition-all"
+                >
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/sign-in">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="px-6 shadow-sm hover:shadow-md transition-all"
+                >
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -72,14 +89,26 @@ export default function Page() {
           </p>
 
           <div className="pt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/sign-in">
-              <Button
-                size="lg"
-                className="h-12 px-8 text-base shadow-lg shadow-primary/20"
-              >
-                Masuk ke Sistem <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            {session ? (
+              <Link href="/dashboard">
+                <Button
+                  size="lg"
+                  className="h-12 px-8 text-base shadow-lg shadow-primary/20"
+                >
+                  Ke Dashboard <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/sign-in">
+                <Button
+                  size="lg"
+                  className="h-12 px-8 text-base shadow-lg shadow-primary/20"
+                >
+                  Masuk ke Sistem <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+
             <Link href="/sign-in">
               <Button
                 size="lg"

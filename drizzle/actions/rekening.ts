@@ -6,18 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-const createRekeningSchema = z.object({
-  namaBank: z.string().min(1, 'Nama bank wajib diisi'),
-  nomorRekening: z
-    .string()
-    .min(1, 'Nomor rekening wajib diisi')
-    .regex(
-      /^[0-9]+$/,
-      'Nomor rekening harus berupa angka dan tidak boleh desimal'
-    ),
-  namaPemilik: z.string().min(1, 'Nama pemilik wajib diisi'),
-  keterangan: z.string().optional(),
-});
+import { rekeningSchema } from '@/lib/zod/rekening';
+
+const createRekeningSchema = rekeningSchema;
 
 export async function createRekening(prevState: any, formData: FormData) {
   try {
@@ -70,18 +61,8 @@ export async function createRekening(prevState: any, formData: FormData) {
   }
 }
 
-const updateRekeningSchema = z.object({
+const updateRekeningSchema = rekeningSchema.extend({
   id: z.coerce.number(),
-  namaBank: z.string().min(1, 'Nama bank wajib diisi'),
-  nomorRekening: z
-    .string()
-    .min(1, 'Nomor rekening wajib diisi')
-    .regex(
-      /^[0-9]+$/,
-      'Nomor rekening harus berupa angka dan tidak boleh desimal'
-    ),
-  namaPemilik: z.string().min(1, 'Nama pemilik wajib diisi'),
-  keterangan: z.string().optional(),
 });
 
 export async function updateRekening(prevState: any, formData: FormData) {

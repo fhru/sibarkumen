@@ -23,9 +23,7 @@ import {
 } from '@/components/ui/field';
 import { toast } from 'sonner';
 
-const satuanSchema = z.object({
-  nama: z.string().min(1, 'Nama satuan wajib diisi'),
-});
+import { satuanSchema } from '@/lib/zod/satuan';
 
 type SatuanFormValues = z.infer<typeof satuanSchema>;
 
@@ -106,7 +104,11 @@ export function SatuanDialogUpdate({
               <FieldLabel>
                 Nama Satuan <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
-              <Input {...register('nama')} placeholder="Contoh: Pcs" />
+              <Input
+                {...register('nama')}
+                placeholder="Contoh: Pcs"
+                maxLength={50}
+              />
               <FieldError errors={[{ message: errors.nama?.message }]} />
             </Field>
           </FieldGroup>

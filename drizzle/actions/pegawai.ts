@@ -6,13 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-const createPegawaiSchema = z.object({
-  nama: z.string().min(1, 'Nama pegawai wajib diisi'),
-  nip: z
-    .string()
-    .regex(/^[0-9]*$/, 'NIP harus berupa angka dan tidak boleh desimal')
-    .optional(),
-});
+import { pegawaiSchema } from '@/lib/zod/pegawai';
+
+const createPegawaiSchema = pegawaiSchema;
 
 export async function createPegawai(prevState: any, formData: FormData) {
   try {
@@ -22,6 +18,7 @@ export async function createPegawai(prevState: any, formData: FormData) {
     await db.insert(pegawai).values({
       nama: validatedData.nama,
       nip: validatedData.nip || null,
+      userId: validatedData.userId || null,
     });
 
     revalidatePath('/dashboard/pegawai');
@@ -50,6 +47,13 @@ export async function createPegawai(prevState: any, formData: FormData) {
           message: 'NIP sudah terdaftar.',
         };
       }
+      // Check for User ID uniqueness
+      if (error.message?.includes('pegawai_user_id_unique')) {
+        return {
+          success: false,
+          message: 'User ini sudah terhubung dengan pegawai lain.',
+        };
+      }
       return {
         success: false,
         message: 'Data pegawai duplikat.',
@@ -63,13 +67,35 @@ export async function createPegawai(prevState: any, formData: FormData) {
   }
 }
 
-const updatePegawaiSchema = z.object({
+export async function getAvailableUsers(currentUserId?: string | null) {
+  // Fetch all users who are NOT yet linked to any pegawai
+  // EXCEPT the currentUserId (if provided, meaning we are editing and keep the same user)
+
+  // This is a bit complex with pure Drizzle without raw SQL for NOT EXISTS,
+  // but we can fetch all users and all taken userIds, then filter.
+  // Or use left join.
+
+  // Simple approach: Get all users, Get all assigned userIds.
+  const allUsers = await db.query.user.findMany({
+    columns: { id: true, name: true, email: true, role: true },
+  });
+
+  const assignedPegapwais = await db.query.pegawai.findMany({
+    columns: { userId: true },
+  });
+
+  const assignedUserIds = new Set(
+    assignedPegapwais.map((p) => p.userId).filter(Boolean)
+  );
+
+  return allUsers.filter((u) => {
+    if (currentUserId && u.id === currentUserId) return true; // Allow current user
+    return !assignedUserIds.has(u.id);
+  });
+}
+
+const updatePegawaiSchema = pegawaiSchema.extend({
   id: z.coerce.number(),
-  nama: z.string().min(1, 'Nama pegawai wajib diisi'),
-  nip: z
-    .string()
-    .regex(/^[0-9]*$/, 'NIP harus berupa angka dan tidak boleh desimal')
-    .optional(),
 });
 
 export async function updatePegawai(prevState: any, formData: FormData) {
@@ -82,6 +108,7 @@ export async function updatePegawai(prevState: any, formData: FormData) {
       .set({
         nama: validatedData.nama,
         nip: validatedData.nip || null,
+        userId: validatedData.userId || null,
       })
       .where(eq(pegawai.id, validatedData.id));
 

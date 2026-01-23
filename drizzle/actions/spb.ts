@@ -8,11 +8,13 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
+import { authClient } from '@/lib/auth-client';
+import { getSession, getCurrentPegawai } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
+
 // Helper to check authentication
 async function checkAuth() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSession();
   if (!session) {
     throw new Error('Unauthorized');
   }
@@ -57,6 +59,22 @@ export async function createSPB(
     const session = await checkAuth();
     const validated = createSPBSchema.parse(data);
 
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      throw new Error('Supervisor tidak dapat membuat SPB');
+    }
+
+    let pemohonId = validated.pemohonId;
+
+    if (userRole === 'petugas') {
+      const profile = await getCurrentPegawai();
+      if (!profile) {
+        throw new Error('Profil pegawai tidak ditemukan. Harap hubungi admin.');
+      }
+      pemohonId = profile.id;
+    }
+
     const tglSpb = formatDateForDB(validated.tanggalSpb);
 
     await db.transaction(async (tx) => {
@@ -66,7 +84,7 @@ export async function createSPB(
         .values({
           nomorSpb: validated.nomorSpb,
           tanggalSpb: tglSpb,
-          pemohonId: validated.pemohonId,
+          pemohonId: pemohonId,
           keterangan: validated.keterangan,
           status: 'MENUNGGU_SPPB',
         })
@@ -110,6 +128,22 @@ export async function updateSPB(
     const session = await checkAuth();
     const validated = createSPBSchema.parse(data);
 
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      throw new Error('Supervisor tidak dapat mengedit SPB');
+    }
+
+    let pemohonId = validated.pemohonId;
+
+    if (userRole === 'petugas') {
+      const profile = await getCurrentPegawai();
+      if (!profile) {
+        throw new Error('Profil pegawai tidak ditemukan. Harap hubungi admin.');
+      }
+      pemohonId = profile.id;
+    }
+
     const tglSpb = formatDateForDB(validated.tanggalSpb);
 
     await db.transaction(async (tx) => {
@@ -127,13 +161,18 @@ export async function updateSPB(
         throw new Error('SPB yang sudah diproses tidak dapat diedit');
       }
 
+      // Check ownership for petugas
+      if (userRole === 'petugas' && existingSpb.pemohonId !== pemohonId) {
+        throw new Error('Anda tidak memiliki izin untuk mengedit SPB ini');
+      }
+
       // 1. Update SPB Header
       await tx
         .update(spb)
         .set({
           nomorSpb: validated.nomorSpb,
           tanggalSpb: tglSpb,
-          pemohonId: validated.pemohonId,
+          pemohonId: pemohonId,
           keterangan: validated.keterangan,
           updatedAt: new Date(),
         })
@@ -173,7 +212,12 @@ export async function updateSPB(
 
 export async function deleteSPB(id: number) {
   try {
-    await checkAuth();
+    const session = await checkAuth();
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor') {
+      throw new Error('Supervisor tidak dapat menghapus SPB');
+    }
 
     await db.transaction(async (tx) => {
       const existingSpb = await tx.query.spb.findFirst({
@@ -182,6 +226,14 @@ export async function deleteSPB(id: number) {
 
       if (!existingSpb) {
         throw new Error('SPB tidak ditemukan');
+      }
+
+      // Check ownership for petugas
+      if (userRole === 'petugas') {
+        const profile = await getCurrentPegawai();
+        if (!profile || existingSpb.pemohonId !== profile.id) {
+          throw new Error('Anda tidak memiliki izin untuk menghapus SPB ini');
+        }
       }
 
       // Delete SPB (cascade will delete details)
@@ -200,7 +252,15 @@ export async function deleteSPB(id: number) {
 
 export async function toggleSPBPrintStatus(id: number, isPrinted: boolean) {
   try {
-    await checkAuth();
+    const session = await checkAuth();
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    // If role is Supervisor, they can NEVER toggle print status
+    if (userRole === 'supervisor') {
+      throw new Error(
+        'Anda tidak memiliki izin untuk mengubah status cetak SPB'
+      );
+    }
 
     await db.transaction(async (tx) => {
       const existingSpb = await tx.query.spb.findFirst({
@@ -209,6 +269,13 @@ export async function toggleSPBPrintStatus(id: number, isPrinted: boolean) {
 
       if (!existingSpb) {
         throw new Error('SPB tidak ditemukan');
+      }
+
+      // Special check for petugas: Can only toggle if status is SELESAI
+      if (userRole === 'petugas' && existingSpb.status !== 'SELESAI') {
+        throw new Error(
+          'Anda tidak memiliki izin untuk mengubah status cetak SPB ini (Status belum SELESAI)'
+        );
       }
 
       await tx
@@ -236,7 +303,12 @@ export async function toggleSPBPrintStatus(id: number, isPrinted: boolean) {
 
 export async function cancelSPB(id: number) {
   try {
-    await checkAuth();
+    const session = await checkAuth();
+    const userRole = (session.user.role as Role) || 'petugas';
+
+    if (userRole === 'supervisor' || userRole === 'petugas') {
+      throw new Error('Anda tidak memiliki izin untuk membatalkan SPB');
+    }
 
     await db.transaction(async (tx) => {
       const existingSpb = await tx.query.spb.findFirst({

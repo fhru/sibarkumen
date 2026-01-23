@@ -1,5 +1,7 @@
 import { getSPBById } from '@/drizzle/data/spb';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getSession, getCurrentPegawai } from '@/lib/auth-utils';
+import { Role } from '@/config/nav-items';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -57,6 +59,17 @@ export default async function DetailSPBPage({ params }: DetailSPBPageProps) {
     notFound();
   }
 
+  // Authorization Check
+  const session = await getSession();
+  const userRole = (session?.user.role as Role) || 'petugas';
+
+  if (userRole === 'petugas') {
+    const profile = await getCurrentPegawai();
+    if (!profile || spbData.pemohonId !== profile.id) {
+      notFound(); // Or redirect to unauthorized
+    }
+  }
+
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4 pb-20">
       <Breadcrumb>
@@ -86,7 +99,7 @@ export default async function DetailSPBPage({ params }: DetailSPBPageProps) {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Dia jukan pada{' '}
+            Diajukan pada{' '}
             {format(new Date(spbData.tanggalSpb), 'PPP', {
               locale: localeId,
             })}

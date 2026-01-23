@@ -1,9 +1,9 @@
-import { db } from "@/lib/db";
-import { pegawai, jabatan } from "@/drizzle/schema";
-import { desc } from "drizzle-orm";
-import { PegawaiTable } from "./components/pegawai-table";
-import { PegawaiStats } from "./components/pegawai-stats";
-import { PegawaiDialogCreate } from "./components/pegawai-dialog-create";
+import { db } from '@/lib/db';
+import { pegawai, jabatan } from '@/drizzle/schema';
+import { desc } from 'drizzle-orm';
+import { PegawaiTable } from './components/pegawai-table';
+import { PegawaiStats } from './components/pegawai-stats';
+import { PegawaiDialogCreate } from './components/pegawai-dialog-create';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,13 +11,13 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from '@/components/ui/breadcrumb';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: "Pegawai | Sibarkumen",
-  description: "Kelola data pegawai dan staff di sini.",
+  title: 'Pegawai | Sibarkumen',
+  description: 'Kelola data pegawai dan staff di sini.',
 };
 
 export default async function PegawaiPage() {
@@ -39,6 +39,7 @@ export default async function PegawaiPage() {
     id: p.id,
     nama: p.nama,
     nip: p.nip,
+    userId: p.userId,
     pegawaiJabatan: p.pegawaiJabatan.map((pj) => ({
       id: pj.id,
       isAktif: pj.isAktif,

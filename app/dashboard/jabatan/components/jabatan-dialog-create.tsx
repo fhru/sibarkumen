@@ -25,10 +25,7 @@ import {
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 
-const jabatanSchema = z.object({
-  nama: z.string().min(1, 'Nama jabatan wajib diisi'),
-  unitKerja: z.string().optional(),
-});
+import { jabatanSchema } from '@/lib/zod/jabatan';
 
 type JabatanFormValues = z.infer<typeof jabatanSchema>;
 
@@ -98,7 +95,11 @@ export function JabatanDialogCreate() {
               <FieldLabel>
                 Nama Jabatan <span className="text-red-500 -ml-1">*</span>
               </FieldLabel>
-              <Input {...register('nama')} placeholder="Contoh: Staff Gudang" />
+              <Input
+                {...register('nama')}
+                placeholder="Contoh: Staff Gudang"
+                maxLength={100}
+              />
               <FieldError errors={[{ message: errors.nama?.message }]} />
             </Field>
           </FieldGroup>
@@ -109,6 +110,7 @@ export function JabatanDialogCreate() {
               <Input
                 {...register('unitKerja')}
                 placeholder="Contoh: Divisi Logistik"
+                maxLength={100}
               />
               <FieldError errors={[{ message: errors.unitKerja?.message }]} />
             </Field>

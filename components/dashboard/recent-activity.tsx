@@ -36,7 +36,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                         ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
                         : item.jenisMutasi === 'KELUAR'
                           ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
-                          : 'bg-blue-500/10 border-blue-500/20 text-blue-600'
+                          : 'bg-orange-500/10 border-orange-500/20 text-orange-600'
                     }`}
                   >
                     {item.jenisMutasi === 'MASUK' ? (
@@ -75,17 +75,25 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                         ? 'text-emerald-600'
                         : item.jenisMutasi === 'KELUAR'
                           ? 'text-rose-600'
-                          : 'text-blue-600'
+                          : 'text-orange-600'
                     }`}
                   >
                     {item.jenisMutasi === 'MASUK'
                       ? '+'
                       : item.jenisMutasi === 'KELUAR'
                         ? '-'
-                        : ''}
+                        : item.jenisMutasi === 'PENYESUAIAN'
+                          ? item.qtyMasuk > 0
+                            ? '+'
+                            : '-'
+                          : ''}
                     {item.jenisMutasi === 'MASUK'
                       ? item.qtyMasuk
-                      : item.qtyKeluar}
+                      : item.jenisMutasi === 'KELUAR'
+                        ? item.qtyKeluar
+                        : item.jenisMutasi === 'PENYESUAIAN'
+                          ? Math.max(item.qtyMasuk, item.qtyKeluar)
+                          : ''}
                   </p>
                   <p className="text-[10px] text-muted-foreground uppercase">
                     {item.jenisMutasi}

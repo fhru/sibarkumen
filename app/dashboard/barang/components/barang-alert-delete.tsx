@@ -47,8 +47,7 @@ export function BarangAlertDelete({
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus barang "
-            <span className="font-semibold text-foreground">{barangNama}</span>"
+            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus barang
             secara permanen dari database.
           </AlertDialogDescription>
         </AlertDialogHeader>
