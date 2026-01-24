@@ -1,13 +1,13 @@
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 import {
   bastMasuk,
   bastMasukDetail,
   barang,
   mutasiBarang,
   pihakKetiga,
-} from '@/drizzle/schema';
+} from "@/drizzle/schema";
 import {
   eq,
   desc,
@@ -21,13 +21,13 @@ import {
   lte,
   exists,
   asc,
-} from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { auth } from '@/lib/auth'; // Adjust if needed
-import { headers } from 'next/headers';
-import { generateDocumentNumber } from '@/lib/document-numbering-utils';
-import { Role } from '@/config/nav-items';
+} from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { auth } from "@/lib/auth"; // Adjust if needed
+import { headers } from "next/headers";
+import { generateDocumentNumberWithRetry } from "@/lib/document-numbering-utils";
+import { Role } from "@/config/nav-items";
 
 // Helper to check authentication
 async function checkAuth() {
@@ -35,17 +35,17 @@ async function checkAuth() {
     headers: await headers(),
   });
   if (!session) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
   return session;
 }
 
 // Zod Schema for Create/Update
-import { createBastMasukSchema } from '@/lib/zod/bast-masuk';
+import { createBastMasukSchema } from "@/lib/zod/bast-masuk";
 
 // Helper to format date without timezone issues
 function formatDateForDB(date: string | Date): string {
-  if (typeof date === 'string') {
+  if (typeof date === "string") {
     // If already a string in YYYY-MM-DD format, return as is
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return date;
@@ -56,8 +56,8 @@ function formatDateForDB(date: string | Date): string {
 
   // Format using local timezone
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -78,16 +78,16 @@ export async function getBastMasuk() {
 
 export async function createBastMasuk(
   prevState: any,
-  data: z.infer<typeof createBastMasukSchema>
+  data: z.infer<typeof createBastMasukSchema>,
 ) {
   try {
     const session = await checkAuth();
-    const userRole = (session.user.role as Role) || 'petugas';
+    const userRole = (session.user.role as Role) || "petugas";
 
-    if (userRole === 'supervisor') {
+    if (userRole === "supervisor") {
       return {
         success: false,
-        message: 'Supervisor tidak diizinkan membuat BAST Masuk',
+        message: "Supervisor tidak diizinkan membuat BAST Masuk",
       };
     }
 
@@ -105,7 +105,7 @@ export async function createBastMasuk(
       try {
         await db.transaction(async (tx) => {
           // Always generate a fresh number inside the retry loop
-          const nomorRef = await generateDocumentNumber('bastMasuk');
+          const nomorRef = await generateDocumentNumberWithRetry("bastMasuk");
 
           // 1. Create Header
           const [newBast] = await tx
@@ -156,32 +156,32 @@ export async function createBastMasuk(
             await tx.insert(mutasiBarang).values({
               barangId: item.barangId,
               tanggal: new Date(),
-              jenisMutasi: 'MASUK',
+              jenisMutasi: "MASUK",
               qtyMasuk: qtyTotal,
               qtyKeluar: 0,
               stokAkhir: newStock,
               referensiId: newBast.nomorBast,
-              sumberTransaksi: 'BAST_MASUK',
+              sumberTransaksi: "BAST_MASUK",
               keterangan: `Penerimaan Barang via BAST ${newBast.nomorBast}`,
             });
           }
         });
 
         // If transaction succeeds, break the loop
-        revalidatePath('/dashboard/bast-masuk');
-        return { success: true, message: 'BAST Masuk berhasil disimpan' };
+        revalidatePath("/dashboard/bast-masuk");
+        return { success: true, message: "BAST Masuk berhasil disimpan" };
       } catch (error: any) {
         lastError = error;
         const pgError = error.cause || error;
         // Check for unique constraint on nomor_referensi
         if (
-          (pgError.code === '23505' ||
-            error.message?.includes('unique constraint')) &&
-          (pgError.constraint_name?.includes('nomor_referensi') ||
-            error.message?.includes('nomor_referensi'))
+          (pgError.code === "23505" ||
+            error.message?.includes("unique constraint")) &&
+          (pgError.constraint_name?.includes("nomor_referensi") ||
+            error.message?.includes("nomor_referensi"))
         ) {
           console.warn(
-            `Unique constraint collision on nomor_referensi, retrying... (Attempt ${attempt + 1}/${maxRetries})`
+            `Unique constraint collision on nomor_referensi, retrying... (Attempt ${attempt + 1}/${maxRetries})`,
           );
           attempt++;
           // Wait a bit before retrying to reduce contention
@@ -197,52 +197,52 @@ export async function createBastMasuk(
     // If we exhausted retries
     throw lastError;
   } catch (error: any) {
-    console.error('Create BAST Error:', error);
+    console.error("Create BAST Error:", error);
 
     // PostgreSQL error might be in error.cause
     const pgError = error.cause || error;
-    const errorMessage = error.message || '';
+    const errorMessage = error.message || "";
 
     // Handle unique constraint violations (PostgreSQL error code 23505)
     if (
-      pgError.code === '23505' ||
-      errorMessage.includes('unique constraint')
+      pgError.code === "23505" ||
+      errorMessage.includes("unique constraint")
     ) {
       const constraintName =
-        pgError.constraint_name || pgError.constraint || '';
+        pgError.constraint_name || pgError.constraint || "";
 
       if (
-        constraintName.includes('nomor_referensi') ||
-        errorMessage.includes('nomor_referensi')
+        constraintName.includes("nomor_referensi") ||
+        errorMessage.includes("nomor_referensi")
       ) {
         return {
           success: false,
           message:
-            'Gagal membuat Nomor Referensi unik setelah beberapa percobaan. Silakan coba lagi.',
+            "Gagal membuat Nomor Referensi unik setelah beberapa percobaan. Silakan coba lagi.",
         };
       }
       if (
-        constraintName.includes('nomor_bast') ||
-        errorMessage.includes('nomor_bast')
+        constraintName.includes("nomor_bast") ||
+        errorMessage.includes("nomor_bast")
       ) {
-        return { success: false, message: 'Nomor BAST sudah terdaftar' };
+        return { success: false, message: "Nomor BAST sudah terdaftar" };
       }
       if (
-        constraintName.includes('nomor_bapb') ||
-        errorMessage.includes('nomor_bapb')
+        constraintName.includes("nomor_bapb") ||
+        errorMessage.includes("nomor_bapb")
       ) {
-        return { success: false, message: 'Nomor BAPB sudah ada dalam sistem' };
+        return { success: false, message: "Nomor BAPB sudah ada dalam sistem" };
       }
 
       return {
         success: false,
-        message: 'Data yang Anda masukkan sudah ada dalam sistem',
+        message: "Data yang Anda masukkan sudah ada dalam sistem",
       };
     }
 
     return {
       success: false,
-      message: error.message || 'Gagal menyimpan BAST Masuk',
+      message: error.message || "Gagal menyimpan BAST Masuk",
     };
   }
 }
@@ -250,16 +250,16 @@ export async function createBastMasuk(
 export async function updateBastMasuk(
   id: number,
   prevState: any,
-  data: z.infer<typeof createBastMasukSchema>
+  data: z.infer<typeof createBastMasukSchema>,
 ) {
   try {
     const session = await checkAuth();
-    const userRole = (session.user.role as Role) || 'petugas';
+    const userRole = (session.user.role as Role) || "petugas";
 
-    if (userRole === 'supervisor') {
+    if (userRole === "supervisor") {
       return {
         success: false,
-        message: 'Supervisor tidak diizinkan mengubah BAST Masuk',
+        message: "Supervisor tidak diizinkan mengubah BAST Masuk",
       };
     }
 
@@ -278,7 +278,7 @@ export async function updateBastMasuk(
         where: eq(bastMasuk.id, id),
       });
 
-      if (!oldBast) throw new Error('Data BAST tidak ditemukan');
+      if (!oldBast) throw new Error("Data BAST tidak ditemukan");
 
       for (const item of oldDetails) {
         const [currentBarang] = await tx
@@ -290,7 +290,7 @@ export async function updateBastMasuk(
 
         if (revertedStock < 0) {
           throw new Error(
-            `Gagal Edit! Barang "${currentBarang?.nama || 'Unknown'}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini.`
+            `Gagal Edit! Barang "${currentBarang?.nama || "Unknown"}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini.`,
           );
         }
 
@@ -303,12 +303,12 @@ export async function updateBastMasuk(
         await tx.insert(mutasiBarang).values({
           barangId: item.barangId,
           tanggal: new Date(),
-          jenisMutasi: 'PENYESUAIAN',
+          jenisMutasi: "PENYESUAIAN",
           qtyMasuk: 0,
           qtyKeluar: item.qty,
           stokAkhir: revertedStock,
           referensiId: oldBast.nomorBast,
-          sumberTransaksi: 'EDIT_BAST_MASUK',
+          sumberTransaksi: "EDIT_BAST_MASUK",
           keterangan: `Revisi BAST (Revert) ${oldBast.nomorBast}`,
         });
       }
@@ -367,62 +367,62 @@ export async function updateBastMasuk(
         await tx.insert(mutasiBarang).values({
           barangId: item.barangId,
           tanggal: new Date(),
-          jenisMutasi: 'MASUK',
+          jenisMutasi: "MASUK",
           qtyMasuk: qtyTotal,
           qtyKeluar: 0,
           stokAkhir: newStock,
           referensiId: validated.nomorBast,
-          sumberTransaksi: 'EDIT_BAST_MASUK',
+          sumberTransaksi: "EDIT_BAST_MASUK",
           keterangan: `Revisi BAST (Update) ${validated.nomorBast}`,
         });
       }
     });
 
-    revalidatePath('/dashboard/bast-masuk');
-    return { success: true, message: 'BAST Masuk berhasil diperbarui' };
+    revalidatePath("/dashboard/bast-masuk");
+    return { success: true, message: "BAST Masuk berhasil diperbarui" };
   } catch (error: any) {
-    console.error('Update BAST Error:', error);
+    console.error("Update BAST Error:", error);
 
     // PostgreSQL error might be in error.cause
     const pgError = error.cause || error;
-    const errorMessage = error.message || '';
+    const errorMessage = error.message || "";
 
     // Handle unique constraint violations (PostgreSQL error code 23505)
     if (
-      pgError.code === '23505' ||
-      errorMessage.includes('unique constraint')
+      pgError.code === "23505" ||
+      errorMessage.includes("unique constraint")
     ) {
       const constraintName =
-        pgError.constraint_name || pgError.constraint || '';
+        pgError.constraint_name || pgError.constraint || "";
 
       if (
-        constraintName.includes('nomor_referensi') ||
-        errorMessage.includes('nomor_referensi')
+        constraintName.includes("nomor_referensi") ||
+        errorMessage.includes("nomor_referensi")
       ) {
-        return { success: false, message: 'Nomor Referensi sudah digunakan' };
+        return { success: false, message: "Nomor Referensi sudah digunakan" };
       }
       if (
-        constraintName.includes('nomor_bast') ||
-        errorMessage.includes('nomor_bast')
+        constraintName.includes("nomor_bast") ||
+        errorMessage.includes("nomor_bast")
       ) {
-        return { success: false, message: 'Nomor BAST sudah terdaftar' };
+        return { success: false, message: "Nomor BAST sudah terdaftar" };
       }
       if (
-        constraintName.includes('nomor_bapb') ||
-        errorMessage.includes('nomor_bapb')
+        constraintName.includes("nomor_bapb") ||
+        errorMessage.includes("nomor_bapb")
       ) {
-        return { success: false, message: 'Nomor BAPB sudah ada dalam sistem' };
+        return { success: false, message: "Nomor BAPB sudah ada dalam sistem" };
       }
 
       return {
         success: false,
-        message: 'Data yang Anda masukkan sudah ada dalam sistem',
+        message: "Data yang Anda masukkan sudah ada dalam sistem",
       };
     }
 
     return {
       success: false,
-      message: error.message || 'Gagal memperbarui BAST Masuk',
+      message: error.message || "Gagal memperbarui BAST Masuk",
     };
   }
 }
@@ -430,12 +430,12 @@ export async function updateBastMasuk(
 export async function deleteBastMasuk(id: number) {
   try {
     const session = await checkAuth();
-    const userRole = (session.user.role as Role) || 'petugas';
+    const userRole = (session.user.role as Role) || "petugas";
 
-    if (userRole === 'supervisor') {
+    if (userRole === "supervisor") {
       return {
         success: false,
-        message: 'Supervisor tidak diizinkan menghapus BAST Masuk',
+        message: "Supervisor tidak diizinkan menghapus BAST Masuk",
       };
     }
 
@@ -449,7 +449,7 @@ export async function deleteBastMasuk(id: number) {
         where: eq(bastMasuk.id, id),
       });
 
-      if (!bastion) throw new Error('BAST tidak ditemukan');
+      if (!bastion) throw new Error("BAST tidak ditemukan");
 
       for (const item of details) {
         // Reverse Stock
@@ -462,7 +462,7 @@ export async function deleteBastMasuk(id: number) {
 
         if (newStock < 0) {
           throw new Error(
-            `Gagal! Barang "${currentBarang?.nama || 'Unknown'}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini (Butuh: ${item.qty}).`
+            `Gagal! Barang "${currentBarang?.nama || "Unknown"}" sudah terpakai. Stok saat ini (${currentBarang?.stok}) tidak cukup untuk membatalkan transaksi ini (Butuh: ${item.qty}).`,
           );
         }
 
@@ -475,12 +475,12 @@ export async function deleteBastMasuk(id: number) {
         await tx.insert(mutasiBarang).values({
           barangId: item.barangId,
           tanggal: new Date(),
-          jenisMutasi: 'PENYESUAIAN',
+          jenisMutasi: "PENYESUAIAN",
           qtyMasuk: 0,
           qtyKeluar: item.qty, // Treated as reducing stock
           stokAkhir: newStock,
           referensiId: bastion.nomorBast,
-          sumberTransaksi: 'PEMBATALAN_BAST_MASUK',
+          sumberTransaksi: "PEMBATALAN_BAST_MASUK",
           keterangan: `Pembatalan BAST ${bastion.nomorBast}`,
         });
       }
@@ -489,12 +489,12 @@ export async function deleteBastMasuk(id: number) {
       await tx.delete(bastMasuk).where(eq(bastMasuk.id, id));
     });
 
-    revalidatePath('/dashboard/bast-masuk');
-    return { success: true, message: 'BAST Masuk berhasil dihapus' };
+    revalidatePath("/dashboard/bast-masuk");
+    return { success: true, message: "BAST Masuk berhasil dihapus" };
   } catch (error: any) {
     return {
       success: false,
-      message: error.message || 'Gagal menghapus data',
+      message: error.message || "Gagal menghapus data",
     };
   }
 }
@@ -528,7 +528,7 @@ export async function getBastMasukStats() {
 
   const supplierTerbanyak = topSupplierResult[0]
     ? `${topSupplierResult[0].supplierNama} (${topSupplierResult[0].count})`
-    : '-';
+    : "-";
 
   return {
     totalBast,
@@ -539,17 +539,17 @@ export async function getBastMasukStats() {
 
 export async function getBastMasukList(
   page: number = 1,
-  limit: number = 50,
+  limit: number = 25,
   search?: string,
-  sortBy: string = 'nomorReferensi',
-  sortOrder: 'asc' | 'desc' = 'desc',
+  sortBy: string = "nomorReferensi",
+  sortOrder: "asc" | "desc" = "desc",
   // Filters
   pihakKetigaId?: number,
   pptkPpkId?: number,
   asalPembelianId?: number,
   kodeRekeningId?: number,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
 ) {
   const offset = (page - 1) * limit;
 
@@ -570,10 +570,10 @@ export async function getBastMasukList(
           .where(
             and(
               eq(pihakKetiga.id, bastMasuk.pihakKetigaId),
-              ilike(pihakKetiga.nama, `%${search}%`)
-            )
-          )
-      )
+              ilike(pihakKetiga.nama, `%${search}%`),
+            ),
+          ),
+      ),
     );
 
     searchFilterData = or(
@@ -587,22 +587,22 @@ export async function getBastMasukList(
           .where(
             and(
               eq(pihakKetiga.id, sql.raw('"bastMasuk"."pihak_ketiga_id"')),
-              ilike(pihakKetiga.nama, `%${search}%`)
-            )
-          )
-      )
+              ilike(pihakKetiga.nama, `%${search}%`),
+            ),
+          ),
+      ),
     );
   }
 
   // Date range filter
   if (startDate) {
     baseFilters.push(
-      gte(bastMasuk.tanggalBast, startDate.toISOString().split('T')[0])
+      gte(bastMasuk.tanggalBast, startDate.toISOString().split("T")[0]),
     );
   }
   if (endDate) {
     baseFilters.push(
-      lte(bastMasuk.tanggalBast, endDate.toISOString().split('T')[0])
+      lte(bastMasuk.tanggalBast, endDate.toISOString().split("T")[0]),
     );
   }
 
@@ -649,19 +649,19 @@ export async function getBastMasukList(
       kodeRekening: true,
     },
     orderBy:
-      sortBy === 'nomorBast'
-        ? sortOrder === 'asc'
+      sortBy === "nomorBast"
+        ? sortOrder === "asc"
           ? asc(bastMasuk.nomorBast)
           : desc(bastMasuk.nomorBast)
-        : sortBy === 'nomorReferensi'
-          ? sortOrder === 'asc'
+        : sortBy === "nomorReferensi"
+          ? sortOrder === "asc"
             ? asc(bastMasuk.nomorReferensi)
             : desc(bastMasuk.nomorReferensi)
-          : sortBy === 'tanggalBast'
-            ? sortOrder === 'asc'
+          : sortBy === "tanggalBast"
+            ? sortOrder === "asc"
               ? asc(bastMasuk.tanggalBast)
               : desc(bastMasuk.tanggalBast)
-            : sortOrder === 'asc'
+            : sortOrder === "asc"
               ? asc(bastMasuk.createdAt)
               : desc(bastMasuk.createdAt),
     limit,
@@ -701,7 +701,7 @@ export async function getBastMasukById(id: number) {
     },
   });
 
-  if (!data) return { success: false, message: 'Data not found' };
+  if (!data) return { success: false, message: "Data not found" };
 
   return { success: true, data };
 }

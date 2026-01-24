@@ -388,7 +388,7 @@ export async function getSPBList(params?: {
   endDate?: string;
 }) {
   const page = params?.page || 1;
-  const limit = params?.limit || 50;
+  const limit = params?.limit || 25;
   const offset = (page - 1) * limit;
 
   const conditions = [];

@@ -1,10 +1,10 @@
-import { Suspense } from 'react';
+import { Suspense } from "react";
 import {
   getRiwayatHarga,
   getRiwayatHargaStats,
-} from '@/drizzle/actions/riwayat-harga';
-import { RiwayatHargaTable } from './components/riwayat-harga-table';
-import { RiwayatHargaStats } from './components/riwayat-harga-stats';
+} from "@/drizzle/actions/riwayat-harga";
+import { RiwayatHargaTable } from "./components/riwayat-harga-table";
+import { RiwayatHargaStats } from "./components/riwayat-harga-stats";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,11 +12,11 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+} from "@/components/ui/breadcrumb";
 
 export const metadata = {
-  title: 'Riwayat Harga | Sibarkumen',
-  description: 'Daftar riwayat harga barang berdasarkan BAST Masuk.',
+  title: "Riwayat Harga | Sibarkumen",
+  description: "Daftar riwayat harga barang berdasarkan BAST Masuk.",
 };
 
 interface PageProps {
@@ -35,8 +35,8 @@ export default async function RiwayatHargaPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const search = params.search;
-  const sortBy = params.sortBy || 'bastMasuk.tanggalBast';
-  const sortOrder = (params.sortOrder as 'asc' | 'desc') || 'desc';
+  const sortBy = params.sortBy || "bastMasuk.tanggalBast";
+  const sortOrder = (params.sortOrder as "asc" | "desc") || "desc";
   const pihakKetigaId = params.pihakKetiga
     ? Number(params.pihakKetiga)
     : undefined;
@@ -46,13 +46,13 @@ export default async function RiwayatHargaPage({ searchParams }: PageProps) {
   const [result, stats] = await Promise.all([
     getRiwayatHarga(
       page,
-      50,
+      25,
       search,
       sortBy,
       sortOrder,
       pihakKetigaId,
       startDate,
-      endDate
+      endDate,
     ),
     getRiwayatHargaStats(),
   ]);

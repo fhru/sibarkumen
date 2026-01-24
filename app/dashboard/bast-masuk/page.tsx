@@ -1,10 +1,10 @@
-import { Suspense } from 'react';
+import { Suspense } from "react";
 import {
   getBastMasukList,
   getBastMasukStats,
-} from '@/drizzle/actions/bast-masuk';
-import { BastMasukTable } from './components/bast-masuk-table';
-import { BastMasukStats } from './components/bast-masuk-stats';
+} from "@/drizzle/actions/bast-masuk";
+import { BastMasukTable } from "./components/bast-masuk-table";
+import { BastMasukStats } from "./components/bast-masuk-stats";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,16 +12,16 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
-import { getSession } from '@/lib/auth-utils';
-import { Role } from '@/config/nav-items';
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { getSession } from "@/lib/auth-utils";
+import { Role } from "@/config/nav-items";
 
 export const metadata = {
-  title: 'BAST Masuk | Sibarkumen',
-  description: 'Kelola Berita Acara Serah Terima Masuk',
+  title: "BAST Masuk | Sibarkumen",
+  description: "Kelola Berita Acara Serah Terima Masuk",
 };
 
 interface PageProps {
@@ -43,8 +43,8 @@ export default async function BastMasukPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const search = params.search;
-  const sortBy = params.sortBy || 'nomorReferensi';
-  const sortOrder = (params.sortOrder as 'asc' | 'desc') || 'desc';
+  const sortBy = params.sortBy || "nomorReferensi";
+  const sortOrder = (params.sortOrder as "asc" | "desc") || "desc";
   const pihakKetigaId = params.pihakKetiga
     ? Number(params.pihakKetiga)
     : undefined;
@@ -59,7 +59,7 @@ export default async function BastMasukPage({ searchParams }: PageProps) {
   const [result, stats, session] = await Promise.all([
     getBastMasukList(
       page,
-      50,
+      25,
       search,
       sortBy,
       sortOrder,
@@ -68,13 +68,13 @@ export default async function BastMasukPage({ searchParams }: PageProps) {
       asalPembelianId,
       rekeningId,
       startDate,
-      endDate
+      endDate,
     ),
     getBastMasukStats(),
     getSession(),
   ]);
 
-  const userRole = (session?.user.role as Role) || 'petugas';
+  const userRole = (session?.user.role as Role) || "petugas";
 
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4">
@@ -97,7 +97,7 @@ export default async function BastMasukPage({ searchParams }: PageProps) {
             Daftar penerimaan barang (Berita Acara Serah Terima).
           </p>
         </div>
-        {userRole !== 'supervisor' && (
+        {userRole !== "supervisor" && (
           <Link href="/dashboard/bast-masuk/create">
             <Button>
               <Plus className="mr-2 h-4 w-4" />

@@ -221,6 +221,11 @@ export function PegawaiTable({ data, jabatanList }: PegawaiTableProps) {
       sorting,
       globalFilter,
     },
+    initialState: {
+      pagination: {
+        pageSize: 25,
+      },
+    },
   });
 
   return (

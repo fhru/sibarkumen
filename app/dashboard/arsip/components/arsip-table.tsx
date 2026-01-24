@@ -62,7 +62,7 @@ export function ArsipTable<TData, TValue>({
     },
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: 25,
       },
     },
   });
@@ -218,3 +218,4 @@ export function ArsipTable<TData, TValue>({
     </div>
   );
 }
+

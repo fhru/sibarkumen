@@ -161,7 +161,7 @@ export function KategoriTable({ data }: KategoriTableProps) {
     },
     initialState: {
       pagination: {
-        pageSize: 50,
+        pageSize: 25,
       },
     },
     onGlobalFilterChange: setGlobalFilter,
@@ -351,3 +351,4 @@ function ActionCell({
     </DropdownMenu>
   );
 }
+

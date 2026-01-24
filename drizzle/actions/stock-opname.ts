@@ -1,28 +1,28 @@
-'use server';
+"use server";
 
 // import { db } from '@/drizzle/db';
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 import {
   stockOpname,
   stockOpnameDetail,
   barang,
   pegawai,
   mutasiBarang,
-} from '@/drizzle/schema';
-import { eq, sql, and } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth-utils';
-import { Role } from '@/config/nav-items';
-import { z } from 'zod';
+} from "@/drizzle/schema";
+import { eq, sql, and } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/auth-utils";
+import { Role } from "@/config/nav-items";
+import { z } from "zod";
 
 // Zod Schema for Stock Opname Item Update
-import { stockOpnameItemSchema } from '@/lib/zod/stock-opname';
+import { stockOpnameItemSchema } from "@/lib/zod/stock-opname";
 
 // Helper to generate Stock Opname Number
 async function generateNomorStockOpname() {
   const today = new Date();
   const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, "0");
 
   // Format: SO/YYYY/MM/XXXX
   const prefix = `SO/${year}/${month}/`;
@@ -35,28 +35,28 @@ async function generateNomorStockOpname() {
 
   let nextNumber = 1;
   if (lastRecord) {
-    const parts = lastRecord.nomor.split('/');
+    const parts = lastRecord.nomor.split("/");
     const lastSeq = parseInt(parts[parts.length - 1]);
     if (!isNaN(lastSeq)) {
       nextNumber = lastSeq + 1;
     }
   }
 
-  return `${prefix}${String(nextNumber).padStart(4, '0')}`;
+  return `${prefix}${String(nextNumber).padStart(4, "0")}`;
 }
 
 export async function createStockOpnameSession(
   petugasId: number,
-  keterangan?: string
+  keterangan?: string,
 ) {
   try {
     const session = await getSession();
-    const userRole = (session?.user.role as Role) || 'petugas';
+    const userRole = (session?.user.role as Role) || "petugas";
 
-    if (userRole === 'supervisor') {
+    if (userRole === "supervisor") {
       return {
         success: false,
-        error: 'Supervisor tidak dapat membuat Stock Opname',
+        error: "Supervisor tidak dapat membuat Stock Opname",
       };
     }
 
@@ -67,8 +67,8 @@ export async function createStockOpnameSession(
       .insert(stockOpname)
       .values({
         nomor,
-        tanggal: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-        status: 'DRAFT',
+        tanggal: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+        status: "DRAFT",
         petugasId,
         keterangan,
       })
@@ -89,18 +89,18 @@ export async function createStockOpnameSession(
       await db.insert(stockOpnameDetail).values(details);
     }
 
-    revalidatePath('/dashboard/stock-opname');
+    revalidatePath("/dashboard/stock-opname");
     return { success: true, data: tHeader };
   } catch (error) {
-    console.error('Error creating stock opname session:', error);
-    return { success: false, error: 'Failed to create session' };
+    console.error("Error creating stock opname session:", error);
+    return { success: false, error: "Failed to create session" };
   }
 }
 
 export async function updateStockOpnameItem(
   detailId: number,
   stokFisik: number,
-  keterangan?: string
+  keterangan?: string,
 ) {
   try {
     // Validate input
@@ -111,7 +111,7 @@ export async function updateStockOpnameItem(
       where: eq(stockOpnameDetail.id, detailId),
     });
 
-    if (!item) return { success: false, error: 'Item not found' };
+    if (!item) return { success: false, error: "Item not found" };
 
     const selisih = validated.stokFisik - item.stokSistem;
 
@@ -127,8 +127,8 @@ export async function updateStockOpnameItem(
     revalidatePath(`/dashboard/stock-opname/${item.stockOpnameId}`);
     return { success: true };
   } catch (error) {
-    console.error('Error updating stock opname item:', error);
-    return { success: false, error: 'Failed to update item' };
+    console.error("Error updating stock opname item:", error);
+    return { success: false, error: "Failed to update item" };
   }
 }
 
@@ -136,11 +136,11 @@ export async function finalizeStockOpname(stockOpnameId: number) {
   return await db.transaction(async (tx) => {
     try {
       const authSession = await getSession(); // Variable name change to avoid conflict with 'session' used below
-      const userRole = (authSession?.user.role as Role) || 'petugas';
+      const userRole = (authSession?.user.role as Role) || "petugas";
 
-      if (userRole === 'supervisor') {
+      if (userRole === "supervisor") {
         throw new Error(
-          'Supervisor tidak dapat melakukan finalisasi Stock Opname'
+          "Supervisor tidak dapat melakukan finalisasi Stock Opname",
         );
       }
 
@@ -151,9 +151,9 @@ export async function finalizeStockOpname(stockOpnameId: number) {
         },
       });
 
-      if (!session) throw new Error('Session not found');
-      if (session.status !== 'DRAFT')
-        throw new Error('Session is not in DRAFT status');
+      if (!session) throw new Error("Session not found");
+      if (session.status !== "DRAFT")
+        throw new Error("Session is not in DRAFT status");
 
       // Filter items with selisih != 0
       const itemsToAdjust = session.items.filter((item) => item.selisih !== 0);
@@ -165,13 +165,13 @@ export async function finalizeStockOpname(stockOpnameId: number) {
         await tx.insert(mutasiBarang).values({
           barangId: item.barangId,
           tanggal: now,
-          jenisMutasi: 'PENYESUAIAN',
+          jenisMutasi: "PENYESUAIAN",
           qtyMasuk: item.selisih > 0 ? item.selisih : 0,
           qtyKeluar: item.selisih < 0 ? Math.abs(item.selisih) : 0,
           stokAkhir: item.stokFisik, // The physical stock becomes the new final stock
           referensiId: session.nomor,
-          sumberTransaksi: 'STOCK_OPNAME',
-          keterangan: `Penyesuaian Stock Opname: ${item.keterangan || '-'}`,
+          sumberTransaksi: "STOCK_OPNAME",
+          keterangan: `Penyesuaian Stock Opname: ${item.keterangan || "-"}`,
         });
 
         // Update Barang Stock
@@ -184,24 +184,24 @@ export async function finalizeStockOpname(stockOpnameId: number) {
       // Update Header Status
       await tx
         .update(stockOpname)
-        .set({ status: 'COMPLETED' })
+        .set({ status: "COMPLETED" })
         .where(eq(stockOpname.id, stockOpnameId));
 
-      revalidatePath('/dashboard/stock-opname');
+      revalidatePath("/dashboard/stock-opname");
       return { success: true };
     } catch (error: any) {
-      console.error('Error finalizing stock opname:', error);
-      return { success: false, error: error.message || 'Failed to finalize' };
+      console.error("Error finalizing stock opname:", error);
+      return { success: false, error: error.message || "Failed to finalize" };
     }
   });
 }
 
 export async function fetchStockOpnameSessions(
   page: number = 1,
-  limit: number = 10,
-  search: string = '',
+  limit: number = 25,
+  search: string = "",
   status?: string,
-  petugasId?: number
+  petugasId?: number,
 ) {
   try {
     const filters = [];
@@ -240,7 +240,7 @@ export async function fetchStockOpnameSessions(
 
     return { success: true, data, meta: { pageCount, total } };
   } catch (error) {
-    console.error('Error fetching sessions:', error);
+    console.error("Error fetching sessions:", error);
     return { success: false, data: [], meta: { pageCount: 0, total: 0 } };
   }
 }
@@ -265,12 +265,12 @@ export async function fetchStockOpnameById(id: number) {
     });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching session by id:', error);
+    console.error("Error fetching session by id:", error);
     return { success: false, data: null };
   }
 }
 
-export async function fetchPegawaiList(query: string = '') {
+export async function fetchPegawaiList(query: string = "") {
   try {
     const whereClause = query
       ? sql`${pegawai.nama} ILIKE ${`%${query}%`}`
@@ -283,7 +283,7 @@ export async function fetchPegawaiList(query: string = '') {
     });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching pegawai list:', error);
+    console.error("Error fetching pegawai list:", error);
     return { success: false, data: [] };
   }
 }

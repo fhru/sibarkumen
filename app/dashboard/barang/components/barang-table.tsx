@@ -152,7 +152,7 @@ export function BarangTable({
       columnVisibility,
       pagination: {
         pageIndex: page - 1,
-        pageSize: 50,
+        pageSize: 25,
       },
     },
     getCoreRowModel: getCoreRowModel(),
@@ -326,3 +326,4 @@ export function BarangTable({
     </BarangTableProvider>
   );
 }
+

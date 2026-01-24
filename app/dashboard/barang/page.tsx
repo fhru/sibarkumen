@@ -1,11 +1,11 @@
-import { Suspense } from 'react';
-import { getBarangList, getBarangStats } from '@/drizzle/actions/barang';
-import { BarangTable } from './components/barang-table';
-import { BarangStats } from './components/barang-stats';
-import { db } from '@/lib/db';
-import { kategori, satuan } from '@/drizzle/schema';
-import { getSession } from '@/lib/auth-utils';
-import { Role } from '@/config/nav-items';
+import { Suspense } from "react";
+import { getBarangList, getBarangStats } from "@/drizzle/actions/barang";
+import { BarangTable } from "./components/barang-table";
+import { BarangStats } from "./components/barang-stats";
+import { db } from "@/lib/db";
+import { kategori, satuan } from "@/drizzle/schema";
+import { getSession } from "@/lib/auth-utils";
+import { Role } from "@/config/nav-items";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,12 +13,12 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { BarangDialogCreate } from './components/barang-dialog-create';
+} from "@/components/ui/breadcrumb";
+import { BarangDialogCreate } from "./components/barang-dialog-create";
 
 export const metadata = {
-  title: 'Barang | Sibarkumen',
-  description: 'Kelola daftar barang di sini.',
+  title: "Barang | Sibarkumen",
+  description: "Kelola daftar barang di sini.",
 };
 
 export default async function BarangPage(props: {
@@ -32,15 +32,15 @@ export default async function BarangPage(props: {
   }>;
 }) {
   const searchParams = await props.searchParams;
-  const search = searchParams?.search || '';
+  const search = searchParams?.search || "";
   const page = Number(searchParams?.page) || 1;
-  const sort = searchParams?.sort || 'updatedAt';
-  const order = (searchParams?.order as 'asc' | 'desc') || 'desc';
+  const sort = searchParams?.sort || "updatedAt";
+  const order = (searchParams?.order as "asc" | "desc") || "desc";
   const categories = searchParams?.categories
-    ? searchParams.categories.split(',').map(Number)
+    ? searchParams.categories.split(",").map(Number)
     : undefined;
   const status = searchParams?.status;
-  const limit = 50;
+  const limit = 25;
 
   const [dataPayload, stats, kategoriList, satuanList, session] =
     await Promise.all([
@@ -51,7 +51,7 @@ export default async function BarangPage(props: {
       getSession(),
     ]);
 
-  const userRole = (session?.user.role as Role) || 'petugas';
+  const userRole = (session?.user.role as Role) || "petugas";
 
   const { data, meta } = dataPayload;
 
@@ -76,7 +76,7 @@ export default async function BarangPage(props: {
           <h2 className="text-2xl font-bold tracking-tight">Data Barang</h2>
           <p className="text-muted-foreground">Kelola daftar barang di sini.</p>
         </div>
-        {userRole !== 'supervisor' && (
+        {userRole !== "supervisor" && (
           <BarangDialogCreate
             kategoriList={kategoriList}
             satuanList={satuanList}

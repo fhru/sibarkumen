@@ -1,6 +1,7 @@
 import { count, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { barang, spb, sppb, bastKeluar } from "@/drizzle/schema";
+import { auth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -127,6 +128,13 @@ async function buildContextSummary() {
 }
 
 export async function POST(req: Request) {
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const apiKey = getNextApiKey();
   if (!apiKey) {
     return new Response("Missing OPENROUTER_API_KEY(S)", { status: 500 });

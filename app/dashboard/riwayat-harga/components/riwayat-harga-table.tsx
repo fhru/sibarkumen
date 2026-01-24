@@ -112,7 +112,7 @@ export function RiwayatHargaTable({
       columnVisibility,
       pagination: {
         pageIndex: page - 1,
-        pageSize: 50,
+        pageSize: 25,
       },
     },
   });
@@ -331,3 +331,4 @@ export function RiwayatHargaTable({
     </div>
   );
 }
+

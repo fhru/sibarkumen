@@ -1,12 +1,12 @@
 import {
   getBastKeluarList,
   getBastKeluarStats,
-} from '@/drizzle/actions/bast-keluar';
-import { BastKeluarTable } from './components/bast-keluar-table';
-import { BastKeluarStats } from './components/bast-keluar-stats';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+} from "@/drizzle/actions/bast-keluar";
+import { BastKeluarTable } from "./components/bast-keluar-table";
+import { BastKeluarStats } from "./components/bast-keluar-stats";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,13 +14,13 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { getSession } from '@/lib/auth-utils';
-import { Role } from '@/config/nav-items';
+} from "@/components/ui/breadcrumb";
+import { getSession } from "@/lib/auth-utils";
+import { Role } from "@/config/nav-items";
 
 export const metadata = {
-  title: 'BAST Keluar | Sibarkumen',
-  description: 'Kelola berita acara serah terima barang keluar',
+  title: "BAST Keluar | Sibarkumen",
+  description: "Kelola berita acara serah terima barang keluar",
 };
 
 export default async function BastKeluarPage({
@@ -30,16 +30,16 @@ export default async function BastKeluarPage({
 }) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
-  const limit = Number(params.limit) || 50;
-  const search = (params.search as string) || '';
+  const limit = Number(params.limit) || 25;
+  const search = (params.search as string) || "";
   const sortBy = (params.sortBy as string) || undefined;
-  const sortOrder = (params.sortOrder as 'asc' | 'desc') || undefined;
+  const sortOrder = (params.sortOrder as "asc" | "desc") || undefined;
   const startDate = (params.startDate as string) || undefined;
   const endDate = (params.endDate as string) || undefined;
   const isPrinted =
-    params.isPrinted === 'true'
+    params.isPrinted === "true"
       ? true
-      : params.isPrinted === 'false'
+      : params.isPrinted === "false"
         ? false
         : undefined;
 
@@ -58,7 +58,7 @@ export default async function BastKeluarPage({
     getSession(),
   ]);
 
-  const userRole = (session?.user.role as Role) || 'petugas';
+  const userRole = (session?.user.role as Role) || "petugas";
 
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4">
@@ -83,7 +83,7 @@ export default async function BastKeluarPage({
             Kelola Berita Acara Serah Terima Barang Keluar
           </p>
         </div>
-        {userRole !== 'supervisor' && (
+        {userRole !== "supervisor" && (
           <Link href="/dashboard/bast-keluar/create">
             <Button>
               <Plus className="mr-2 h-4 w-4" />

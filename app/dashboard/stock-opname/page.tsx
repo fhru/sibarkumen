@@ -1,10 +1,10 @@
 import {
   fetchStockOpnameSessions,
   fetchPegawaiList,
-} from '@/drizzle/actions/stock-opname';
-import { getSession } from '@/lib/auth-utils';
-import { Role } from '@/config/nav-items';
-import { CreateStockOpnameDialog } from '@/app/dashboard/stock-opname/components/create-stock-opname-dialog';
+} from "@/drizzle/actions/stock-opname";
+import { getSession } from "@/lib/auth-utils";
+import { Role } from "@/config/nav-items";
+import { CreateStockOpnameDialog } from "@/app/dashboard/stock-opname/components/create-stock-opname-dialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,9 +12,9 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { Suspense } from 'react';
-import { StockOpnameTable } from './components/stock-opname-table';
+} from "@/components/ui/breadcrumb";
+import { Suspense } from "react";
+import { StockOpnameTable } from "./components/stock-opname-table";
 
 export default async function StockOpnamePage(props: {
   searchParams?: Promise<{
@@ -25,13 +25,13 @@ export default async function StockOpnamePage(props: {
   }>;
 }) {
   const searchParams = await props.searchParams;
-  const search = searchParams?.search || '';
+  const search = searchParams?.search || "";
   const page = Number(searchParams?.page) || 1;
   const status = searchParams?.status;
   const petugasId = searchParams?.petugas
     ? Number(searchParams.petugas)
     : undefined;
-  const limit = 10;
+  const limit = 25;
 
   const [sessionsResult, pegawaiResult, session] = await Promise.all([
     fetchStockOpnameSessions(page, limit, search, status, petugasId),
@@ -39,7 +39,7 @@ export default async function StockOpnamePage(props: {
     getSession(),
   ]);
 
-  const userRole = (session?.user.role as Role) || 'petugas';
+  const userRole = (session?.user.role as Role) || "petugas";
 
   const sessions = sessionsResult.data || [];
   const meta = sessionsResult.meta || { pageCount: 0, total: 0 };
@@ -74,7 +74,7 @@ export default async function StockOpnamePage(props: {
             Kelola sesi stock opname dan penyesuaian stok.
           </p>
         </div>
-        {userRole !== 'supervisor' && (
+        {userRole !== "supervisor" && (
           <CreateStockOpnameDialog pegawaiList={pegawaiList} />
         )}
       </div>

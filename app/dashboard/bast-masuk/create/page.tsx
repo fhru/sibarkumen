@@ -1,10 +1,10 @@
-import { db } from '@/lib/db';
-import { satuan, asalPembelian, kodeRekening } from '@/drizzle/schema';
-import { BastMasukForm } from '../components/bast-masuk-form';
-import { generateDocumentNumber } from '@/lib/document-numbering-utils';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, BookOpen, ExternalLink, Info } from 'lucide-react';
+import { db } from "@/lib/db";
+import { satuan, asalPembelian, kodeRekening } from "@/drizzle/schema";
+import { BastMasukForm } from "../components/bast-masuk-form";
+import { generateDocumentNumberWithRetry } from "@/lib/document-numbering-utils";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, BookOpen, ExternalLink, Info } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,11 +12,11 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+} from "@/components/ui/breadcrumb";
 
 export const metadata = {
-  title: 'Buat BAST Masuk',
-  description: 'Input data penerimaan barang baru',
+  title: "Buat BAST Masuk",
+  description: "Input data penerimaan barang baru",
 };
 
 export default async function CreateBastMasukPage() {
@@ -33,7 +33,7 @@ export default async function CreateBastMasukPage() {
         uraian: kodeRekening.uraian,
       })
       .from(kodeRekening),
-    generateDocumentNumber('bastMasuk'),
+    generateDocumentNumberWithRetry("bastMasuk"),
   ]);
 
   return (

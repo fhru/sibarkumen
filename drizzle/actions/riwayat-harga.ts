@@ -1,19 +1,19 @@
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 import {
   bastMasuk,
   bastMasukDetail,
   barang,
   pihakKetiga,
-} from '@/drizzle/schema';
-import { desc, eq, and, sql, gte, lte, asc, ilike } from 'drizzle-orm';
+} from "@/drizzle/schema";
+import { desc, eq, and, sql, gte, lte, asc, ilike } from "drizzle-orm";
 
 export async function getRiwayatHargaStats() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     .toISOString()
-    .split('T')[0];
+    .split("T")[0];
 
   const [totalStats] = await db
     .select({
@@ -39,13 +39,13 @@ export async function getRiwayatHargaStats() {
 
 export async function getRiwayatHarga(
   page: number = 1,
-  pageSize: number = 50,
-  search: string = '',
-  sortBy: string = 'bastMasuk.tanggalBast',
-  sortOrder: 'asc' | 'desc' = 'desc',
+  pageSize: number = 25,
+  search: string = "",
+  sortBy: string = "bastMasuk.tanggalBast",
+  sortOrder: "asc" | "desc" = "desc",
   pihakKetigaId?: number,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
 ) {
   try {
     const filters = [];
@@ -74,20 +74,20 @@ export async function getRiwayatHarga(
     let orderBy;
     const sortColumn = (() => {
       switch (sortBy) {
-        case 'barang.nama':
+        case "barang.nama":
           return barang.nama;
-        case 'barang.kodeBarang':
+        case "barang.kodeBarang":
           return barang.kodeBarang;
-        case 'bastMasukDetail.hargaSatuan':
+        case "bastMasukDetail.hargaSatuan":
           return bastMasukDetail.hargaSatuan;
-        case 'bastMasuk.tanggalBast':
+        case "bastMasuk.tanggalBast":
           return bastMasuk.tanggalBast;
         default:
           return bastMasuk.tanggalBast;
       }
     })();
 
-    orderBy = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
+    orderBy = sortOrder === "asc" ? asc(sortColumn) : desc(sortColumn);
 
     // Fetch data
     const data = await db
@@ -133,17 +133,17 @@ export async function getRiwayatHarga(
       },
     };
   } catch (error) {
-    console.error('Error fetching price history:', error);
+    console.error("Error fetching price history:", error);
     return {
       success: false,
       data: [],
       meta: {
         page: 1,
-        pageSize: 50,
+        pageSize: 25,
         total: 0,
         pageCount: 1,
       },
-      error: 'Failed to fetch price history',
+      error: "Failed to fetch price history",
     };
   }
 }

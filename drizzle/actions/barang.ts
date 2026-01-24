@@ -1,15 +1,15 @@
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 import {
   barang,
   kategori,
   satuan,
   bastMasuk,
   bastMasukDetail,
-} from '@/drizzle/schema';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
+} from "@/drizzle/schema";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
   eq,
   desc,
@@ -23,13 +23,13 @@ import {
   lte,
   gt,
   sql,
-} from 'drizzle-orm';
-import { getSession } from '@/lib/auth-utils';
-import { Role } from '@/config/nav-items';
+} from "drizzle-orm";
+import { getSession } from "@/lib/auth-utils";
+import { Role } from "@/config/nav-items";
 
 // --- ACTIONS ---
 
-import { createBarangSchema, updateBarangSchema } from '@/lib/zod/barang';
+import { createBarangSchema, updateBarangSchema } from "@/lib/zod/barang";
 
 export async function createBarang(prevState: any, formData: FormData) {
   try {
@@ -37,13 +37,13 @@ export async function createBarang(prevState: any, formData: FormData) {
     const validatedData = createBarangSchema.parse(rawData);
 
     const session = await getSession();
-    const userRole = (session?.user.role as Role) || 'petugas';
+    const userRole = (session?.user.role as Role) || "petugas";
 
-    if (userRole === 'supervisor') {
-      throw new Error('Supervisor tidak dapat menambah barang');
+    if (userRole === "supervisor") {
+      throw new Error("Supervisor tidak dapat menambah barang");
     }
 
-    let newKodeBarang = '';
+    let newKodeBarang = "";
 
     await db.transaction(async (tx) => {
       // Ambil prefix kategori
@@ -54,7 +54,7 @@ export async function createBarang(prevState: any, formData: FormData) {
         .limit(1);
 
       if (!kategoriData) {
-        throw new Error('Kategori tidak ditemukan');
+        throw new Error("Kategori tidak ditemukan");
       }
 
       const prefix = kategoriData.prefix;
@@ -72,7 +72,7 @@ export async function createBarang(prevState: any, formData: FormData) {
       let nextNumber = 1;
       if (latestBarang) {
         // Format: PRE.1234
-        const parts = latestBarang.kodeBarang.split('.');
+        const parts = latestBarang.kodeBarang.split(".");
         if (parts.length >= 2) {
           const lastNum = parseInt(parts[parts.length - 1], 10);
           if (!isNaN(lastNum)) {
@@ -82,7 +82,7 @@ export async function createBarang(prevState: any, formData: FormData) {
       }
 
       // Format Kode Baru: PREFIX.0001
-      newKodeBarang = `${prefix}.${nextNumber.toString().padStart(4, '0')}`;
+      newKodeBarang = `${prefix}.${nextNumber.toString().padStart(4, "0")}`;
 
       // Insert ke Database
       await tx.insert(barang).values({
@@ -95,40 +95,40 @@ export async function createBarang(prevState: any, formData: FormData) {
       });
     });
 
-    revalidatePath('/dashboard/barang');
+    revalidatePath("/dashboard/barang");
     return {
       success: true,
       message: `Barang berhasil ditambahkan with kode ${newKodeBarang}`,
     };
   } catch (error: any) {
-    console.error('Failed to create barang:', error);
+    console.error("Failed to create barang:", error);
 
     // Handle Zod Error
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        message: 'Validasi gagal',
+        message: "Validasi gagal",
         errors: error.flatten().fieldErrors,
       };
     }
 
     // Handle Error Database (Misal Kode Unik Duplicate)
     if (
-      error.code === '23505' ||
-      error.message?.includes('Unique constraint') ||
-      error.message?.includes('duplicate key') ||
-      error.message?.includes('Failed query')
+      error.code === "23505" ||
+      error.message?.includes("Unique constraint") ||
+      error.message?.includes("duplicate key") ||
+      error.message?.includes("Failed query")
     ) {
       return {
         success: false,
         message:
-          'Nama barang sudah ada (duplikat) atau Kode Barang bentrok. Silakan coba lagi.',
+          "Nama barang sudah ada (duplikat) atau Kode Barang bentrok. Silakan coba lagi.",
       };
     }
 
     return {
       success: false,
-      message: error.message || 'Gagal menambahkan barang.',
+      message: error.message || "Gagal menambahkan barang.",
     };
   }
 }
@@ -139,10 +139,10 @@ export async function updateBarang(prevState: any, formData: FormData) {
     const validatedData = updateBarangSchema.parse(rawData);
 
     const session = await getSession();
-    const userRole = (session?.user.role as Role) || 'petugas';
+    const userRole = (session?.user.role as Role) || "petugas";
 
-    if (userRole === 'supervisor') {
-      throw new Error('Supervisor tidak dapat mengubah data barang');
+    if (userRole === "supervisor") {
+      throw new Error("Supervisor tidak dapat mengubah data barang");
     }
 
     await db
@@ -157,30 +157,30 @@ export async function updateBarang(prevState: any, formData: FormData) {
       })
       .where(eq(barang.id, validatedData.id));
 
-    revalidatePath('/dashboard/barang');
-    return { success: true, message: 'Barang berhasil diperbarui' };
+    revalidatePath("/dashboard/barang");
+    return { success: true, message: "Barang berhasil diperbarui" };
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        message: 'Gagal validasi data',
+        message: "Gagal validasi data",
         errors: error.flatten().fieldErrors,
       };
     }
     if (
-      error.code === '23505' ||
-      error.message?.includes('duplicate key') ||
-      error.message?.includes('unique constraint') ||
-      error.message?.includes('Failed query')
+      error.code === "23505" ||
+      error.message?.includes("duplicate key") ||
+      error.message?.includes("unique constraint") ||
+      error.message?.includes("Failed query")
     ) {
       return {
         success: false,
-        message: 'Nama barang sudah ada (duplikat)',
+        message: "Nama barang sudah ada (duplikat)",
       };
     }
     return {
       success: false,
-      message: 'Gagal memperbarui barang: ' + error.message,
+      message: "Gagal memperbarui barang: " + error.message,
     };
   }
 }
@@ -188,19 +188,19 @@ export async function updateBarang(prevState: any, formData: FormData) {
 export async function deleteBarang(id: number) {
   try {
     const session = await getSession();
-    const userRole = (session?.user.role as Role) || 'petugas';
+    const userRole = (session?.user.role as Role) || "petugas";
 
-    if (userRole === 'supervisor') {
-      throw new Error('Supervisor tidak dapat menghapus barang');
+    if (userRole === "supervisor") {
+      throw new Error("Supervisor tidak dapat menghapus barang");
     }
 
     await db.delete(barang).where(eq(barang.id, id));
-    revalidatePath('/dashboard/barang');
-    return { success: true, message: 'Barang berhasil dihapus' };
+    revalidatePath("/dashboard/barang");
+    return { success: true, message: "Barang berhasil dihapus" };
   } catch (error: any) {
     return {
       success: false,
-      message: 'Gagal menghapus barang: ' + error.message,
+      message: "Gagal menghapus barang: " + error.message,
     };
   }
 }
@@ -246,7 +246,7 @@ export async function getBarangStats() {
 
   const topCategory = topCategoryResult[0]
     ? `${topCategoryResult[0].kategoriNama} (${topCategoryResult[0].count})`
-    : '-';
+    : "-";
 
   return {
     totalItems,
@@ -257,12 +257,12 @@ export async function getBarangStats() {
 
 export async function getBarangList(
   page: number = 1,
-  limit: number = 10,
+  limit: number = 25,
   search?: string,
-  sortBy: string = 'updatedAt',
-  sortOrder: 'asc' | 'desc' = 'desc',
+  sortBy: string = "updatedAt",
+  sortOrder: "asc" | "desc" = "desc",
   categoryIds?: number[],
-  status?: string // 'available' | 'low' | 'out'
+  status?: string, // 'available' | 'low' | 'out'
 ) {
   const offset = (page - 1) * limit;
 
@@ -272,8 +272,8 @@ export async function getBarangList(
     filters.push(
       or(
         ilike(barang.nama, `%${search}%`),
-        ilike(barang.kodeBarang, `%${search}%`)
-      )
+        ilike(barang.kodeBarang, `%${search}%`),
+      ),
     );
   }
 
@@ -282,11 +282,11 @@ export async function getBarangList(
   }
 
   if (status) {
-    if (status === 'out') {
+    if (status === "out") {
       filters.push(eq(barang.stok, 0));
-    } else if (status === 'low') {
+    } else if (status === "low") {
       filters.push(and(gt(barang.stok, 0), lte(barang.stok, 5)));
-    } else if (status === 'available') {
+    } else if (status === "available") {
       filters.push(gt(barang.stok, 0));
     }
   }
@@ -319,21 +319,21 @@ export async function getBarangList(
     .leftJoin(satuan, eq(barang.satuanId, satuan.id))
     .where(whereClause)
     .orderBy(
-      sortBy === 'nama'
-        ? sortOrder === 'asc'
+      sortBy === "nama"
+        ? sortOrder === "asc"
           ? asc(barang.nama)
           : desc(barang.nama)
-        : sortBy === 'kodeBarang'
-          ? sortOrder === 'asc'
+        : sortBy === "kodeBarang"
+          ? sortOrder === "asc"
             ? asc(barang.kodeBarang)
             : desc(barang.kodeBarang)
-          : sortBy === 'stok'
-            ? sortOrder === 'asc'
+          : sortBy === "stok"
+            ? sortOrder === "asc"
               ? asc(barang.stok)
               : desc(barang.stok)
-            : sortOrder === 'asc'
+            : sortOrder === "asc"
               ? asc(barang.updatedAt)
-              : desc(barang.updatedAt)
+              : desc(barang.updatedAt),
     )
     .limit(limit)
     .offset(offset);

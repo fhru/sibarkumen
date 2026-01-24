@@ -13,10 +13,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import {
-  generateBastKeluarNumber,
-  generateBastKeluarNumberFromSPB,
-} from "./generate-number";
+import { generateBastKeluarNumberFromSPB } from "./generate-number";
+import { generateDocumentNumberWithRetry } from "@/lib/document-numbering-utils";
 import {
   bastKeluarFormSchema,
   bastKeluarItemSchema,
@@ -120,9 +118,21 @@ export async function createBastKeluarFromSPPB(
 
     await db.transaction(async (tx) => {
       // Generate BAST number
-      const nomorBast = sppbData.spb?.nomorSpb
+      let nomorBast = sppbData.spb?.nomorSpb
         ? await generateBastKeluarNumberFromSPB(sppbData.spb.nomorSpb)
-        : await generateBastKeluarNumber();
+        : await generateDocumentNumberWithRetry("bastKeluar");
+
+      if (sppbData.spb?.nomorSpb) {
+        const exists = await tx
+          .select({ id: bastKeluar.id })
+          .from(bastKeluar)
+          .where(eq(bastKeluar.nomorBast, nomorBast))
+          .limit(1);
+
+        if (exists.length > 0) {
+          nomorBast = await generateDocumentNumberWithRetry("bastKeluar");
+        }
+      }
 
       // Create BAST Keluar Header
       const [newBast] = await tx
@@ -243,6 +253,74 @@ export async function updateBastKeluar(
       calculateFinancials(validated.items);
 
     await db.transaction(async (tx) => {
+      const oldDetails = await tx.query.bastKeluarDetail.findMany({
+        where: eq(bastKeluarDetail.bastKeluarId, id),
+      });
+
+      const oldQtyMap = new Map<number, number>();
+      for (const item of oldDetails) {
+        oldQtyMap.set(
+          item.barangId,
+          (oldQtyMap.get(item.barangId) || 0) + item.qtySerahTerima,
+        );
+      }
+
+      const newQtyMap = new Map<number, number>();
+      for (const item of validated.items) {
+        newQtyMap.set(
+          item.barangId,
+          (newQtyMap.get(item.barangId) || 0) + item.qtySerahTerima,
+        );
+      }
+
+      const affectedBarangIds = new Set<number>([
+        ...oldQtyMap.keys(),
+        ...newQtyMap.keys(),
+      ]);
+
+      // Adjust stock and create mutasi based on delta between old and new quantities
+      for (const barangId of affectedBarangIds) {
+        const oldQty = oldQtyMap.get(barangId) || 0;
+        const newQty = newQtyMap.get(barangId) || 0;
+        const delta = newQty - oldQty;
+
+        if (delta === 0) continue;
+
+        const [currentBarang] = await tx
+          .select({ stok: barang.stok, nama: barang.nama })
+          .from(barang)
+          .where(eq(barang.id, barangId));
+
+        const currentStock = currentBarang?.stok || 0;
+        const newStock = currentStock - delta;
+
+        if (delta > 0 && newStock < 0) {
+          throw new Error(
+            `Stok barang "${currentBarang?.nama || "Unknown"}" tidak cukup. Stok saat ini (${currentStock}), tambahan dibutuhkan ${delta}.`,
+          );
+        }
+
+        await tx
+          .update(barang)
+          .set({ stok: newStock })
+          .where(eq(barang.id, barangId));
+
+        await tx.insert(mutasiBarang).values({
+          barangId,
+          tanggal: new Date(),
+          jenisMutasi: delta > 0 ? "KELUAR" : "PENYESUAIAN",
+          qtyMasuk: delta < 0 ? Math.abs(delta) : 0,
+          qtyKeluar: delta > 0 ? delta : 0,
+          stokAkhir: newStock,
+          referensiId: existingBast.nomorBast,
+          sumberTransaksi: "EDIT_BAST_KELUAR",
+          keterangan:
+            delta > 0
+              ? `Penambahan qty BAST ${existingBast.nomorBast}`
+              : `Pengurangan qty BAST ${existingBast.nomorBast}`,
+        });
+      }
+
       // Update BAST Keluar Header
       await tx
         .update(bastKeluar)
@@ -312,6 +390,37 @@ export async function deleteBastKeluar(id: number) {
     }
 
     await db.transaction(async (tx) => {
+      const details = await tx.query.bastKeluarDetail.findMany({
+        where: eq(bastKeluarDetail.bastKeluarId, id),
+      });
+
+      for (const item of details) {
+        const [currentBarang] = await tx
+          .select({ stok: barang.stok, nama: barang.nama })
+          .from(barang)
+          .where(eq(barang.id, item.barangId));
+
+        const currentStock = currentBarang?.stok || 0;
+        const newStock = currentStock + item.qtySerahTerima;
+
+        await tx
+          .update(barang)
+          .set({ stok: newStock })
+          .where(eq(barang.id, item.barangId));
+
+        await tx.insert(mutasiBarang).values({
+          barangId: item.barangId,
+          tanggal: new Date(),
+          jenisMutasi: "PENYESUAIAN",
+          qtyMasuk: item.qtySerahTerima,
+          qtyKeluar: 0,
+          stokAkhir: newStock,
+          referensiId: existingBast.nomorBast,
+          sumberTransaksi: "PEMBATALAN_BAST_KELUAR",
+          keterangan: `Pembatalan BAST ${existingBast.nomorBast}`,
+        });
+      }
+
       await tx.delete(bastKeluar).where(eq(bastKeluar.id, id));
 
       // Revert SPPB status to MENUNGGU_BAST if it exists
@@ -416,7 +525,7 @@ export async function getBastKeluarList(params?: {
   endDate?: string;
 }) {
   const page = params?.page || 1;
-  const limit = params?.limit || 50;
+  const limit = params?.limit || 25;
   const offset = (page - 1) * limit;
 
   const conditions = [];

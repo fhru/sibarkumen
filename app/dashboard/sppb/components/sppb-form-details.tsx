@@ -32,6 +32,14 @@ interface SPPBFormDetailsProps {
   initialData?: any;
 }
 
+function isBeforeDay(date: Date, minDate: Date) {
+  const candidate = new Date(date);
+  const min = new Date(minDate);
+  candidate.setHours(0, 0, 0, 0);
+  min.setHours(0, 0, 0, 0);
+  return candidate < min;
+}
+
 export function SPPBFormDetails({
   pendingSPBs,
   isEdit,
@@ -49,10 +57,15 @@ export function SPPBFormDetails({
     list: any[];
   } | null>(null);
   const pejabatId = watch("pejabatPenyetujuId");
+  const spbId = watch("spbId");
   const jabatanList = useMemo(() => {
     if (!pejabatId || jabatanData?.pegawaiId !== pejabatId) return [];
     return jabatanData.list;
   }, [pejabatId, jabatanData]);
+  const spbDateSource =
+    pendingSPBs.find((spb) => spb.id === spbId)?.tanggalSpb ||
+    initialData?.spb?.tanggalSpb;
+  const minSpbDate = spbDateSource ? new Date(spbDateSource) : null;
 
   useEffect(() => {
     let isActive = true;
@@ -170,7 +183,9 @@ export function SPPBFormDetails({
                       selected={field.value}
                       onSelect={field.onChange}
                       disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
+                        date > new Date() ||
+                        date < new Date("1900-01-01") ||
+                        (minSpbDate ? isBeforeDay(date, minSpbDate) : false)
                       }
                       initialFocus
                     />

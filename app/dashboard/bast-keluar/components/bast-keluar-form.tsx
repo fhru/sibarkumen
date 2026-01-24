@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, FormProvider, useWatch } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import {
   createBastKeluarFromSPPB,
   updateBastKeluar,
-} from '@/drizzle/actions/bast-keluar';
-import { Info, DollarSign } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { useState, useEffect, useMemo } from 'react';
+} from "@/drizzle/actions/bast-keluar";
+import { Info, DollarSign } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useState, useEffect, useMemo } from "react";
 import {
   bastKeluarFormSchema,
   BastKeluarFormValues,
-} from '@/lib/zod/bast-keluar-schema';
-import { BastKeluarFormDetails } from './bast-keluar-form-details';
-import { BastKeluarFormItems } from './bast-keluar-form-items';
+} from "@/lib/zod/bast-keluar-schema";
+import { BastKeluarFormDetails } from "./bast-keluar-form-details";
+import { BastKeluarFormItems } from "./bast-keluar-form-items";
 
 interface BastKeluarFormProps {
   completedSPPBs: any[];
@@ -39,23 +39,23 @@ export function BastKeluarForm({
   const methods = useForm<BastKeluarFormValues>({
     resolver: zodResolver(bastKeluarFormSchema),
     defaultValues: initialData || {
-      sppbId: preSelectedSppbId || 0,
+      sppbId: preSelectedSppbId ?? undefined,
       tanggalBast: new Date(),
-      pihakPertamaId: 0,
-      jabatanPihakPertamaId: initialData?.jabatanPihakPertamaId,
-      pihakKeduaId: 0,
-      jabatanPihakKeduaId: initialData?.jabatanPihakKeduaId,
-      keterangan: '',
+      pihakPertamaId: undefined,
+      jabatanPihakPertamaId: undefined,
+      pihakKeduaId: undefined,
+      jabatanPihakKeduaId: undefined,
+      keterangan: "",
       items: [],
     },
   });
 
   const { watch, setValue, handleSubmit, formState, control } = methods;
-  const watchSppbId = watch('sppbId');
+  const watchSppbId = watch("sppbId");
 
   const watchItems = useWatch({
     control,
-    name: 'items',
+    name: "items",
     defaultValue: [],
   });
 
@@ -87,7 +87,7 @@ export function BastKeluarForm({
           // We can just set the ID.
           // BUT wait, SPPB data fetched in create/page.tsx needs to include SPB -> Pemohon relation.
 
-          setValue('pihakKeduaId', sppb.spb.pemohonId);
+          setValue("pihakKeduaId", sppb.spb.pemohonId);
         }
 
         const items = sppb.items.map((item: any) => ({
@@ -95,9 +95,9 @@ export function BastKeluarForm({
           qtySerahTerima: item.qtyDisetujui,
           hargaSatuan: 0,
           persentasePpn: 0,
-          keterangan: '',
+          keterangan: "",
         }));
-        setValue('items', items);
+        setValue("items", items);
       }
     }
   }, [watchSppbId, completedSPPBs, isEdit, setValue]);
@@ -127,12 +127,12 @@ export function BastKeluarForm({
 
       if (result.success) {
         toast.success(result.message);
-        router.push('/dashboard/bast-keluar');
+        router.push("/dashboard/bast-keluar");
       } else {
         toast.error(result.message);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Terjadi kesalahan');
+      toast.error(error.message || "Terjadi kesalahan");
     } finally {
       setIsSubmitting(false);
     }
@@ -182,13 +182,13 @@ export function BastKeluarForm({
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
                     <span>
-                      Rp {financials.subtotal.toLocaleString('id-ID')}
+                      Rp {financials.subtotal.toLocaleString("id-ID")}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">PPN</span>
                     <span>
-                      Rp {financials.totalPpn.toLocaleString('id-ID')}
+                      Rp {financials.totalPpn.toLocaleString("id-ID")}
                     </span>
                   </div>
 
@@ -197,7 +197,7 @@ export function BastKeluarForm({
                       Grand Total
                     </div>
                     <div className="text-xl font-bold font-mono text-primary">
-                      Rp {financials.grandTotal.toLocaleString('id-ID')}
+                      Rp {financials.grandTotal.toLocaleString("id-ID")}
                     </div>
                   </div>
                 </div>
@@ -216,10 +216,10 @@ export function BastKeluarForm({
                     className="w-full h-11"
                   >
                     {isSubmitting || formState.isSubmitting
-                      ? 'Menyimpan...'
+                      ? "Menyimpan..."
                       : isEdit
-                        ? 'Simpan Perubahan'
-                        : 'Simpan BAST'}
+                        ? "Simpan Perubahan"
+                        : "Simpan BAST"}
                   </Button>
 
                   <Button

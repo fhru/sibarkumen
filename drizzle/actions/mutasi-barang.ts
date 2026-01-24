@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
-import { mutasiBarang, barang, bastKeluar, bastMasuk } from '@/drizzle/schema';
+import { db } from "@/lib/db";
+import { mutasiBarang, barang, bastKeluar, bastMasuk } from "@/drizzle/schema";
 import {
   count,
   desc,
@@ -13,9 +13,9 @@ import {
   asc,
   or,
   like,
-} from 'drizzle-orm';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+} from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 // Helper to check authentication
 async function checkAuth() {
@@ -23,7 +23,7 @@ async function checkAuth() {
     headers: await headers(),
   });
   if (!session) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
   return session;
 }
@@ -53,7 +53,7 @@ export async function getMutasiBarangStats() {
       count: count(),
     })
     .from(mutasiBarang)
-    .where(eq(mutasiBarang.jenisMutasi, 'PENYESUAIAN'));
+    .where(eq(mutasiBarang.jenisMutasi, "PENYESUAIAN"));
   const totalPenyesuaian = totalPenyesuaianResult?.count ?? 0;
 
   // Total Transaksi
@@ -77,15 +77,15 @@ export async function getMutasiBarangList(params?: {
   limit?: number;
   search?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   barangId?: number;
-  jenisMutasi?: 'MASUK' | 'KELUAR' | 'PENYESUAIAN';
+  jenisMutasi?: "MASUK" | "KELUAR" | "PENYESUAIAN";
   startDate?: string;
   endDate?: string;
   sumberTransaksi?: string;
 }) {
   const page = params?.page || 1;
-  const limit = params?.limit || 50;
+  const limit = params?.limit || 25;
   const offset = (page - 1) * limit;
 
   const conditions = [];
@@ -121,8 +121,8 @@ export async function getMutasiBarangList(params?: {
       or(
         sql`LOWER(${barang.nama}) LIKE ${searchTerm}`,
         sql`LOWER(${barang.kodeBarang}) LIKE ${searchTerm}`,
-        sql`LOWER(COALESCE(${mutasiBarang.referensiId}, '')) LIKE ${searchTerm}`
-      )
+        sql`LOWER(COALESCE(${mutasiBarang.referensiId}, '')) LIKE ${searchTerm}`,
+      ),
     );
   }
 
@@ -140,18 +140,18 @@ export async function getMutasiBarangList(params?: {
 
   // Determine sort column and order
   let orderByClause;
-  const sortOrder = params?.sortOrder || 'desc';
+  const sortOrder = params?.sortOrder || "desc";
 
   switch (params?.sortBy) {
-    case 'tanggal':
+    case "tanggal":
       orderByClause =
-        sortOrder === 'asc'
+        sortOrder === "asc"
           ? [asc(mutasiBarang.tanggal), asc(mutasiBarang.id)]
           : [desc(mutasiBarang.tanggal), desc(mutasiBarang.id)];
       break;
-    case 'barang':
+    case "barang":
       orderByClause =
-        sortOrder === 'asc'
+        sortOrder === "asc"
           ? [asc(barang.nama), asc(mutasiBarang.id)]
           : [desc(barang.nama), desc(mutasiBarang.id)];
       break;
@@ -222,7 +222,7 @@ export async function getMutasiBarangById(id: number) {
 
 export async function getMutasiBarang(filters?: {
   barangId?: number;
-  jenisMutasi?: 'MASUK' | 'KELUAR' | 'PENYESUAIAN';
+  jenisMutasi?: "MASUK" | "KELUAR" | "PENYESUAIAN";
   startDate?: Date;
   endDate?: Date;
 }) {
@@ -233,8 +233,8 @@ export async function getMutasiBarang(filters?: {
     const params = {
       barangId: filters?.barangId,
       jenisMutasi: filters?.jenisMutasi,
-      startDate: filters?.startDate?.toISOString().split('T')[0],
-      endDate: filters?.endDate?.toISOString().split('T')[0],
+      startDate: filters?.startDate?.toISOString().split("T")[0],
+      endDate: filters?.endDate?.toISOString().split("T")[0],
     };
 
     const result = await getMutasiBarangList(params);
@@ -242,7 +242,7 @@ export async function getMutasiBarang(filters?: {
   } catch (error: any) {
     return {
       success: false,
-      message: error.message || 'Gagal mengambil data mutasi',
+      message: error.message || "Gagal mengambil data mutasi",
       data: [],
     };
   }
@@ -253,13 +253,13 @@ export async function getMutasiBarangDetail(id: number) {
     await checkAuth();
     const data = await getMutasiBarangById(id);
     if (!data) {
-      return { success: false, message: 'Data tidak ditemukan' };
+      return { success: false, message: "Data tidak ditemukan" };
     }
     return { success: true, data };
   } catch (error: any) {
     return {
       success: false,
-      message: error.message || 'Gagal mengambil detail mutasi',
+      message: error.message || "Gagal mengambil detail mutasi",
     };
   }
 }
@@ -272,7 +272,7 @@ export async function getStatsMutasiBarang() {
   } catch (error: any) {
     return {
       success: false,
-      message: error.message || 'Gagal mengambil statistik',
+      message: error.message || "Gagal mengambil statistik",
     };
   }
 }

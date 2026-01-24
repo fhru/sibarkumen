@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 export type ChatRole = "user" | "assistant" | "system";
 
@@ -13,6 +14,7 @@ export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  createdAt?: string;
 };
 
 export interface ChatAssistantPanelProps {
@@ -147,6 +149,16 @@ function renderMarkdown(text: string) {
   return blocks;
 }
 
+function formatTime(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function ChatAssistantPanel({
   title = "Sibarkumen AI Assistant",
   initialOpen = false,
@@ -164,12 +176,29 @@ export function ChatAssistantPanel({
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [streamingId, setStreamingId] = React.useState<string | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const session = authClient.useSession();
+  const isAuthenticated = !!session.data?.user;
   const endRef = React.useRef<HTMLDivElement | null>(null);
+  const panelRef = React.useRef<HTMLDivElement | null>(null);
+  const toggleRef = React.useRef<HTMLButtonElement | null>(null);
 
   React.useEffect(() => {
     if (!open) return;
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open, isStreaming]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (panelRef.current?.contains(target)) return;
+      if (toggleRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [open]);
 
   const appendToMessage = React.useCallback((id: string, chunk: string) => {
     if (!chunk) return;
@@ -238,6 +267,10 @@ export function ChatAssistantPanel({
   );
 
   const handleSend = React.useCallback(async () => {
+    if (!isAuthenticated) {
+      setErrorMessage("Silakan login untuk menggunakan AI Assistant.");
+      return;
+    }
     const text = input.trim();
     if (!text || isStreaming) return;
 
@@ -245,11 +278,13 @@ export function ChatAssistantPanel({
       id: makeId(),
       role: "user",
       content: text,
+      createdAt: new Date().toISOString(),
     };
     const assistantMessage: ChatMessage = {
       id: makeId(),
       role: "assistant",
       content: "",
+      createdAt: new Date().toISOString(),
     };
 
     const nextMessages = [...messages, userMessage, assistantMessage];
@@ -280,24 +315,33 @@ export function ChatAssistantPanel({
       setIsStreaming(false);
       setStreamingId(null);
     }
-  }, [appendToMessage, defaultOnSend, input, isStreaming, messages, onSend]);
+  }, [
+    appendToMessage,
+    defaultOnSend,
+    input,
+    isAuthenticated,
+    isStreaming,
+    messages,
+    onSend,
+  ]);
 
   return (
     <div
       className={cn(
-        "fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3",
+        "fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 print:hidden",
         className,
       )}
     >
       {open && (
         <div
+          ref={panelRef}
           className={cn(
             "w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border bg-background shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200",
             panelClassName,
           )}
         >
           <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center py-2 gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Sparkle className="h-5 w-5" />
               </div>
@@ -318,7 +362,7 @@ export function ChatAssistantPanel({
             </Button>
           </div>
 
-          <ScrollArea className="h-[360px] px-2.5 py-2">
+          <ScrollArea className="h-[360px] px-2.5 py-2.5">
             <div className="space-y-3">
               {messages.length === 0 && (
                 <div className="rounded-lg border border-dashed bg-muted/30 p-2.5 text-sm text-muted-foreground">
@@ -348,12 +392,13 @@ export function ChatAssistantPanel({
 
               {messages.map((message) => {
                 const isUser = message.role === "user";
+                const timestamp = formatTime(message.createdAt);
                 return (
                   <div
                     key={message.id}
                     className={cn(
-                      "flex",
-                      isUser ? "justify-end" : "justify-start",
+                      "flex flex-col",
+                      isUser ? "items-end" : "items-start",
                     )}
                   >
                     <div
@@ -379,6 +424,11 @@ export function ChatAssistantPanel({
                         </span>
                       )}
                     </div>
+                    {timestamp && (
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        {timestamp}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -387,6 +437,11 @@ export function ChatAssistantPanel({
           </ScrollArea>
 
           <div className="border-t px-3 py-2">
+            {!isAuthenticated && (
+              <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-800">
+                Login diperlukan untuk menggunakan AI Assistant.
+              </div>
+            )}
             <div className="flex items-end gap-2">
               <Textarea
                 value={input}
@@ -399,12 +454,13 @@ export function ChatAssistantPanel({
                     handleSend();
                   }
                 }}
+                disabled={!isAuthenticated}
               />
               <Button
                 type="button"
                 className="h-10 w-10 shrink-0 rounded-lg"
                 onClick={handleSend}
-                disabled={!input.trim() || isStreaming}
+                disabled={!isAuthenticated || !input.trim() || isStreaming}
                 aria-label="Kirim pesan"
               >
                 {isStreaming ? (
@@ -426,6 +482,7 @@ export function ChatAssistantPanel({
         className="h-14 w-14 rounded-full shadow-lg transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
         onClick={() => setOpen((value) => !value)}
         aria-label="Buka chat assistant"
+        ref={toggleRef}
       >
         <MessageSquare className="h-5 w-5" />
       </Button>

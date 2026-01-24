@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -10,7 +10,7 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
   VisibilityState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -18,17 +18,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
-import { AsalPembelian, columns } from './asal-pembelian-table-columns';
+} from "@/components/ui/dropdown-menu";
+import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { AsalPembelian, columns } from "./asal-pembelian-table-columns";
 
 interface AsalPembelianTableProps {
   data: AsalPembelian[];
@@ -36,7 +36,7 @@ interface AsalPembelianTableProps {
 
 export function AsalPembelianTable({ data }: AsalPembelianTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = React.useState('');
+  const [globalFilter, setGlobalFilter] = React.useState("");
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
@@ -49,12 +49,17 @@ export function AsalPembelianTable({ data }: AsalPembelianTableProps) {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: 'includesString', // Case-insensitive text search
+    globalFilterFn: "includesString", // Case-insensitive text search
     getRowId: (row) => row.id.toString(), // Ensure row stability
     state: {
       sorting,
       globalFilter,
       columnVisibility,
+    },
+    initialState: {
+      pagination: {
+        pageSize: 25,
+      },
     },
     onColumnVisibilityChange: setColumnVisibility,
   });
@@ -67,7 +72,7 @@ export function AsalPembelianTable({ data }: AsalPembelianTableProps) {
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Cari asal pembelian..."
-              value={globalFilter ?? ''}
+              value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(event.target.value)}
               className="pl-8 bg-background dark:bg-input/30"
             />
@@ -119,7 +124,7 @@ export function AsalPembelianTable({ data }: AsalPembelianTableProps) {
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -132,13 +137,13 @@ export function AsalPembelianTable({ data }: AsalPembelianTableProps) {
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
+                  data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -159,7 +164,7 @@ export function AsalPembelianTable({ data }: AsalPembelianTableProps) {
       </div>
       <div className="flex items-center justify-between px-2">
         <div className="flex-1 text-sm text-muted-foreground">
-          Menampilkan {table.getFilteredRowModel().rows.length} data dari{' '}
+          Menampilkan {table.getFilteredRowModel().rows.length} data dari{" "}
           {data.length} data
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
@@ -173,7 +178,7 @@ export function AsalPembelianTable({ data }: AsalPembelianTableProps) {
               Previous
             </Button>
             <div className="text-sm text-muted-foreground">
-              Halaman {table.getState().pagination.pageIndex + 1} dari{' '}
+              Halaman {table.getState().pagination.pageIndex + 1} dari{" "}
               {table.getPageCount()}
             </div>
             <Button

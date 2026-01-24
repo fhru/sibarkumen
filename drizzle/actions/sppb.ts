@@ -290,28 +290,8 @@ export async function completeSPPB(
         })
         .where(eq(sppb.id, id));
 
-      // 3. Deduct stock and create mutasi for each item
-      for (const item of sppbData.items) {
-        // Deduct stock
-        await tx
-          .update(barang)
-          .set({
-            stok: item.barang.stok - item.qtyDisetujui,
-          })
-          .where(eq(barang.id, item.barangId));
-
-        // Create mutasi record
-        const currentStock = item.barang.stok - item.qtyDisetujui;
-        await tx.insert(mutasiBarang).values({
-          barangId: item.barangId,
-          jenisMutasi: "KELUAR",
-          qtyMasuk: 0,
-          qtyKeluar: item.qtyDisetujui,
-          stokAkhir: currentStock,
-          sumberTransaksi: `SPPB: ${sppbData.nomorSppb}`,
-          keterangan: `Pengeluaran barang via SPPB ${sppbData.nomorSppb}`,
-        });
-      }
+      // 3. Stock deduction and mutasi are handled when BAST Keluar is created
+      // to avoid double deduction (SPPB completion only marks handover).
     });
 
     revalidatePath("/dashboard/sppb");
@@ -417,7 +397,7 @@ export async function getSPPBList(params?: {
   endDate?: string;
 }) {
   const page = params?.page || 1;
-  const limit = params?.limit || 50;
+  const limit = params?.limit || 25;
   const offset = (page - 1) * limit;
 
   const conditions = [];

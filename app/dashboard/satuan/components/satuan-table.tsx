@@ -136,7 +136,7 @@ export function SatuanTable({ data }: SatuanTableProps) {
     },
     initialState: {
       pagination: {
-        pageSize: 50,
+        pageSize: 25,
       },
     },
     onGlobalFilterChange: setGlobalFilter,
@@ -326,3 +326,4 @@ function ActionCell({
     </DropdownMenu>
   );
 }
+

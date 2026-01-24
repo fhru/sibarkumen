@@ -33,6 +33,14 @@ interface BastKeluarFormDetailsProps {
   selectedSPPB?: any;
 }
 
+function isBeforeDay(date: Date, minDate: Date) {
+  const candidate = new Date(date);
+  const min = new Date(minDate);
+  candidate.setHours(0, 0, 0, 0);
+  min.setHours(0, 0, 0, 0);
+  return candidate < min;
+}
+
 export function BastKeluarFormDetails({
   completedSPPBs,
   isEdit,
@@ -56,6 +64,11 @@ export function BastKeluarFormDetails({
   } | null>(null);
   const pihakPertamaId = watch("pihakPertamaId");
   const pihakKeduaId = watch("pihakKeduaId");
+  const sppbId = watch("sppbId");
+  const selectedSppb =
+    completedSPPBs.find((sppb) => sppb.id === sppbId) || selectedSPPB;
+  const spbDateSource = selectedSppb?.spb?.tanggalSpb;
+  const minSpbDate = spbDateSource ? new Date(spbDateSource) : null;
   const jabatanPihakPertamaList = useMemo(() => {
     if (
       !pihakPertamaId ||
@@ -234,7 +247,9 @@ export function BastKeluarFormDetails({
                       selected={field.value}
                       onSelect={field.onChange}
                       disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
+                        date > new Date() ||
+                        date < new Date("1900-01-01") ||
+                        (minSpbDate ? isBeforeDay(date, minSpbDate) : false)
                       }
                       initialFocus
                     />

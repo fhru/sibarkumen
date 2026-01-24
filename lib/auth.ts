@@ -1,8 +1,41 @@
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { db } from '@/lib/db';
-import { admin } from 'better-auth/plugins';
-import { sendEmail, renderEmailTemplate } from '@/lib/email';
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "@/lib/db";
+import { admin } from "better-auth/plugins";
+import { sendEmail, renderEmailTemplate } from "@/lib/email";
+
+const RESET_RATE_LIMIT_MAX = 20;
+const RESET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const resetRateLimitStore = new Map<
+  string,
+  { count: number; resetAt: number }
+>();
+
+function getClientIp(request: Request | undefined) {
+  if (!request) return "unknown";
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim();
+  return ip || request.headers.get("x-real-ip") || "unknown";
+}
+
+function checkResetRateLimit(ip: string) {
+  const now = Date.now();
+  const current = resetRateLimitStore.get(ip);
+  if (!current || current.resetAt <= now) {
+    resetRateLimitStore.set(ip, {
+      count: 1,
+      resetAt: now + RESET_RATE_LIMIT_WINDOW_MS,
+    });
+    return true;
+  }
+
+  if (current.count >= RESET_RATE_LIMIT_MAX) {
+    return false;
+  }
+
+  current.count += 1;
+  return true;
+}
 
 export const auth = betterAuth({
   emailAndPassword: {
@@ -10,14 +43,19 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     autoSignIn: true,
     async sendResetPassword(data, request) {
+      const clientIp = getClientIp(request);
+      if (!checkResetRateLimit(clientIp)) {
+        throw new Error("Reset password rate limit exceeded");
+      }
+
       // Send email to user
       await sendEmail({
         to: data.user.email,
-        subject: 'Reset Password - Sibarkumen',
+        subject: "Reset Password - Sibarkumen",
         html: renderEmailTemplate(
-          'Reset Password',
+          "Reset Password",
           `
-          <p>Halo <strong>${data.user.name || 'User'}</strong>,</p>
+          <p>Halo <strong>${data.user.name || "User"}</strong>,</p>
           <p>Kami menerima permintaan untuk mengatur ulang kata sandi akun Sibarkumen Anda. Jika Anda merasa tidak melakukan permintaan ini, silakan abaikan email ini.</p>
           <p>Untuk melanjutkan proses pengaturan ulang kata sandi, silakan klik tombol di bawah ini:</p>
           <div style="text-align: center;">
@@ -31,13 +69,13 @@ export const auth = betterAuth({
               data.url
             }</span>
           </p>
-          `
+          `,
         ),
       });
     },
   },
   database: drizzleAdapter(db, {
-    provider: 'pg',
+    provider: "pg",
   }),
   plugins: [admin()],
 });
