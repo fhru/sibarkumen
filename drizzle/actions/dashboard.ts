@@ -8,7 +8,7 @@ import {
   sppb,
   kategori,
   satuan,
-} from '@/drizzle/schema';
+} from '@/drizzle/schema'; 
 import {
   sql,
   and,

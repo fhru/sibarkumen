@@ -2,18 +2,7 @@
 
 import { db } from "@/lib/db";
 import { sppb, sppbDetail, barang, mutasiBarang, spb } from "@/drizzle/schema";
-import {
-  eq,
-  count,
-  desc,
-  sql,
-  and,
-  gte,
-  lte,
-  asc,
-  or,
-  like,
-} from "drizzle-orm";
+import { eq, count, desc, sql, and, gte, lte, asc, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
@@ -153,6 +142,9 @@ export async function updateSPPB(
     // Check if SPPB exists and not completed
     const existingSppb = await db.query.sppb.findFirst({
       where: eq(sppb.id, id),
+      with: {
+        items: true,
+      },
     });
 
     if (!existingSppb) {
@@ -166,32 +158,61 @@ export async function updateSPPB(
       };
     }
 
-    const tglSppb = formatDateForDB(validated.tanggalSppb);
+    if (validated.spbId !== existingSppb.spbId) {
+      return {
+        success: false,
+        message: "SPB tidak boleh diubah pada mode edit",
+      };
+    }
+
+    const existingItems = existingSppb.items || [];
+    const incomingItems = validated.items || [];
+    const incomingMap = new Map(
+      incomingItems.map((item) => [item.barangId, item]),
+    );
+
+    if (incomingItems.length !== existingItems.length) {
+      return {
+        success: false,
+        message: "Item SPPB tidak boleh diubah pada mode edit",
+      };
+    }
+
+    for (const item of existingItems) {
+      if (!incomingMap.has(item.barangId)) {
+        return {
+          success: false,
+          message: "Item SPPB tidak boleh diubah pada mode edit",
+        };
+      }
+    }
 
     await db.transaction(async (tx) => {
-      // 1. Update SPPB Header
+      // 1. Update SPPB Header (only approver fields)
       await tx
         .update(sppb)
         .set({
-          tanggalSppb: tglSppb,
           pejabatPenyetujuId: validated.pejabatPenyetujuId,
           jabatanPejabatPenyetujuId: validated.jabatanPejabatPenyetujuId,
-          // diterimaOlehId: validated.diterimaOlehId, // Removed from update input
-          keterangan: validated.keterangan,
+          updatedAt: new Date(),
         })
         .where(eq(sppb.id, id));
 
-      // 2. Delete existing details
-      await tx.delete(sppbDetail).where(eq(sppbDetail.sppbId, id));
-
-      // 3. Create new details
-      for (const item of validated.items) {
-        await tx.insert(sppbDetail).values({
-          sppbId: id,
-          barangId: item.barangId,
-          qtyDisetujui: item.qtyDisetujui,
-          keterangan: item.keterangan,
-        });
+      // 2. Update qtyDisetujui only
+      for (const item of existingItems) {
+        const incoming = incomingMap.get(item.barangId);
+        if (!incoming) continue;
+        await tx
+          .update(sppbDetail)
+          .set({
+            qtyDisetujui: incoming.qtyDisetujui,
+          })
+          .where(
+            and(
+              eq(sppbDetail.sppbId, id),
+              eq(sppbDetail.barangId, item.barangId),
+            ),
+          );
       }
     });
 
@@ -219,6 +240,11 @@ export async function deleteSPPB(id: number) {
     // Check if SPPB exists and not completed
     const existingSppb = await db.query.sppb.findFirst({
       where: eq(sppb.id, id),
+      columns: {
+        id: true,
+        spbId: true,
+        serahTerimaOlehId: true,
+      },
     });
 
     if (!existingSppb) {
@@ -232,9 +258,19 @@ export async function deleteSPPB(id: number) {
       };
     }
 
-    await db.delete(sppb).where(eq(sppb.id, id));
+    await db.transaction(async (tx) => {
+      await tx.delete(sppb).where(eq(sppb.id, id));
+      await tx
+        .update(spb)
+        .set({
+          status: "MENUNGGU_SPPB",
+          updatedAt: new Date(),
+        })
+        .where(eq(spb.id, existingSppb.spbId));
+    });
 
     revalidatePath("/dashboard/sppb");
+    revalidatePath(`/dashboard/spb/${existingSppb.spbId}`);
     return { success: true, message: "SPPB berhasil dihapus" };
   } catch (error: any) {
     console.error("Error deleting SPPB:", error);
@@ -555,6 +591,22 @@ export async function getSPPBById(id: number) {
               id: true,
               nama: true,
               nip: true,
+            },
+          },
+          items: {
+            columns: {
+              barangId: true,
+              qtyPermintaan: true,
+            },
+            with: {
+              barang: {
+                columns: {
+                  id: true,
+                  nama: true,
+                  kodeBarang: true,
+                  stok: true,
+                },
+              },
             },
           },
         },

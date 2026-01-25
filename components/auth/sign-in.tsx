@@ -1,35 +1,34 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Eye, EyeOff, AlertCircle, X } from 'lucide-react';
-import { toast } from 'sonner';
-import Link from 'next/link';
-import Image from 'next/image';
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, Eye, EyeOff, AlertCircle, X } from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
+import Image from "next/image";
 
-import { signInSchema, type SignInValues } from '@/lib/zod/auth';
-import { authClient } from '@/lib/auth-client';
+import { signInSchema, type SignInValues } from "@/lib/zod/auth";
+import { authClient } from "@/lib/auth-client";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Field, FieldLabel, FieldError } from '@/components/ui/field';
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
   InputGroupButton,
-} from '@/components/ui/input-group';
-import { useRouter } from 'next/navigation';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/input-group";
+import { useRouter } from "next/navigation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export function SignIn() {
   const router = useRouter();
@@ -40,11 +39,11 @@ export function SignIn() {
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
       rememberMe: false,
     },
-    mode: 'onChange',
+    mode: "onChange",
   });
 
   const { isValid, isSubmitting } = form.formState;
@@ -59,14 +58,14 @@ export function SignIn() {
       },
       {
         onSuccess: () => {
-          router.push('/dashboard');
-          toast.success('Signed in successfully');
+          router.push("/dashboard");
+          toast.success("Signed in successfully");
         },
         onError: (ctx) => {
           setError(ctx.error.message);
           setLoading(false);
         },
-      }
+      },
     );
   }
 
@@ -81,7 +80,7 @@ export function SignIn() {
             height={64}
             className="h-12"
             draggable={false}
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
           />
         </div>
         <CardTitle>Welcome Back</CardTitle>
@@ -116,7 +115,7 @@ export function SignIn() {
                 id="email"
                 type="email"
                 placeholder="m@example.com"
-                {...form.register('email')}
+                {...form.register("email")}
               />
             </InputGroup>
             <FieldError errors={[form.formState.errors.email]} />
@@ -126,14 +125,14 @@ export function SignIn() {
             <InputGroup className="w-full">
               <InputGroupInput
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                {...form.register('password')}
+                {...form.register("password")}
               />
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="size-4" />

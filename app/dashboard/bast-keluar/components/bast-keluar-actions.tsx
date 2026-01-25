@@ -1,5 +1,5 @@
-'use client';
-import { Button } from '@/components/ui/button';
+"use client";
+import { Button } from "@/components/ui/button";
 
 import {
   AlertDialog,
@@ -10,18 +10,31 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Edit, Trash, CheckCircle, Printer, RotateCcw } from 'lucide-react';
-import Link from 'next/link';
-import { useState, useTransition } from 'react';
+} from "@/components/ui/alert-dialog";
+import {
+  Edit,
+  Trash,
+  CheckCircle,
+  Printer,
+  RotateCcw,
+  MoreHorizontal,
+} from "lucide-react";
+import Link from "next/link";
+import { useState, useTransition } from "react";
 import {
   deleteBastKeluar,
   toggleBastKeluarPrintStatus,
-} from '@/drizzle/actions/bast-keluar';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
-import { Role } from '@/config/nav-items';
+} from "@/drizzle/actions/bast-keluar";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+import { Role } from "@/config/nav-items";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function BastKeluarActions({ bast }: { bast: any }) {
   const router = useRouter();
@@ -30,13 +43,14 @@ export function BastKeluarActions({ bast }: { bast: any }) {
   const [isTogglingPrint, startTwTogglingPrint] = useTransition();
   const session = authClient.useSession();
   const userRole = session.data?.user.role as Role | undefined;
+  const canManage = userRole !== "supervisor";
 
   const handleDelete = async () => {
     setIsDeleting(true);
     const result = await deleteBastKeluar(bast.id);
     if (result.success) {
       toast.success(result.message);
-      router.push('/dashboard/bast-keluar');
+      router.push("/dashboard/bast-keluar");
     } else {
       toast.error(result.message);
       setIsDeleting(false);
@@ -58,51 +72,51 @@ export function BastKeluarActions({ bast }: { bast: any }) {
   return (
     <div className="flex items-center gap-2">
       <Link href={`/print/bast-keluar/${bast.id}`} target="_blank">
-        <Button variant="outline" size={'sm'}>
+        <Button>
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
       </Link>
 
-      {userRole !== 'supervisor' && (
-        <Button
-          onClick={handleTogglePrintStatus}
-          disabled={isTogglingPrint}
-          variant="outline"
-          size={'sm'}
-        >
-          {bast.isPrinted ? (
-            <>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              {isTogglingPrint ? 'Memproses...' : 'Tandai Belum Dicetak'}
-            </>
-          ) : (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {isTogglingPrint ? 'Memproses...' : 'Tandai Sudah Dicetak'}
-            </>
-          )}
-        </Button>
-      )}
-
-      {userRole !== 'supervisor' && (
-        <>
-          <Link href={`/dashboard/bast-keluar/${bast.id}/edit`}>
-            <Button variant="outline" size={'sm'}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
+      {canManage && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="secondary" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
-          </Link>
-
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteDialog(true)}
-            size={'sm'}
-          >
-            <Trash className="mr-2 h-4 w-4" />
-            Hapus
-          </Button>
-        </>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-full">
+            <DropdownMenuItem
+              onSelect={handleTogglePrintStatus}
+              disabled={isTogglingPrint}
+            >
+              {bast.isPrinted ? (
+                <>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  {isTogglingPrint ? "Memproses..." : "Tandai Belum Dicetak"}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {isTogglingPrint ? "Memproses..." : "Tandai Sudah Dicetak"}
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/bast-keluar/${bast.id}/edit`}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => setShowDeleteDialog(true)}
+              variant="destructive"
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              Hapus
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       {/* Delete Dialog */}
@@ -112,8 +126,8 @@ export function BastKeluarActions({ bast }: { bast: any }) {
             <AlertDialogTitle>Hapus BAST Keluar?</AlertDialogTitle>
             <AlertDialogDescription>
               Apakah Anda yakin ingin menghapus BAST Keluar {bast.nomorBast}?
-              Tindakan ini akan mengembalikan status SPPB menjadi "Menunggu
-              BAST".
+              Tindakan ini akan mengembalikan status SPPB menjadi &quot;Menunggu
+              BAST&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -121,9 +135,9 @@ export function BastKeluarActions({ bast }: { bast: any }) {
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              variant={'destructive'}
+              variant={"destructive"}
             >
-              {isDeleting ? 'Menghapus...' : 'Hapus'}
+              {isDeleting ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

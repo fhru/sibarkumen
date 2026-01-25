@@ -1,34 +1,35 @@
-"use client";
+'use client';
 
-import { useFormContext, Controller } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { useEffect } from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { AsyncSelect } from "@/components/ui/async-select";
-import { searchPegawai } from "@/drizzle/actions/search";
+} from '@/components/ui/popover';
+import { AsyncSelect } from '@/components/ui/async-select';
+import { searchPegawai } from '@/drizzle/actions/search';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { CalendarIcon, FileText, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { SPBFormValues } from "@/lib/zod/spb-schema";
+} from '@/components/ui/select';
+import { CalendarIcon, FileText, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { SPBFormValues } from '@/lib/zod/spb-schema';
 
-import { Role } from "@/config/nav-items";
-import { authClient } from "@/lib/auth-client";
+import { Role } from '@/config/nav-items';
+import { authClient } from '@/lib/auth-client';
 interface SPBFormDetailsProps {
   currentPegawai?: any;
   jabatanList: any[];
@@ -41,12 +42,19 @@ export function SPBFormDetails({
   const {
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<SPBFormValues>();
-  const pemohonId = watch("pemohonId");
+  const pemohonId = watch('pemohonId');
 
   const session = authClient.useSession();
   const userRole = session.data?.user.role as Role | undefined;
+
+  useEffect(() => {
+    if (userRole === 'petugas') {
+      setValue('tanggalSpb', new Date());
+    }
+  }, [userRole, setValue]);
 
   return (
     <div className="rounded-lg border bg-background dark:bg-input/30">
@@ -55,7 +63,7 @@ export function SPBFormDetails({
         <h3 className="font-semibold text-lg">Informasi Dokumen</h3>
       </div>
 
-      {userRole === "petugas" && !currentPegawai && (
+      {userRole === 'petugas' && !currentPegawai && (
         <div className="px-6 py-4">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -99,36 +107,52 @@ export function SPBFormDetails({
           <Controller
             control={control}
             name="tanggalSpb"
-            render={({ field }) => (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground",
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "dd MMMM yyyy", {
-                        locale: localeId,
-                      })
-                    ) : (
-                      <span>Pilih tanggal</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
+            render={({ field }) =>
+              userRole === 'petugas' ? (
+                <Input
+                  value={
+                    field.value
+                      ? format(field.value, 'dd MMMM yyyy', {
+                          locale: localeId,
+                        })
+                      : format(new Date(), 'dd MMMM yyyy', {
+                          locale: localeId,
+                        })
+                  }
+                  readOnly
+                  className="bg-muted text-muted-foreground"
+                />
+              ) : (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full pl-3 text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, 'dd MMMM yyyy', {
+                          locale: localeId,
+                        })
+                      ) : (
+                        <span>Pilih tanggal</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              )
+            }
           />
           <FieldError errors={errors.tanggalSpb ? [errors.tanggalSpb] : []} />
         </Field>
@@ -142,10 +166,10 @@ export function SPBFormDetails({
             control={control}
             name="pemohonId"
             render={({ field }) =>
-              userRole === "petugas" ? (
+              userRole === 'petugas' ? (
                 currentPegawai ? (
                   <Input
-                    value={`${currentPegawai.nama} - ${currentPegawai.nip || "No NIP"}`}
+                    value={`${currentPegawai.nama} - ${currentPegawai.nip || 'No NIP'}`}
                     readOnly
                     className="bg-muted text-muted-foreground"
                   />
@@ -163,7 +187,7 @@ export function SPBFormDetails({
                   loadOptions={searchPegawai}
                   placeholder="Cari nama pegawai..."
                   formatLabel={(option) => `${option.nama} (${option.nip})`}
-                  disabled={userRole === ("petugas" as Role)}
+                  disabled={userRole === ('petugas' as Role)}
                 />
               )
             }

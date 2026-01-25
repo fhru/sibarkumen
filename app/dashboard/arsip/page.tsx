@@ -1,6 +1,7 @@
-import { fetchArsipDocuments } from '@/drizzle/actions/arsip';
-import { ArsipTable } from './components/arsip-table';
-import { columns } from './components/arsip-table-columns';
+import { fetchArsipDocuments, fetchArsipStats } from "@/drizzle/actions/arsip";
+import { ArsipTable } from "./components/arsip-table";
+import { columns } from "./components/arsip-table-columns";
+import { ArsipStats } from "./components/arsip-stats";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,15 +9,16 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import { Suspense } from 'react';
+} from "@/components/ui/breadcrumb";
+import { Suspense } from "react";
+import { Metadata } from "next";
 
-export const metadata = {
-  title: 'Arsip Dokumen | Sibarkumen',
-  description: 'Daftar semua dokumen arsip (BAST, SPB, SPPB, Stock Opname)',
+export const metadata: Metadata = {
+  title: "Arsip Dokumen | Sibarkumen",
+  description: "Daftar semua dokumen arsip (BAST, SPB, SPPB, Stock Opname)",
 };
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function ArsipPage({
   searchParams,
@@ -25,10 +27,13 @@ export default async function ArsipPage({
 }) {
   const { search, type } = await searchParams;
 
-  const searchQuery = typeof search === 'string' ? search : '';
-  const typeFilter = typeof type === 'string' ? type : undefined;
+  const searchQuery = typeof search === "string" ? search : "";
+  const typeFilter = typeof type === "string" ? type : undefined;
 
-  const data = await fetchArsipDocuments(searchQuery, typeFilter);
+  const [data, stats] = await Promise.all([
+    fetchArsipDocuments(searchQuery, typeFilter),
+    fetchArsipStats(),
+  ]);
 
   return (
     <div className="flex-1 space-y-6 p-2 lg:p-4">
@@ -57,6 +62,7 @@ export default async function ArsipPage({
 
       {/* 3. Table */}
       <div className="flex h-full flex-1 flex-col space-y-6">
+        <ArsipStats stats={stats} />
         <Suspense fallback={<div>Loading table...</div>}>
           <ArsipTable columns={columns} data={data} />
         </Suspense>

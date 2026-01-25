@@ -18,26 +18,24 @@ import {
   Printer,
   RotateCcw,
   Plus,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import {
-  deleteSPPB,
-  completeSPPB,
-  toggleSPPBPrintStatus,
-} from "@/drizzle/actions/sppb";
+import { deleteSPPB, toggleSPPBPrintStatus } from "@/drizzle/actions/sppb";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { AsyncSelect } from "@/components/ui/async-select";
-import { searchPegawai } from "@/drizzle/actions/search";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function SPPBActions({ sppb }: { sppb: any }) {
   const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
-  const [serahTerimaOlehId, setSerahTerimaOlehId] = useState<number>(0);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
   const [isTogglingPrint, startTwTogglingPrint] = useTransition();
 
   const isCompleted = !!sppb.serahTerimaOleh;
@@ -56,24 +54,6 @@ export function SPPBActions({ sppb }: { sppb: any }) {
     }
   };
 
-  const handleComplete = async () => {
-    if (!serahTerimaOlehId) {
-      toast.error("Pilih petugas serah terima");
-      return;
-    }
-
-    setIsCompleting(true);
-    const result = await completeSPPB(sppb.id, null, { serahTerimaOlehId });
-    if (result.success) {
-      toast.success(result.message);
-      router.refresh();
-      setShowCompleteDialog(false);
-    } else {
-      toast.error(result.message);
-    }
-    setIsCompleting(false);
-  };
-
   const handleTogglePrintStatus = async () => {
     startTwTogglingPrint(async () => {
       const result = await toggleSPPBPrintStatus(sppb.id);
@@ -89,68 +69,66 @@ export function SPPBActions({ sppb }: { sppb: any }) {
   return (
     <div className="flex items-center gap-2">
       <Link href={`/print/sppb/${sppb.id}`} target="_blank">
-        <Button variant="outline" size={"sm"}>
+        <Button>
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
       </Link>
 
-      <Button
-        onClick={handleTogglePrintStatus}
-        disabled={isTogglingPrint}
-        variant="outline"
-        size={"sm"}
-      >
-        {sppb.isPrinted ? (
-          <>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            {isTogglingPrint ? "Memproses..." : "Tandai Belum Dicetak"}
-          </>
-        ) : (
-          <>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            {isTogglingPrint ? "Memproses..." : "Tandai Sudah Dicetak"}
-          </>
-        )}
-      </Button>
-
-      {!isCompleted && (
-        <>
-          <Link href={`/dashboard/sppb/${sppb.id}/edit`}>
-            <Button variant="outline" size={"sm"}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
-          <Button
-            variant="outline"
-            size={"sm"}
-            onClick={() => setShowCompleteDialog(true)}
-          >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Selesaikan
-          </Button>
-        </>
-      )}
-
       {canCreateBast && (
         <Link href={`/dashboard/bast-keluar/create?sppbId=${sppb.id}`}>
-          <Button variant="outline" size={"sm"}>
+          <Button>
             <Plus className="mr-2 h-4 w-4" />
             Buat BAST
           </Button>
         </Link>
       )}
 
-      <Button
-        variant="destructive"
-        onClick={() => setShowDeleteDialog(true)}
-        disabled={isCompleted}
-        size={"sm"}
-      >
-        <Trash className="mr-2 h-4 w-4" />
-        Hapus
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="secondary" size="icon">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-full">
+          <DropdownMenuItem
+            onSelect={handleTogglePrintStatus}
+            disabled={isTogglingPrint}
+          >
+            {sppb.isPrinted ? (
+              <>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                {isTogglingPrint ? "Memproses..." : "Tandai Belum Dicetak"}
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {isTogglingPrint ? "Memproses..." : "Tandai Sudah Dicetak"}
+              </>
+            )}
+          </DropdownMenuItem>
+
+          {!isCompleted && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/sppb/${sppb.id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
+
+          <DropdownMenuItem
+            onSelect={() => setShowDeleteDialog(true)}
+            disabled={isCompleted}
+            variant="destructive"
+          >
+            <Trash className="mr-2 h-4 w-4" />
+            Hapus
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -170,41 +148,6 @@ export function SPPBActions({ sppb }: { sppb: any }) {
               variant={"destructive"}
             >
               {isDeleting ? "Menghapus..." : "Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Complete Dialog */}
-      <AlertDialog
-        open={showCompleteDialog}
-        onOpenChange={setShowCompleteDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Selesaikan SPPB?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Pilih petugas yang menyerahkan barang. Stok akan dikurangi setelah
-              diselesaikan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <AsyncSelect
-              value={serahTerimaOlehId}
-              onValueChange={setSerahTerimaOlehId}
-              loadOptions={searchPegawai}
-              placeholder="Pilih Petugas Serah Terima"
-              searchPlaceholder="Cari pegawai..."
-              formatLabel={(option) => `${option.nama} - ${option.nip || ""}`}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleComplete}
-              disabled={isCompleting || !serahTerimaOlehId}
-            >
-              {isCompleting ? "Memproses..." : "Selesaikan"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

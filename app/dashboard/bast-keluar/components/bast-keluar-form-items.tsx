@@ -1,26 +1,26 @@
-'use client';
+"use client";
 
-import { useFieldArray, useFormContext, Controller } from 'react-hook-form';
+import { useFieldArray, useFormContext } from "react-hook-form";
 import {
   Field,
   FieldLabel,
   FieldContent,
   FieldError,
-} from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { Package } from 'lucide-react';
-import { BastKeluarFormValues } from '@/lib/zod/bast-keluar-schema';
-import { getLastPurchasePrice } from '@/drizzle/actions/barang';
-import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Package } from "lucide-react";
+import { BastKeluarFormValues } from "@/lib/zod/bast-keluar-schema";
+import { getLastPurchasePrice } from "@/drizzle/actions/barang";
+import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/tooltip";
 
 interface BastKeluarFormItemsProps {
   selectedSPPB: any;
@@ -39,10 +39,10 @@ export function BastKeluarFormItems({
 
   const { fields } = useFieldArray({
     control,
-    name: 'items',
+    name: "items",
   });
 
-  const items = watch('items');
+  const items = watch("items");
 
   return (
     <div className="space-y-8">
@@ -76,7 +76,7 @@ export function BastKeluarFormItems({
 
               {fields.map((field, index) => {
                 const spbItem = selectedSPPB?.items?.find(
-                  (item: any) => item.barangId === field.barangId
+                  (item: any) => item.barangId === field.barangId,
                 );
                 const barang = spbItem?.barang;
                 const qtySppb = spbItem?.qtyDisetujui || 0;
@@ -104,10 +104,10 @@ export function BastKeluarFormItems({
                         </FieldLabel>
                         <FieldContent>
                           <div className="text-sm font-medium">
-                            {barang?.nama || '-'}
+                            {barang?.nama || "-"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {barang?.kodeBarang || '-'}
+                            {barang?.kodeBarang || "-"}
                           </div>
                         </FieldContent>
                       </Field>
@@ -186,32 +186,32 @@ export function BastKeluarFormItems({
                                       try {
                                         const lastData =
                                           await getLastPurchasePrice(
-                                            field.barangId
+                                            field.barangId,
                                           );
                                         if (lastData && lastData.hargaSatuan) {
                                           setValue(
                                             `items.${index}.hargaSatuan`,
                                             Number(lastData.hargaSatuan),
-                                            { shouldValidate: true }
+                                            { shouldValidate: true },
                                           );
                                           const dateStr = lastData.tanggalBast
                                             ? new Date(
-                                                lastData.tanggalBast
-                                              ).toLocaleDateString('id-ID')
-                                            : '-';
+                                                lastData.tanggalBast,
+                                              ).toLocaleDateString("id-ID")
+                                            : "-";
                                           toast.success(
                                             `Harga diset ke ${formatCurrency(
-                                              Number(lastData.hargaSatuan)
-                                            )} (BAST: ${dateStr})`
+                                              Number(lastData.hargaSatuan),
+                                            )} (BAST: ${dateStr})`,
                                           );
                                         } else {
                                           toast.info(
-                                            'Tidak ada riwayat harga pembelian untuk barang ini'
+                                            "Tidak ada riwayat harga pembelian untuk barang ini",
                                           );
                                         }
                                       } catch (error) {
                                         toast.error(
-                                          'Gagal mengambil saran harga'
+                                          "Gagal mengambil saran harga",
                                         );
                                       }
                                     }}
@@ -266,7 +266,7 @@ export function BastKeluarFormItems({
                         </FieldLabel>
                         <FieldContent>
                           <div className="text-sm font-bold h-9 flex items-center justify-end">
-                            Rp {total.toLocaleString('id-ID')}
+                            Rp {total.toLocaleString("id-ID")}
                           </div>
                         </FieldContent>
                       </Field>

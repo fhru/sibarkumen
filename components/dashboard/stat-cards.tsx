@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, FileClock, Truck } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Package, FileClock, Truck } from "lucide-react";
 
 interface StatCardsProps {
   stats: {

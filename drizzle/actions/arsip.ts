@@ -1,19 +1,13 @@
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
-import {
-  bastMasuk,
-  spb,
-  sppb,
-  bastKeluar,
-  stockOpname,
-} from '@/drizzle/schema';
-import { desc, eq, like, or, and, sql } from 'drizzle-orm';
+import { db } from "@/lib/db";
+import { spb, sppb, bastMasuk, bastKeluar } from "@/drizzle/schema";
+import { like, sql, count } from "drizzle-orm";
 
 export interface ArsipDocument {
   id: string; // Composite: TYPE-ID
   originalId: number;
-  tipe: 'BAST_MASUK' | 'SPB' | 'SPPB' | 'BAST_KELUAR' | 'STOCK_OPNAME';
+  tipe: "BAST_MASUK" | "SPB" | "SPPB" | "BAST_KELUAR" | "STOCK_OPNAME";
   nomor: string;
   tanggal: Date;
   keterangan: string | null;
@@ -23,19 +17,12 @@ export interface ArsipDocument {
 }
 
 export async function fetchArsipDocuments(
-  searchQuery: string = '',
+  searchQuery: string = "",
   tipeFilter: string | undefined = undefined,
   startDate: Date | undefined = undefined,
-  endDate: Date | undefined = undefined
+  endDate: Date | undefined = undefined,
 ) {
-  // Parallel fetch for all types
-  // Note: We could optimize this with raw SQL UNION, but Drizzle relations are nice.
-  // Given potential volume, pagination might be needed later, but for now we fetch all (with limits if needed).
-
-  const limit = 100; // Hard limit per type to prevent explosion? Or pagination logic.
-  // For 'Archive', users usually want to see recent stuff or search specific.
-  // I will implement simple fetch all recent 50 from each, or search.
-  // If search is active, we search all.
+  const limit = 100;
 
   // Helper to build where clause
   const buildWhere = (table: any, nomorColumn: any, tanggalColumn: any) => {
@@ -44,20 +31,16 @@ export async function fetchArsipDocuments(
       conditions.push(like(nomorColumn, `%${searchQuery}%`));
     }
     if (startDate) {
-      conditions.push(sql`${tanggalColumn} >= ${startDate.toISOString()}`); // Drizzle handling of date might need care, usually object is fine if eq
-      // Actually range:
-      // gte(tanggalColumn, startDate)
+      conditions.push(sql`${tanggalColumn} >= ${startDate.toISOString()}`);
     }
-    // ... Simplified for now: mainly Search.
 
-    // Allow complex date logic later.
     return searchQuery ? like(nomorColumn, `%${searchQuery}%`) : undefined;
   };
 
   const queries = [];
 
   // 1. BAST Masuk
-  if (!tipeFilter || tipeFilter === 'BAST_MASUK') {
+  if (!tipeFilter || tipeFilter === "BAST_MASUK") {
     queries.push(
       db.query.bastMasuk.findMany({
         where: (t, { like }) =>
@@ -67,63 +50,63 @@ export async function fetchArsipDocuments(
         with: {
           // relations...
         },
-      })
+      }),
     );
   } else {
     queries.push(Promise.resolve([]));
   }
 
   // 2. SPB
-  if (!tipeFilter || tipeFilter === 'SPB') {
+  if (!tipeFilter || tipeFilter === "SPB") {
     queries.push(
       db.query.spb.findMany({
         where: (t, { like }) =>
           searchQuery ? like(t.nomorSpb, `%${searchQuery}%`) : undefined,
         orderBy: (t, { desc }) => [desc(t.tanggalSpb)],
         limit: 50,
-      })
+      }),
     );
   } else {
     queries.push(Promise.resolve([]));
   }
 
   // 3. SPPB
-  if (!tipeFilter || tipeFilter === 'SPPB') {
+  if (!tipeFilter || tipeFilter === "SPPB") {
     queries.push(
       db.query.sppb.findMany({
         where: (t, { like }) =>
           searchQuery ? like(t.nomorSppb, `%${searchQuery}%`) : undefined,
         orderBy: (t, { desc }) => [desc(t.tanggalSppb)],
         limit: 50,
-      })
+      }),
     );
   } else {
     queries.push(Promise.resolve([]));
   }
 
   // 4. BAST Keluar
-  if (!tipeFilter || tipeFilter === 'BAST_KELUAR') {
+  if (!tipeFilter || tipeFilter === "BAST_KELUAR") {
     queries.push(
       db.query.bastKeluar.findMany({
         where: (t, { like }) =>
           searchQuery ? like(t.nomorBast, `%${searchQuery}%`) : undefined,
         orderBy: (t, { desc }) => [desc(t.tanggalBast)],
         limit: 50,
-      })
+      }),
     );
   } else {
     queries.push(Promise.resolve([]));
   }
 
   // 5. Stock Opname
-  if (!tipeFilter || tipeFilter === 'STOCK_OPNAME') {
+  if (!tipeFilter || tipeFilter === "STOCK_OPNAME") {
     queries.push(
       db.query.stockOpname.findMany({
         where: (t, { like }) =>
           searchQuery ? like(t.nomor, `%${searchQuery}%`) : undefined,
         orderBy: (t, { desc }) => [desc(t.tanggal)],
         limit: 50,
-      })
+      }),
     );
   } else {
     queries.push(Promise.resolve([]));
@@ -135,16 +118,15 @@ export async function fetchArsipDocuments(
   // Map to unified format
   const results: ArsipDocument[] = [];
 
-  // @ts-ignore - types mismatch slightly between tables, explicit mapping fixes it
   bastMasukData.forEach((item: any) => {
     results.push({
       id: `BAST_MASUK-${item.id}`,
       originalId: item.id,
-      tipe: 'BAST_MASUK',
-      nomor: item.nomorBast, // Note: BAST Masuk has nomorRefernsi too, strictly using nomorBast here
+      tipe: "BAST_MASUK",
+      nomor: item.nomorBast,
       tanggal: new Date(item.tanggalBast),
-      keterangan: item.keterangan || '-',
-      status: 'Selesai', // BAST entry is considered complete upon creation usually
+      keterangan: item.keterangan || "-",
+      status: "Selesai",
       link: `/dashboard/bast-masuk/${item.id}`,
     });
   });
@@ -153,12 +135,12 @@ export async function fetchArsipDocuments(
     results.push({
       id: `SPB-${item.id}`,
       originalId: item.id,
-      tipe: 'SPB',
+      tipe: "SPB",
       nomor: item.nomorSpb,
       tanggal: new Date(item.tanggalSpb),
-      keterangan: item.keterangan || '-',
+      keterangan: item.keterangan || "-",
       status: item.status,
-      link: `/dashboard/spb/${item.id}`, // Adjust logic if needed (SPB page?)
+      link: `/dashboard/spb/${item.id}`,
     });
   });
 
@@ -166,12 +148,12 @@ export async function fetchArsipDocuments(
     results.push({
       id: `SPPB-${item.id}`,
       originalId: item.id,
-      tipe: 'SPPB',
+      tipe: "SPPB",
       nomor: item.nomorSppb,
       tanggal: new Date(item.tanggalSppb),
-      keterangan: item.keterangan || '-',
+      keterangan: item.keterangan || "-",
       status: item.status,
-      link: `/dashboard/sppb/${item.id}`, // Assuming existing route structure
+      link: `/dashboard/sppb/${item.id}`,
     });
   });
 
@@ -179,12 +161,12 @@ export async function fetchArsipDocuments(
     results.push({
       id: `BAST_KELUAR-${item.id}`,
       originalId: item.id,
-      tipe: 'BAST_KELUAR',
+      tipe: "BAST_KELUAR",
       nomor: item.nomorBast,
       tanggal: new Date(item.tanggalBast),
-      keterangan: item.keterangan || '-',
-      status: 'Selesai',
-      link: `/dashboard/bast-keluar/${item.id}`, // Adjust route
+      keterangan: item.keterangan || "-",
+      status: "Selesai",
+      link: `/dashboard/bast-keluar/${item.id}`,
     });
   });
 
@@ -192,17 +174,37 @@ export async function fetchArsipDocuments(
     results.push({
       id: `STOCK_OPNAME-${item.id}`,
       originalId: item.id,
-      tipe: 'STOCK_OPNAME',
+      tipe: "STOCK_OPNAME",
       nomor: item.nomor,
       tanggal: new Date(item.tanggal),
-      keterangan: item.keterangan || '-',
+      keterangan: item.keterangan || "-",
       status: item.status,
       link: `/dashboard/stock-opname/${item.id}`,
     });
   });
 
-  // Sort Descending by Date
   results.sort((a, b) => b.tanggal.getTime() - a.tanggal.getTime());
 
   return results;
+}
+
+export async function fetchArsipStats() {
+  const [spbCount, sppbCount, bastMasukCount, bastKeluarCount] =
+    await Promise.all([
+      db.select({ total: count() }).from(spb),
+      db.select({ total: count() }).from(sppb),
+      db.select({ total: count() }).from(bastMasuk),
+      db.select({ total: count() }).from(bastKeluar),
+    ]);
+
+  const spbTotal = spbCount[0]?.total ?? 0;
+  const sppbTotal = sppbCount[0]?.total ?? 0;
+  const bastTotal =
+    (bastMasukCount[0]?.total ?? 0) + (bastKeluarCount[0]?.total ?? 0);
+
+  return {
+    spbTotal,
+    sppbTotal,
+    bastTotal,
+  };
 }

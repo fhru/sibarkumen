@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const bastKeluarItemSchema = z.object({
   barangId: z.number().min(1, 'Barang wajib dipilih'),
@@ -9,18 +9,18 @@ export const bastKeluarItemSchema = z.object({
 });
 
 export const bastKeluarFormSchema = z.object({
-  sppbId: z.number().min(1, 'SPPB wajib dipilih'),
+  sppbId: z.number().min(1, "SPPB wajib dipilih"),
   tanggalBast: z.date({
-    message: 'Tanggal BAST wajib diisi',
+    message: "Tanggal BAST wajib diisi",
   }),
-  pihakPertamaId: z.number().min(1, 'Pihak Pertama wajib dipilih'),
+  pihakPertamaId: z.number().min(1, "Pihak Pertama wajib dipilih"),
   jabatanPihakPertamaId: z.number().optional().nullable(),
-  pihakKeduaId: z.number().min(1, 'Pihak Kedua wajib dipilih'),
+  pihakKeduaId: z.number().min(1, "Pihak Kedua wajib dipilih"),
   jabatanPihakKeduaId: z.number().optional().nullable(),
   keterangan: z.string().optional(),
   items: z
     .array(bastKeluarItemSchema)
-    .min(1, 'Minimal satu barang harus ditambahkan'),
+    .min(1, "Minimal satu barang harus ditambahkan"),
 });
 
 export type BastKeluarFormValues = z.infer<typeof bastKeluarFormSchema>;

@@ -4,6 +4,7 @@ import { useFormContext, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -30,20 +31,14 @@ interface SPPBFormDetailsProps {
   pendingSPBs: any[];
   isEdit?: boolean;
   initialData?: any;
-}
-
-function isBeforeDay(date: Date, minDate: Date) {
-  const candidate = new Date(date);
-  const min = new Date(minDate);
-  candidate.setHours(0, 0, 0, 0);
-  min.setHours(0, 0, 0, 0);
-  return candidate < min;
+  existingSPB?: any;
 }
 
 export function SPPBFormDetails({
   pendingSPBs,
   isEdit,
   initialData,
+  existingSPB,
 }: SPPBFormDetailsProps) {
   const {
     control,
@@ -64,8 +59,16 @@ export function SPPBFormDetails({
   }, [pejabatId, jabatanData]);
   const spbDateSource =
     pendingSPBs.find((spb) => spb.id === spbId)?.tanggalSpb ||
+    existingSPB?.tanggalSpb ||
     initialData?.spb?.tanggalSpb;
   const minSpbDate = spbDateSource ? new Date(spbDateSource) : null;
+  const spbLabel = existingSPB
+    ? `${existingSPB.nomorSpb} - ${format(
+        new Date(existingSPB.tanggalSpb),
+        "dd MMM yyyy",
+        { locale: localeId },
+      )}`
+    : "";
 
   useEffect(() => {
     let isActive = true;
@@ -125,26 +128,36 @@ export function SPPBFormDetails({
                   Pilih SPB
                   <span className="text-destructive -ml-1">*</span>
                 </FieldLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value?.toString()}
-                  disabled={isEdit}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih SPB" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pendingSPBs.map((spb) => (
-                      <SelectItem key={spb.id} value={spb.id.toString()}>
-                        {spb.nomorSpb} -{" "}
-                        {format(new Date(spb.tanggalSpb), "dd MMM yyyy", {
-                          locale: localeId,
-                        })}{" "}
-                        ({spb.pemohon?.nama})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isEdit ? (
+                  <div className="space-y-2">
+                    <Input
+                      readOnly
+                      className="bg-muted/50 text-muted-foreground"
+                      value={spbLabel || "SPB tidak tersedia"}
+                    />
+                    <input type="hidden" {...field} value={field.value ?? ""} />
+                  </div>
+                ) : (
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    value={field.value?.toString()}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih SPB" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pendingSPBs.map((spb) => (
+                        <SelectItem key={spb.id} value={spb.id.toString()}>
+                          {spb.nomorSpb} -{" "}
+                          {format(new Date(spb.tanggalSpb), "dd MMM yyyy", {
+                            locale: localeId,
+                          })}{" "}
+                          ({spb.pemohon?.nama})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <FieldError errors={[errors.spbId]} />
               </Field>
             )}
@@ -160,37 +173,46 @@ export function SPPBFormDetails({
                   Tanggal SPPB
                   <span className="text-destructive -ml-1">*</span>
                 </FieldLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: localeId })
-                      ) : (
-                        <span>Pilih tanggal</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() ||
-                        date < new Date("1900-01-01") ||
-                        (minSpbDate ? isBeforeDay(date, minSpbDate) : false)
+                {isEdit ? (
+                  <div className="space-y-2">
+                    <Input
+                      readOnly
+                      className="bg-muted/50 text-muted-foreground"
+                      value={
+                        field.value
+                          ? format(field.value, "PPP", { locale: localeId })
+                          : "-"
                       }
-                      initialFocus
                     />
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                ) : (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground",
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: localeId })
+                        ) : (
+                          <span>Pilih tanggal</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <FieldError errors={[errors.tanggalSppb]} />
               </Field>
             )}
@@ -243,6 +265,7 @@ export function SPPBFormDetails({
                 <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value?.toString()}
+                  disabled={isEdit}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Pilih Jabatan" />
@@ -282,7 +305,12 @@ export function SPPBFormDetails({
               render={({ field }) => (
                 <Textarea
                   placeholder="Tulis keterangan disini..."
-                  className="resize-none min-h-[100px]"
+                  className={
+                    isEdit
+                      ? "resize-none min-h-[100px] bg-muted/50 text-muted-foreground"
+                      : "resize-none min-h-[100px]"
+                  }
+                  readOnly={isEdit}
                   {...field}
                   value={field.value || ""}
                 />

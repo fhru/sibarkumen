@@ -172,20 +172,54 @@ export function ChatAssistantPanel({
   const [open, setOpen] = React.useState(initialOpen);
   const [messages, setMessages] =
     React.useState<ChatMessage[]>(initialMessages);
+  const seededIntroRef = React.useRef(false);
   const [input, setInput] = React.useState("");
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [streamingId, setStreamingId] = React.useState<string | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [hideToggle, setHideToggle] = React.useState(false);
+  const [isToggleHovered, setIsToggleHovered] = React.useState(false);
+  const [position, setPosition] = React.useState({ x: 0, y: 0 });
   const session = authClient.useSession();
   const isAuthenticated = !!session.data?.user;
   const endRef = React.useRef<HTMLDivElement | null>(null);
+  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const toggleRef = React.useRef<HTMLButtonElement | null>(null);
+  const dragMovedRef = React.useRef(false);
+  const dragStateRef = React.useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    originX: 0,
+    originY: 0,
+    minX: 0,
+    maxX: 0,
+    minY: 0,
+    maxY: 0,
+  });
 
   React.useEffect(() => {
     if (!open) return;
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open, isStreaming]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    if (seededIntroRef.current) return;
+    if (messages.length > 0) return;
+
+    setMessages([
+      {
+        id: makeId(),
+        role: "assistant",
+        content:
+          "Halo, saya AI Assistant Sibarkumen. Saya dapat membantu Anda seputar SPB, SPPB, BAST, dan alur dokumen lainnya. Silakan tanyakan apa saja.",
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    seededIntroRef.current = true;
+  }, [messages.length, open]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -199,6 +233,60 @@ export function ChatAssistantPanel({
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [open]);
+
+  const handleDragStart = React.useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const padding = 8;
+      const minX = padding - rect.left;
+      const maxX = window.innerWidth - padding - rect.right;
+      const minY = padding - rect.top;
+      const maxY = window.innerHeight - padding - rect.bottom;
+
+      dragMovedRef.current = false;
+      dragStateRef.current = {
+        active: true,
+        startX: event.clientX,
+        startY: event.clientY,
+        originX: position.x,
+        originY: position.y,
+        minX: position.x + minX,
+        maxX: position.x + maxX,
+        minY: position.y + minY,
+        maxY: position.y + maxY,
+      };
+
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [position.x, position.y],
+  );
+
+  const handleDragMove = React.useCallback((event: React.PointerEvent) => {
+    if (!dragStateRef.current.active) return;
+    const { startX, startY, originX, originY, minX, maxX, minY, maxY } =
+      dragStateRef.current;
+    const nextX = originX + (event.clientX - startX);
+    const nextY = originY + (event.clientY - startY);
+    if (
+      Math.abs(event.clientX - startX) > 3 ||
+      Math.abs(event.clientY - startY) > 3
+    ) {
+      dragMovedRef.current = true;
+    }
+    setPosition({
+      x: Math.min(Math.max(nextX, minX), maxX),
+      y: Math.min(Math.max(nextY, minY), maxY),
+    });
+  }, []);
+
+  const handleDragEnd = React.useCallback((event: React.PointerEvent) => {
+    if (!dragStateRef.current.active) return;
+    dragStateRef.current.active = false;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }, []);
 
   const appendToMessage = React.useCallback((id: string, chunk: string) => {
     if (!chunk) return;
@@ -327,10 +415,12 @@ export function ChatAssistantPanel({
 
   return (
     <div
+      ref={wrapperRef}
       className={cn(
-        "fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 print:hidden",
+        "fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 print:hidden",
         className,
       )}
+      style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
     >
       {open && (
         <div
@@ -347,9 +437,6 @@ export function ChatAssistantPanel({
               </div>
               <div>
                 <div className="text-sm font-semibold">{title}</div>
-                <div className="text-xs text-muted-foreground">
-                  Siap membantu pengelolaan dokumen
-                </div>
               </div>
             </div>
             <Button
@@ -477,15 +564,48 @@ export function ChatAssistantPanel({
         </div>
       )}
 
-      <Button
-        type="button"
-        className="h-14 w-14 rounded-full shadow-lg transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
-        onClick={() => setOpen((value) => !value)}
-        aria-label="Buka chat assistant"
-        ref={toggleRef}
-      >
-        <MessageSquare className="h-5 w-5" />
-      </Button>
+      {!hideToggle && (
+        <div
+          className="relative"
+          onMouseEnter={() => setIsToggleHovered(true)}
+          onMouseLeave={() => setIsToggleHovered(false)}
+        >
+          {isToggleHovered && (
+            <button
+              type="button"
+              className="absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border/60 bg-background text-muted-foreground shadow-sm transition hover:text-foreground"
+              onClick={(event) => {
+                event.stopPropagation();
+                setHideToggle(true);
+                setOpen(false);
+              }}
+              aria-label="Sembunyikan tombol chat"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          <Button
+            type="button"
+            className="h-14 w-14 rounded-full shadow-lg transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 touch-none"
+            onPointerDown={handleDragStart}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+            onPointerCancel={handleDragEnd}
+            onClick={() => {
+              if (dragMovedRef.current) return;
+              setOpen((value) => !value);
+            }}
+            aria-label="Buka chat assistant"
+            ref={toggleRef}
+          >
+            {isToggleHovered ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <MessageSquare className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

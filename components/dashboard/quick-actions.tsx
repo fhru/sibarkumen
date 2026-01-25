@@ -1,8 +1,8 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Plus, FileText, Package } from 'lucide-react';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Plus, FileText, Package } from "lucide-react";
 
-import { Role } from '@/config/nav-items';
+import { Role } from "@/config/nav-items";
 
 interface QuickActionsProps {
   role: Role;
@@ -11,7 +11,7 @@ interface QuickActionsProps {
 export function QuickActions({ role }: QuickActionsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {role !== 'petugas' && (
+      {role !== "petugas" && (
         <Link href="/dashboard/barang" className="group">
           <div className="rounded-lg border bg-background dark:bg-input/30 p-4 transition-all hover:border-primary/50 hover:bg-muted/50">
             <div className="flex items-center gap-3">
@@ -29,7 +29,7 @@ export function QuickActions({ role }: QuickActionsProps) {
         </Link>
       )}
 
-      {role !== 'petugas' && (
+      {role !== "petugas" && (
         <Link href="/dashboard/bast-masuk/create" className="group">
           <div className="rounded-lg border bg-background dark:bg-input/30 p-4 transition-all hover:border-primary/50 hover:bg-muted/50">
             <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useFieldArray, useFormContext, Controller } from "react-hook-form";
+import { useFieldArray, useFormContext } from "react-hook-form";
 import {
   Field,
   FieldLabel,
@@ -13,9 +13,10 @@ import { SPPBFormValues } from "@/lib/zod/sppb-schema";
 
 interface SPPBFormItemsProps {
   selectedSPB: any;
+  isEdit?: boolean;
 }
 
-export function SPPBFormItems({ selectedSPB }: SPPBFormItemsProps) {
+export function SPPBFormItems({ selectedSPB, isEdit }: SPPBFormItemsProps) {
   const {
     control,
     register,
@@ -152,7 +153,12 @@ export function SPPBFormItems({ selectedSPB }: SPPBFormItemsProps) {
                         </FieldLabel>
                         <FieldContent>
                           <Input
-                            className="h-9"
+                            readOnly={isEdit}
+                            className={
+                              isEdit
+                                ? "h-9 bg-muted/50 text-muted-foreground"
+                                : "h-9"
+                            }
                             placeholder="Keterangan Item"
                             {...register(`items.${index}.keterangan`)}
                           />

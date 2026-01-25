@@ -5,30 +5,30 @@ import {
   fetchFastMovingItems,
   fetchDeadStockItems,
   fetchCategoryDistribution,
-} from '../../drizzle/actions/dashboard';
-import { redirect } from 'next/navigation';
-import { DashboardChart } from '../../components/dashboard/dashboard-chart';
-import { QuickActions } from '../../components/dashboard/quick-actions';
-import { LowStockList } from '../../components/dashboard/low-stock-list';
-import { RecentActivity } from '../../components/dashboard/recent-activity';
-import { StatCards } from '../../components/dashboard/stat-cards';
-import { FastMovingList } from '../../components/dashboard/fast-moving-list';
-import { DeadStockList } from '../../components/dashboard/dead-stock-list';
-import { CategoryPieChart } from '../../components/dashboard/category-distribution-chart';
-import { getSession } from '@/lib/auth-utils';
-import { Role } from '@/config/nav-items';
+} from "../../drizzle/actions/dashboard";
+import { redirect } from "next/navigation";
+import { DashboardChart } from "../../components/dashboard/dashboard-chart";
+import { QuickActions } from "../../components/dashboard/quick-actions";
+import { LowStockList } from "../../components/dashboard/low-stock-list";
+import { RecentActivity } from "../../components/dashboard/recent-activity";
+import { StatCards } from "../../components/dashboard/stat-cards";
+import { FastMovingList } from "../../components/dashboard/fast-moving-list";
+import { DeadStockList } from "../../components/dashboard/dead-stock-list";
+import { CategoryPieChart } from "../../components/dashboard/category-distribution-chart";
+import { getSession } from "@/lib/auth-utils";
+import { Role } from "@/config/nav-items";
 
 export const metadata = {
-  title: 'Dashboard | Sibarkumen',
-  description: 'Overview inventaris dan aktivitas terbaru.',
+  title: "Dashboard | Sibarkumen",
+  description: "Overview inventaris dan aktivitas terbaru.",
 };
 
 export default async function DashboardPage() {
   const session = await getSession();
-  const userRole = (session?.user.role as Role) || 'petugas';
+  const userRole = (session?.user.role as Role) || "petugas";
 
-  if (userRole === 'petugas') {
-    redirect('/dashboard/spb');
+  if (userRole === "petugas") {
+    redirect("/dashboard/spb");
   }
 
   const [

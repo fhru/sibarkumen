@@ -1,18 +1,14 @@
-'use client';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { navItems, NavItem, Role } from '@/config/nav-items';
-import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
-import { authClient } from '@/lib/auth-client';
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { navItems, NavItem, Role } from "@/config/nav-items";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { ChevronRight } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
-interface SidebarProps {
-  isCollapsed?: boolean;
-}
-
-export function Sidebar({ isCollapsed }: SidebarProps) {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const session = authClient.useSession();
   const userRole = session.data?.user.role as Role | undefined;
@@ -23,21 +19,21 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
       const newItem = { ...item };
 
       // Check top level roles
-      if (newItem.roles && !newItem.roles.includes(userRole || 'petugas')) {
+      if (newItem.roles && !newItem.roles.includes(userRole || "petugas")) {
         return null;
       }
 
       // Filter sub items if they exist
       if (newItem.items) {
         newItem.items = newItem.items.filter((subItem) => {
-          if (subItem.roles && !subItem.roles.includes(userRole || 'petugas')) {
+          if (subItem.roles && !subItem.roles.includes(userRole || "petugas")) {
             return false;
           }
           return true;
         });
 
         // If all sub-items were filtered out, hide the group parent if it has no standalone href
-        if (newItem.items.length === 0 && newItem.href === '#') {
+        if (newItem.items.length === 0 && newItem.href === "#") {
           return null;
         }
       }
@@ -47,13 +43,13 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
     .filter(Boolean) as NavItem[];
 
   return (
-    <nav className="flex flex-col space-y-1">
+    <nav className="flex flex-col space-y-1.5">
       {filteredNavItems.map((item, index) => (
         <SidebarItem
           key={index}
           item={item}
-          isCollapsed={isCollapsed}
           pathname={pathname}
+          onNavigate={onNavigate}
         />
       ))}
     </nav>
@@ -62,76 +58,66 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
 
 function SidebarItem({
   item,
-  isCollapsed,
   pathname,
+  onNavigate,
 }: {
   item: NavItem;
-  isCollapsed?: boolean;
   pathname: string;
+  onNavigate?: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const Icon = item.icon;
   const isGroup = !!item.items?.length;
-
-  // Check if any child is active
   const isChildActive = item.items?.some((child) => child.href === pathname);
   const isActive = pathname === item.href || (isGroup && isChildActive);
-
-  // Auto-expand if child is active
-  useEffect(() => {
-    if (isChildActive) {
-      setIsOpen(true);
-    }
-  }, [isChildActive]);
+  const [manualOpen, setManualOpen] = useState(false);
+  const isOpen = isChildActive || manualOpen;
 
   if (isGroup) {
     return (
-      <div className="flex flex-col space-y-1">
+      <div className="flex flex-col space-y-1.5">
         <Button
           variant="ghost"
           className={cn(
-            'w-full justify-between group',
+            "w-full justify-between group rounded-lg h-10",
             isActive
-              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-              : 'text-sidebar-foreground/70 hover:text-sidebar-foreground',
-            isCollapsed ? 'px-0 justify-center h-9' : 'px-3'
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/70 hover:text-sidebar-foreground",
+            "px-3",
           )}
-          onClick={() => !isCollapsed && setIsOpen(!isOpen)}
+          onClick={() => setManualOpen((value) => !value)}
         >
           <div className="flex items-center gap-2">
             <Icon
               className={cn(
-                'h-4 w-4 shrink-0',
-                isActive ? 'text-sidebar-accent-foreground' : ''
+                "h-4 w-4 shrink-0",
+                isActive ? "text-sidebar-accent-foreground" : "",
               )}
             />
-            {!isCollapsed && <span>{item.title}</span>}
+            <span>{item.title}</span>
           </div>
-          {!isCollapsed && (
-            <ChevronRight
-              className={cn(
-                'h-4 w-4 transition-transform duration-200 text-muted-foreground/50',
-                isOpen && 'rotate-90'
-              )}
-            />
-          )}
+          <ChevronRight
+            className={cn(
+              "h-4 w-4 transition-transform duration-200 text-muted-foreground/50",
+              isOpen && "rotate-90",
+            )}
+          />
         </Button>
-        {!isCollapsed && isOpen && (
-          <div className="ml-4 flex flex-col space-y-1 border-l border-sidebar-border pl-2">
+        {isOpen && (
+          <div className="ml-3 flex flex-col gap-1 border-l border-sidebar-border/80 pl-3">
             {item.items?.map((child, idx) => (
               <Button
                 key={idx}
                 asChild
                 variant="ghost"
                 className={cn(
-                  'w-full justify-start h-8 text-sm font-normal px-2',
+                  "w-full justify-start h-9 text-sm font-normal px-2 rounded-md",
                   pathname === child.href
-                    ? 'bg-sidebar-accent/50 text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-transparent'
+                    ? "bg-sidebar-accent/50 text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/30",
                 )}
               >
-                <Link href={child.href}>
-                  <span>{child.title}</span>
+                <Link href={child.href} onClick={onNavigate}>
+                  <span className="truncate">{child.title}</span>
                 </Link>
               </Button>
             ))}
@@ -146,22 +132,21 @@ function SidebarItem({
       asChild
       variant="ghost"
       className={cn(
-        'w-full justify-start',
+        "w-full justify-start rounded-lg h-10",
         isActive
-          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-          : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50',
-        isCollapsed ? 'px-0 justify-center h-9' : 'px-3'
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+        "px-3",
       )}
-      title={isCollapsed ? item.title : undefined}
     >
-      <Link href={item.href}>
+      <Link href={item.href} onClick={onNavigate}>
         <Icon
           className={cn(
-            'h-4 w-4 shrink-0',
-            isActive ? 'text-sidebar-accent-foreground' : ''
+            "h-4 w-4 shrink-0",
+            isActive ? "text-sidebar-accent-foreground" : "",
           )}
         />
-        {!isCollapsed && <span className="ml-2">{item.title}</span>}
+        <span className="ml-2 truncate">{item.title}</span>
       </Link>
     </Button>
   );
