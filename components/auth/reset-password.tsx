@@ -22,11 +22,11 @@ import { InputGroup, InputGroupInput } from '@/components/ui/input-group';
 
 const resetPasswordSchema = z
   .object({
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z.string().min(8, 'Kata sandi harus minimal 8 karakter'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: 'Kata sandi tidak cocok',
     path: ['confirmPassword'],
   });
 
@@ -50,7 +50,7 @@ export default function ResetPassword() {
     const token = params.get('token');
 
     if (!token) {
-      toast.error('Invalid or missing reset token.');
+      toast.error('Token atur ulang tidak valid atau hilang.');
       setIsLoading(false);
       return;
     }
@@ -61,16 +61,16 @@ export default function ResetPassword() {
         token: token,
       });
       if (error) {
-        toast.error(error.message || 'Something went wrong. Please try again.');
+        toast.error(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
         // Optionally redirect to request reset again if token invalid
       } else {
         toast.success(
-          'Password updated successfully. Please sign in with your new password.'
+          'Kata sandi berhasil diperbarui. Silakan masuk dengan kata sandi baru Anda.'
         );
         router.push('/sign-in');
       }
     } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      toast.error('Terjadi kesalahan. Silakan coba lagi.');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -80,13 +80,15 @@ export default function ResetPassword() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle>Reset Password</CardTitle>
-        <CardDescription>Enter your new password below.</CardDescription>
+        <CardTitle>Atur Ulang Kata Sandi</CardTitle>
+        <CardDescription>
+          Masukkan kata sandi baru Anda di bawah ini.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <Field>
-            <FieldLabel htmlFor="password">New Password</FieldLabel>
+            <FieldLabel htmlFor="password">Kata Sandi Baru</FieldLabel>
             <InputGroup className="w-full">
               <InputGroupInput
                 id="password"
@@ -100,7 +102,7 @@ export default function ResetPassword() {
 
           <Field>
             <FieldLabel htmlFor="confirmPassword">
-              Confirm New Password
+              Konfirmasi Kata Sandi Baru
             </FieldLabel>
             <InputGroup className="w-full">
               <InputGroupInput
@@ -117,12 +119,12 @@ export default function ResetPassword() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating Password...
+                Memperbarui Kata Sandi...
               </>
             ) : (
               <>
                 <Lock className="mr-2 h-4 w-4" />
-                Update Password
+                Perbarui Kata Sandi
               </>
             )}
           </Button>

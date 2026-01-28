@@ -75,13 +75,23 @@ export default async function Page() {
       {/* Main Hero Content */}
       <main className="flex-1 flex flex-col items-center justify-center z-10 px-4 text-center mt-20">
         <div className="max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out">
-          <div className="inline-block px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4">
-            Sistem Inventaris Barang
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative h-20 w-20 md:h-28 md:w-28">
+              <Image
+                src="/logo_jaktim.png"
+                alt="Logo Kota Administrasi Jakarta Timur"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            {/*<div className="inline-block px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4">
+              Sistem Inventaris Barang
+            </div>*/}
+            <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-linear-to-b from-foreground to-foreground/50 pb-2">
+              Sibarkumen
+            </h1>
           </div>
-
-          <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-linear-to-b from-foreground to-foreground/50 pb-2">
-            Sibarkumen
-          </h1>
 
           <p className="max-w-2xl mx-auto text-xl text-muted-foreground md:text-2xl leading-relaxed">
             Aplikasi internal untuk mempermudah pencatatan barang masuk, barang
@@ -117,7 +127,10 @@ export default async function Page() {
         <p>
           &copy; {new Date().getFullYear()} Kelurahan Ujung Menteng.{" "}
           <br className="sm:hidden" />
-          Dikembangkan oleh Mahasiswa Gunadarma.
+          Dikembangkan oleh{" "}
+          <Link href={"/our-team"} className="underline">
+            Mahasiswa Gunadarma.
+          </Link>
         </p>
       </footer>
     </div>

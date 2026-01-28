@@ -1,14 +1,14 @@
-import { count, desc, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { barang, spb, sppb, bastKeluar } from "@/drizzle/schema";
-import { auth } from "@/lib/auth";
+import { count, desc, sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { barang, spb, sppb, bastKeluar } from '@/drizzle/schema';
+import { auth } from '@/lib/auth';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
-const MODEL = "openai/gpt-oss-120b:free";
+const MODEL = 'openai/gpt-oss-120b:free';
 const MAX_CONTEXT_ITEMS = 50;
 const apiKeys =
-  process.env.OPENROUTER_API_KEYS?.split(",").map((key) => key.trim()) ??
+  process.env.OPENROUTER_API_KEYS?.split(',').map((key) => key.trim()) ??
   (process.env.OPENROUTER_API_KEY ? [process.env.OPENROUTER_API_KEY] : []);
 let apiKeyIndex = 0;
 
@@ -20,9 +20,9 @@ function getNextApiKey() {
 }
 
 function formatDate(value: unknown) {
-  if (!value) return "-";
+  if (!value) return '-';
   const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return '-';
   return date.toISOString().slice(0, 10);
 }
 
@@ -87,42 +87,42 @@ async function buildContextSummary() {
   ]);
 
   const stats = [
-    "Statistik:",
+    'Statistik:',
     `- Total barang: ${barangCount[0]?.total ?? 0}`,
     `- Total stok: ${stokAggregate[0]?.total ?? 0}`,
     `- Total SPB: ${spbCount[0]?.total ?? 0}`,
     `- Total SPPB: ${sppbCount[0]?.total ?? 0}`,
     `- Total BAST Keluar: ${bastCount[0]?.total ?? 0}`,
-    "",
-  ].join("\n");
+    '',
+  ].join('\n');
 
   const summary = [
-    "Ringkasan konteks data (maks 50 per kategori):",
-    "",
+    'Ringkasan konteks data (maks 50 per kategori):',
+    '',
     stats,
-    "Barang/Stok:",
+    'Barang/Stok:',
     ...barangList.map(
       (item) =>
-        `- ${item.nama} (${item.kode}) stok=${item.stok} (id:${item.id})`,
+        `- ${item.nama} (${item.kode}) stok=${item.stok} (id:${item.id})`
     ),
-    "",
-    "SPB terbaru:",
+    '',
+    'SPB terbaru:',
     ...spbList.map(
       (item) =>
-        `- ${item.nomor} ${formatDate(item.tanggal)} status=${item.status} (id:${item.id})`,
+        `- ${item.nomor} ${formatDate(item.tanggal)} status=${item.status} (id:${item.id})`
     ),
-    "",
-    "SPPB terbaru:",
+    '',
+    'SPPB terbaru:',
     ...sppbList.map(
       (item) =>
-        `- ${item.nomor} ${formatDate(item.tanggal)} status=${item.status} (id:${item.id})`,
+        `- ${item.nomor} ${formatDate(item.tanggal)} status=${item.status} (id:${item.id})`
     ),
-    "",
-    "BAST Keluar terbaru:",
+    '',
+    'BAST Keluar terbaru:',
     ...bastList.map(
-      (item) => `- ${item.nomor} ${formatDate(item.tanggal)} (id:${item.id})`,
+      (item) => `- ${item.nomor} ${formatDate(item.tanggal)} (id:${item.id})`
     ),
-  ].join("\n");
+  ].join('\n');
 
   return summary;
 }
@@ -132,12 +132,12 @@ export async function POST(req: Request) {
     headers: req.headers,
   });
   if (!session) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const apiKey = getNextApiKey();
   if (!apiKey) {
-    return new Response("Missing OPENROUTER_API_KEY(S)", { status: 500 });
+    return new Response('Missing OPENROUTER_API_KEY(S)', { status: 500 });
   }
 
   const payload = await req.json();
@@ -145,34 +145,45 @@ export async function POST(req: Request) {
   const contextSummary = await buildContextSummary();
   const messagesWithContext = [
     {
-      role: "system",
+      role: 'system',
       content:
-        "Anda adalah asisten data untuk sistem Sibarkumen. " +
-        "HANYA gunakan konteks data yang diberikan di bawah ini. " +
-        "Jangan gunakan pengetahuan umum atau asumsi. " +
+        'Anda adalah asisten data untuk sistem Sibarkumen. ' +
+        'HANYA gunakan konteks data yang diberikan di bawah ini. ' +
+        'Jangan gunakan pengetahuan umum atau asumsi. ' +
         'Jika jawaban tidak ada di konteks, jawab: "Maaf, aku belum punya informasinya." ' +
         'Jika data ambigu atau tidak lengkap, jawab: "Maaf, aku belum punya informasinya." ' +
-        "Jangan menebak atau mengarang. " +
-        "Jawab dalam bahasa Indonesia.",
+        'Jangan menebak atau mengarang. ' +
+        'Jawab dalam bahasa Indonesia.',
     },
     {
-      role: "system",
+      role: 'system',
       content:
-        "Konteks definisi:" +
-        "\n- SPB: Surat Permintaan Barang." +
-        "\n- SPPB: Surat Perintah Penyaluran Barang." +
-        "\n- BAST: Berita Acara Serah Terima." +
-        "\n- Sibarkumen: Sistem Inventaris Barang Kelurahan Ujung Menteng; dibuat oleh mahasiswa Gunadarma.",
+        'Konteks definisi:' +
+        '\n- SPB: Surat Permintaan Barang.' +
+        '\n- SPPB: Surat Perintah Penyaluran Barang.' +
+        '\n- BAST: Berita Acara Serah Terima.' +
+        '\n- Sibarkumen: Sistem Inventaris Barang Kelurahan Ujung Menteng; dibuat oleh mahasiswa Gunadarma.',
     },
     {
-      role: "system",
+      role: 'system',
       content:
-        "Konteks prosedur:" +
-        "\n- Jika user bertanya cara pembuatan SPB: hubungi pengurus barang untuk mendaftarkan akun, login, buka halaman SPB, tekan tombol Buat SPB, isi form, kirim; tunggu sampai status selesai, lalu bisa dicetak." +
-        "\n- Jika bertanya cara pembuatan SPPB/BAST: jawab bahwa hanya admin yang dapat membuatnya.",
+        'Konteks prosedur:' +
+        '\n- Jika user bertanya cara pembuatan SPB: hubungi pengurus barang untuk mendaftarkan akun, login, buka halaman SPB, tekan tombol Buat SPB, isi form, kirim; tunggu sampai status selesai, lalu bisa dicetak.' +
+        '\n- Jika bertanya cara pembuatan SPPB/BAST: jawab bahwa hanya admin yang dapat membuatnya.',
     },
     {
-      role: "system",
+      role: 'system',
+      content:
+        'Informasi Wilayah & Pejabat:' +
+        '\n- Kelurahan Ujung Menteng berlokasi di Kecamatan Cakung, Kota Administrasi Jakarta Timur, DKI Jakarta (Kode Pos: 13960).' +
+        '\n- Alamat Kantor Kelurahan: Jalan Raya Bekasi KM. 26, Gang Kelurahan RT.008 RW.01, Ujung Menteng.' +
+        '\n- Batas Wilayah: Utara & Barat (Kelurahan Cakung Timur), Timur (Kota Bekasi/Harapan Indah), Selatan (Kelurahan Pulo Gebang).' +
+        '\n- Lurah Ujung Menteng: Andri Kurniawan (dilantik 5 November 2025).' +
+        '\n- Andri Kurniawan lahir di Jakarta pada 3 Februari 1975.' +
+        '\n- Andri Kurniawan menggantikan pejabat sebelumnya yaitu Agus Sulaeman.',
+    },
+    {
+      role: 'system',
       content: contextSummary,
     },
     ...messages,
@@ -181,39 +192,39 @@ export async function POST(req: Request) {
   const referer =
     process.env.OPENROUTER_REFERRER ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
-  const title = process.env.OPENROUTER_TITLE || "Sibarkumen";
+    'http://localhost:3000';
+  const title = process.env.OPENROUTER_TITLE || 'Sibarkumen';
 
   const upstream = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
+    'https://openrouter.ai/api/v1/chat/completions',
     {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": referer,
-        "X-Title": title,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': referer,
+        'X-Title': title,
       },
       body: JSON.stringify({
         model: MODEL,
         stream: true,
         messages: messagesWithContext,
       }),
-    },
+    }
   );
 
   if (!upstream.ok || !upstream.body) {
     const errorText = await upstream.text();
-    return new Response(errorText || "OpenRouter request failed", {
+    return new Response(errorText || 'OpenRouter request failed', {
       status: upstream.status,
     });
   }
 
   return new Response(upstream.body, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
     },
   });
 }

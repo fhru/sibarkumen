@@ -15,6 +15,20 @@
       "when": 1769103864011,
       "tag": "0001_bright_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769352275005,
+      "tag": "0002_talented_nekra",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1769352311360,
+      "tag": "0003_left_namor",
+      "breakpoints": true
     }
   ]
 }

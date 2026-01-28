@@ -22,7 +22,7 @@ import { InputGroup, InputGroupInput } from '@/components/ui/input-group';
 import Link from 'next/link';
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.string().email('Silakan masukkan alamat email yang valid'),
 });
 
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
@@ -46,10 +46,10 @@ export default function ForgotPassword() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       toast.success(
-        'If an account exists with this email, you will receive a password reset link.'
+        'Jika akun dengan email tersebut terdaftar, Anda akan menerima tautan pengaturan ulang kata sandi.'
       );
     } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      toast.error('Terjadi kesalahan. Silakan coba lagi.');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -59,9 +59,9 @@ export default function ForgotPassword() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle>Forgot Password</CardTitle>
+        <CardTitle>Lupa Kata Sandi</CardTitle>
         <CardDescription>
-          Enter your email to receive a password reset link
+          Masukkan email Anda untuk menerima tautan pengaturan ulang kata sandi
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -72,7 +72,7 @@ export default function ForgotPassword() {
               <InputGroupInput
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="nama@contoh.com"
                 {...form.register('email')}
               />
             </InputGroup>
@@ -83,12 +83,12 @@ export default function ForgotPassword() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending Link...
+                Mengirim Tautan...
               </>
             ) : (
               <>
                 <Mail className="mr-2 h-4 w-4" />
-                Send Reset Link
+                Kirim Tautan Atur Ulang
               </>
             )}
           </Button>
@@ -96,7 +96,7 @@ export default function ForgotPassword() {
       </CardContent>
       <CardFooter className="justify-center text-sm text-muted-foreground">
         <Link href="/sign-in" className="text-primary hover:underline">
-          Back to Sign In
+          Kembali ke Sign In
         </Link>
       </CardFooter>
     </Card>

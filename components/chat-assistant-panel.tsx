@@ -1,14 +1,16 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Loader2, MessageSquare, Send, Sparkle, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/auth-client";
+import * as React from 'react';
+import { Loader2, MessageSquare, Send, Sparkle, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { authClient } from '@/lib/auth-client';
 
-export type ChatRole = "user" | "assistant" | "system";
+import { usePathname } from 'next/navigation';
+
+export type ChatRole = 'user' | 'assistant' | 'system';
 
 export type ChatMessage = {
   id: string;
@@ -23,7 +25,7 @@ export interface ChatAssistantPanelProps {
   initialMessages?: ChatMessage[];
   onSend?: (
     message: string,
-    context: ChatMessage[],
+    context: ChatMessage[]
   ) => AsyncIterable<string> | Promise<AsyncIterable<string>>;
   apiEndpoint?: string;
   className?: string;
@@ -65,11 +67,11 @@ function renderInlineMarkdown(text: string) {
 
     const token = nextMatch[0];
     const content = nextMatch[1];
-    if (token.startsWith("**")) {
+    if (token.startsWith('**')) {
       parts.push(
         <strong key={`b-${key++}`} className="font-semibold">
           {content}
-        </strong>,
+        </strong>
       );
     } else {
       parts.push(
@@ -78,7 +80,7 @@ function renderInlineMarkdown(text: string) {
           className="rounded bg-background/70 px-1 py-0.5 text-[0.85em]"
         >
           {content}
-        </code>,
+        </code>
       );
     }
 
@@ -115,11 +117,11 @@ function renderMarkdown(text: string) {
           (!isOrdered && /^\s*[-*]\s+/.test(current));
         if (!isItem) break;
 
-        const content = current.replace(/^\s*([-*]|\d+\.)\s+/, "");
+        const content = current.replace(/^\s*([-*]|\d+\.)\s+/, '');
         items.push(
           <li key={`li-${key++}`} className="leading-relaxed">
             {renderInlineMarkdown(content)}
-          </li>,
+          </li>
         );
         i += 1;
       }
@@ -133,7 +135,7 @@ function renderMarkdown(text: string) {
           <ul key={`ul-${key++}`} className="list-disc space-y-1 pl-4">
             {items}
           </ul>
-        ),
+        )
       );
       continue;
     }
@@ -141,7 +143,7 @@ function renderMarkdown(text: string) {
     blocks.push(
       <p key={`p-${key++}`} className="leading-relaxed">
         {renderInlineMarkdown(line)}
-      </p>,
+      </p>
     );
     i += 1;
   }
@@ -150,30 +152,31 @@ function renderMarkdown(text: string) {
 }
 
 function formatTime(value?: string) {
-  if (!value) return "";
+  if (!value) return '';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
 export function ChatAssistantPanel({
-  title = "Sibarkumen AI Assistant",
+  title = 'Sibarkumen AI Assistant',
   initialOpen = false,
   initialMessages = [],
   onSend,
-  apiEndpoint = "/api/chat",
+  apiEndpoint = '/api/chat',
   className,
   panelClassName,
-  footerHint = "Enter untuk kirim, Shift+Enter untuk baris baru",
+  footerHint = 'Enter untuk kirim, Shift+Enter untuk baris baru',
 }: ChatAssistantPanelProps) {
+  const pathname = usePathname();
   const [open, setOpen] = React.useState(initialOpen);
   const [messages, setMessages] =
     React.useState<ChatMessage[]>(initialMessages);
   const seededIntroRef = React.useRef(false);
-  const [input, setInput] = React.useState("");
+  const [input, setInput] = React.useState('');
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [streamingId, setStreamingId] = React.useState<string | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -201,7 +204,7 @@ export function ChatAssistantPanel({
 
   React.useEffect(() => {
     if (!open) return;
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, open, isStreaming]);
 
   React.useEffect(() => {
@@ -212,9 +215,9 @@ export function ChatAssistantPanel({
     setMessages([
       {
         id: makeId(),
-        role: "assistant",
+        role: 'assistant',
         content:
-          "Halo, saya AI Assistant Sibarkumen. Saya dapat membantu Anda seputar SPB, SPPB, BAST, dan alur dokumen lainnya. Silakan tanyakan apa saja.",
+          'Halo, saya AI Assistant Sibarkumen. Saya dapat membantu Anda seputar SPB, SPPB, BAST, dan alur dokumen lainnya. Silakan tanyakan apa saja.',
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -230,8 +233,8 @@ export function ChatAssistantPanel({
       if (toggleRef.current?.contains(target)) return;
       setOpen(false);
     };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [open]);
 
   const handleDragStart = React.useCallback(
@@ -261,7 +264,7 @@ export function ChatAssistantPanel({
 
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [position.x, position.y],
+    [position.x, position.y]
   );
 
   const handleDragMove = React.useCallback((event: React.PointerEvent) => {
@@ -292,17 +295,17 @@ export function ChatAssistantPanel({
     if (!chunk) return;
     setMessages((prev) =>
       prev.map((msg) =>
-        msg.id === id ? { ...msg, content: msg.content + chunk } : msg,
-      ),
+        msg.id === id ? { ...msg, content: msg.content + chunk } : msg
+      )
     );
   }, []);
 
   const defaultOnSend = React.useCallback(
     async function* (message: string, context: ChatMessage[]) {
       const response = await fetch(apiEndpoint, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           messages: context.map((msg) => ({
@@ -314,34 +317,34 @@ export function ChatAssistantPanel({
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Chat request failed");
+        throw new Error(errorText || 'Chat request failed');
       }
       if (!response.body) {
-        throw new Error("Chat response stream unavailable");
+        throw new Error('Chat response stream unavailable');
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let buffer = '';
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (!trimmed.startsWith("data:")) continue;
+          if (!trimmed.startsWith('data:')) continue;
 
           const payload = trimmed.slice(5).trim();
-          if (payload === "[DONE]") return;
+          if (payload === '[DONE]') return;
 
           try {
             const parsed = JSON.parse(payload);
-            const delta = parsed?.choices?.[0]?.delta?.content ?? "";
+            const delta = parsed?.choices?.[0]?.delta?.content ?? '';
             if (delta) {
               yield delta;
             }
@@ -351,12 +354,12 @@ export function ChatAssistantPanel({
         }
       }
     },
-    [apiEndpoint],
+    [apiEndpoint]
   );
 
   const handleSend = React.useCallback(async () => {
     if (!isAuthenticated) {
-      setErrorMessage("Silakan login untuk menggunakan AI Assistant.");
+      setErrorMessage('Silakan login untuk menggunakan AI Assistant.');
       return;
     }
     const text = input.trim();
@@ -364,20 +367,20 @@ export function ChatAssistantPanel({
 
     const userMessage: ChatMessage = {
       id: makeId(),
-      role: "user",
+      role: 'user',
       content: text,
       createdAt: new Date().toISOString(),
     };
     const assistantMessage: ChatMessage = {
       id: makeId(),
-      role: "assistant",
-      content: "",
+      role: 'assistant',
+      content: '',
       createdAt: new Date().toISOString(),
     };
 
     const nextMessages = [...messages, userMessage, assistantMessage];
     setMessages(nextMessages);
-    setInput("");
+    setInput('');
     setIsStreaming(true);
     setStreamingId(assistantMessage.id);
 
@@ -392,12 +395,12 @@ export function ChatAssistantPanel({
     } catch (error) {
       appendToMessage(
         assistantMessage.id,
-        "Terjadi kendala saat memproses jawaban.",
+        'Terjadi kendala saat memproses jawaban.'
       );
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Tidak dapat menghubungi layanan AI.",
+          : 'Tidak dapat menghubungi layanan AI.'
       );
     } finally {
       setIsStreaming(false);
@@ -413,12 +416,18 @@ export function ChatAssistantPanel({
     onSend,
   ]);
 
+  const blockedPath = ['/sign-in', '/our-team', '/forgot-password', '/reset-password'];
+
+  if (blockedPath.includes(pathname)) {
+    return null;
+  }
+
   return (
     <div
       ref={wrapperRef}
       className={cn(
-        "fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 print:hidden",
-        className,
+        'fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 print:hidden',
+        className
       )}
       style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
     >
@@ -426,8 +435,8 @@ export function ChatAssistantPanel({
         <div
           ref={panelRef}
           className={cn(
-            "w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border bg-background shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200",
-            panelClassName,
+            'w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border bg-background shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200',
+            panelClassName
           )}
         >
           <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
@@ -461,9 +470,9 @@ export function ChatAssistantPanel({
               {messages.length === 0 && (
                 <div className="flex flex-wrap gap-2">
                   {[
-                    "Cara membuat SPB baru?",
-                    "Apa perbedaan SPB dan SPPB?",
-                    "Bagaimana proses BAST keluar?",
+                    'Cara membuat SPB baru?',
+                    'Apa perbedaan SPB dan SPPB?',
+                    'Bagaimana proses BAST keluar?',
                   ].map((suggestion) => (
                     <button
                       key={suggestion}
@@ -478,22 +487,22 @@ export function ChatAssistantPanel({
               )}
 
               {messages.map((message) => {
-                const isUser = message.role === "user";
+                const isUser = message.role === 'user';
                 const timestamp = formatTime(message.createdAt);
                 return (
                   <div
                     key={message.id}
                     className={cn(
-                      "flex flex-col",
-                      isUser ? "items-end" : "items-start",
+                      'flex flex-col',
+                      isUser ? 'items-end' : 'items-start'
                     )}
                   >
                     <div
                       className={cn(
-                        "max-w-[85%] rounded-lg px-2.5 py-2 text-sm leading-relaxed",
+                        'max-w-[85%] rounded-lg px-2.5 py-2 text-sm leading-relaxed',
                         isUser
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground",
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-foreground'
                       )}
                     >
                       {message.content ? (
@@ -536,7 +545,7 @@ export function ChatAssistantPanel({
                 placeholder="Tulis pesan..."
                 className="min-h-[40px] resize-none"
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
+                  if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
                     handleSend();
                   }

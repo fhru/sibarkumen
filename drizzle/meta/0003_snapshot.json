@@ -1,5 +1,5 @@
 {
-  "id": "72d8904d-4c2b-420a-8bfb-fd4b10796765",
+  "id": "96d81e24-5a36-4838-b083-0409ffa4c764",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -193,7 +193,7 @@
         },
         "nama": {
           "name": "nama",
-          "type": "text",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
@@ -212,7 +212,7 @@
         },
         "spesifikasi": {
           "name": "spesifikasi",
-          "type": "text",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": false
         },
@@ -354,11 +354,23 @@
           "primaryKey": false,
           "notNull": true
         },
+        "jabatan_pihak_pertama_id": {
+          "name": "jabatan_pihak_pertama_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "pihak_kedua_id": {
           "name": "pihak_kedua_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "jabatan_pihak_kedua_id": {
+          "name": "jabatan_pihak_kedua_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "subtotal": {
           "name": "subtotal",
@@ -437,6 +449,19 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+        "bast_keluar_jabatan_pihak_pertama_id_jabatan_id_fk": {
+          "name": "bast_keluar_jabatan_pihak_pertama_id_jabatan_id_fk",
+          "tableFrom": "bast_keluar",
+          "tableTo": "jabatan",
+          "columnsFrom": [
+            "jabatan_pihak_pertama_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "bast_keluar_pihak_kedua_id_pegawai_id_fk": {
           "name": "bast_keluar_pihak_kedua_id_pegawai_id_fk",
           "tableFrom": "bast_keluar",
@@ -448,6 +473,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bast_keluar_jabatan_pihak_kedua_id_jabatan_id_fk": {
+          "name": "bast_keluar_jabatan_pihak_kedua_id_jabatan_id_fk",
+          "tableFrom": "bast_keluar",
+          "tableTo": "jabatan",
+          "columnsFrom": [
+            "jabatan_pihak_kedua_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -643,8 +681,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "rekening_id": {
-          "name": "rekening_id",
+        "kode_rekening_id": {
+          "name": "kode_rekening_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -691,12 +729,12 @@
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
-        "bast_masuk_rekening_id_rekening_id_fk": {
-          "name": "bast_masuk_rekening_id_rekening_id_fk",
+        "bast_masuk_kode_rekening_id_kode_rekening_id_fk": {
+          "name": "bast_masuk_kode_rekening_id_kode_rekening_id_fk",
           "tableFrom": "bast_masuk",
-          "tableTo": "rekening",
+          "tableTo": "kode_rekening",
           "columnsFrom": [
-            "rekening_id"
+            "kode_rekening_id"
           ],
           "columnsTo": [
             "id"
@@ -1012,6 +1050,56 @@
           "nullsNotDistinct": false,
           "columns": [
             "prefix"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kode_rekening": {
+      "name": "kode_rekening",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "kode_rekening_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "kode": {
+          "name": "kode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uraian": {
+          "name": "uraian",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "kode_rekening_kode_unique": {
+          "name": "kode_rekening_kode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "kode"
           ]
         }
       },
@@ -1405,68 +1493,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.rekening": {
-      "name": "rekening",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "rekening_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "nama_bank": {
-          "name": "nama_bank",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nomor_rekening": {
-          "name": "nomor_rekening",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nama_pemilik": {
-          "name": "nama_pemilik",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "keterangan": {
-          "name": "keterangan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "rekening_nomor_rekening_unique": {
-          "name": "rekening_nomor_rekening_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "nomor_rekening"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.satuan": {
       "name": "satuan",
       "schema": "",
@@ -1656,6 +1682,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "jabatan_id": {
+          "name": "jabatan_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "status_spb",
@@ -1706,6 +1738,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
+        },
+        "spb_jabatan_id_jabatan_id_fk": {
+          "name": "spb_jabatan_id_jabatan_id_fk",
+          "tableFrom": "spb",
+          "tableTo": "jabatan",
+          "columnsFrom": [
+            "jabatan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1848,14 +1893,32 @@
           "primaryKey": false,
           "notNull": false
         },
+        "jabatan_pembuat_id": {
+          "name": "jabatan_pembuat_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "pejabat_penyetuju_id": {
           "name": "pejabat_penyetuju_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
+        "jabatan_pejabat_penyetuju_id": {
+          "name": "jabatan_pejabat_penyetuju_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "serah_terima_oleh_id": {
           "name": "serah_terima_oleh_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jabatan_serah_terima_oleh_id": {
+          "name": "jabatan_serah_terima_oleh_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -1865,6 +1928,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "jabatan_diterima_oleh_id": {
+          "name": "jabatan_diterima_oleh_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "keterangan": {
           "name": "keterangan",
@@ -1930,6 +1999,19 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+        "sppb_jabatan_pembuat_id_jabatan_id_fk": {
+          "name": "sppb_jabatan_pembuat_id_jabatan_id_fk",
+          "tableFrom": "sppb",
+          "tableTo": "jabatan",
+          "columnsFrom": [
+            "jabatan_pembuat_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "sppb_pejabat_penyetuju_id_pegawai_id_fk": {
           "name": "sppb_pejabat_penyetuju_id_pegawai_id_fk",
           "tableFrom": "sppb",
@@ -1941,6 +2023,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "sppb_jabatan_pejabat_penyetuju_id_jabatan_id_fk": {
+          "name": "sppb_jabatan_pejabat_penyetuju_id_jabatan_id_fk",
+          "tableFrom": "sppb",
+          "tableTo": "jabatan",
+          "columnsFrom": [
+            "jabatan_pejabat_penyetuju_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "sppb_serah_terima_oleh_id_pegawai_id_fk": {
@@ -1956,6 +2051,19 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+        "sppb_jabatan_serah_terima_oleh_id_jabatan_id_fk": {
+          "name": "sppb_jabatan_serah_terima_oleh_id_jabatan_id_fk",
+          "tableFrom": "sppb",
+          "tableTo": "jabatan",
+          "columnsFrom": [
+            "jabatan_serah_terima_oleh_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "sppb_diterima_oleh_id_pegawai_id_fk": {
           "name": "sppb_diterima_oleh_id_pegawai_id_fk",
           "tableFrom": "sppb",
@@ -1967,6 +2075,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "sppb_jabatan_diterima_oleh_id_jabatan_id_fk": {
+          "name": "sppb_jabatan_diterima_oleh_id_jabatan_id_fk",
+          "tableFrom": "sppb",
+          "tableTo": "jabatan",
+          "columnsFrom": [
+            "jabatan_diterima_oleh_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -2309,7 +2430,8 @@
           "name": "role",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "'petugas'"
         },
         "banned": {
           "name": "banned",

@@ -1,34 +1,34 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Eye, EyeOff, AlertCircle, X } from "lucide-react";
-import { toast } from "sonner";
-import Link from "next/link";
-import Image from "next/image";
+import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, Eye, EyeOff, AlertCircle, X } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import Image from 'next/image';
 
-import { signInSchema, type SignInValues } from "@/lib/zod/auth";
-import { authClient } from "@/lib/auth-client";
+import { signInSchema, type SignInValues } from '@/lib/zod/auth';
+import { authClient } from '@/lib/auth-client';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
   InputGroupButton,
-} from "@/components/ui/input-group";
-import { useRouter } from "next/navigation";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/input-group';
+import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 export function SignIn() {
   const router = useRouter();
@@ -39,11 +39,11 @@ export function SignIn() {
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
       rememberMe: false,
     },
-    mode: "onChange",
+    mode: 'onChange',
   });
 
   const { isValid, isSubmitting } = form.formState;
@@ -58,14 +58,14 @@ export function SignIn() {
       },
       {
         onSuccess: () => {
-          router.push("/dashboard");
-          toast.success("Signed in successfully");
+          router.push('/dashboard');
+          toast.success('Berhasil masuk');
         },
         onError: (ctx) => {
           setError(ctx.error.message);
           setLoading(false);
         },
-      },
+      }
     );
   }
 
@@ -75,17 +75,17 @@ export function SignIn() {
         <div className="flex justify-center mb-4 cursor-pointer">
           <Image
             src="/logo.png"
-            alt="Sibarkumen Logo"
+            alt="Logo Sibarkumen"
             width={64}
             height={64}
             className="h-12"
             draggable={false}
-            onClick={() => router.push("/")}
+            onClick={() => router.push('/')}
           />
         </div>
-        <CardTitle>Welcome Back</CardTitle>
-        <CardDescription>
-          Enter your email and password to access your account.
+        <CardTitle>Selamat Datang Kembali</CardTitle>
+        <CardDescription className='text-center'>
+          Masukkan email dan kata sandi Anda untuk mengakses akun.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -93,7 +93,7 @@ export function SignIn() {
           <Alert variant="destructive" className="mb-4 flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
             <div className="flex-1">
-              <AlertTitle>Login Failed</AlertTitle>
+              <AlertTitle>Login Gagal</AlertTitle>
               <AlertDescription className="text-destructive-foreground">
                 {error}
               </AlertDescription>
@@ -103,7 +103,7 @@ export function SignIn() {
               className="text-destructive-foreground hover:opacity-75"
             >
               <X className="h-4 w-4" />
-              <span className="sr-only">Dismiss</span>
+              <span className="sr-only">Tutup</span>
             </button>
           </Alert>
         )}
@@ -114,25 +114,29 @@ export function SignIn() {
               <InputGroupInput
                 id="email"
                 type="email"
-                placeholder="m@example.com"
-                {...form.register("email")}
+                placeholder="m@contoh.com"
+                {...form.register('email')}
               />
             </InputGroup>
             <FieldError errors={[form.formState.errors.email]} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">Kata Sandi</FieldLabel>
             <InputGroup className="w-full">
               <InputGroupInput
                 id="password"
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
-                {...form.register("password")}
+                {...form.register('password')}
               />
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword
+                      ? 'Sembunyikan kata sandi'
+                      : 'Tampilkan kata sandi'
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="size-4" />
@@ -160,7 +164,7 @@ export function SignIn() {
                       htmlFor="rememberMe"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      Remember me
+                      Ingat saya
                     </Label>
                   </div>
                 )}
@@ -170,7 +174,7 @@ export function SignIn() {
               href="/forgot-password"
               className="text-sm text-primary hover:underline"
             >
-              Forgot Password?
+              Lupa Kata Sandi?
             </Link>
           </div>
           <Button
@@ -179,7 +183,7 @@ export function SignIn() {
             disabled={loading || !isValid}
           >
             {loading ? <Loader2 className="animate-spin mr-2 size-4" /> : null}
-            Sign In
+            Masuk
           </Button>
         </form>
       </CardContent>

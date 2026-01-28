@@ -38,10 +38,10 @@ export default function DashboardLayout({
       fetchOptions: {
         onSuccess: () => {
           router.push("/sign-in");
-          toast.success("Sign out successfully");
+          toast.success("Berhasil Logout");
         },
         onError: (error) => {
-          toast.error("Sign out failed");
+          toast.error("Gagal Logout");
         },
       },
     });
@@ -160,7 +160,7 @@ export default function DashboardLayout({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="h-4 w-4" />
-                  Sign Out
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
