@@ -59,6 +59,9 @@ export function AsyncSelect({
   const debouncedSearch = useDebounce(searchQuery, 300);
   const cache = React.useRef<Record<string, AsyncSelectOption[]>>({});
 
+  // Stabilize initialOption dependency
+  const initialOptionString = JSON.stringify(initialOption);
+
   // Set initial option if provided
   React.useEffect(() => {
     if (initialOption) {
@@ -68,7 +71,8 @@ export function AsyncSelect({
         return [...prev, initialOption];
       });
     }
-  }, [initialOption]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialOptionString]);
 
   // Load options ONLY when open and empty, or when searching
   React.useEffect(() => {
@@ -122,7 +126,10 @@ export function AsyncSelect({
     if (open || (debouncedSearch !== '' && debouncedSearch.length >= 2)) {
       fetchOptions();
     }
-  }, [open, debouncedSearch, loadOptions, initialOption]);
+    // We omit loadOptions from dependencies because it's usually an inline function
+    // in the parent, which would cause infinite loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, debouncedSearch, initialOptionString]);
 
   const selectedOption =
     options.find((option) => option.id === value) || initialOption;

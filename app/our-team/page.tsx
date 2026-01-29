@@ -87,7 +87,105 @@ const members: Member[] = [
   },
 ];
 
-// --- Component ---
+// --- Card Component ---
+function TeamMemberCard({
+  member,
+  isActive,
+  onClick,
+}: {
+  member: Member;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        'group relative flex cursor-pointer overflow-hidden rounded-2xl bg-muted transition-all duration-700 ease-in-out',
+        isActive
+          ? 'h-[350px] md:h-full md:grow-3'
+          : 'h-[100px] md:h-full md:flex-1'
+      )}
+    >
+      {/* Background (Skeleton/Image) */}
+      <div className="absolute inset-0 h-full w-full bg-muted">
+        {/* Shimmer Effect while loading */}
+        {!isLoaded && (
+          <div className="absolute inset-0 z-10 animate-pulse bg-linear-to-r from-muted via-muted-foreground/10 to-muted bg-size-[200%_100%]" />
+        )}
+
+        <Image
+          src={member.image}
+          alt={member.name}
+          fill
+          className={cn(
+            'h-full w-full object-cover transition-all duration-700 md:group-hover:scale-110',
+            isActive ? 'grayscale-0 scale-105' : 'grayscale',
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          )}
+          onLoad={() => setIsLoaded(true)}
+          priority
+        />
+        <div
+          className={cn(
+            'absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300',
+            isActive ? 'opacity-60' : 'opacity-80'
+          )}
+        />
+      </div>
+
+      {/* Vertical Text (Desktop Idle State) / Label (Mobile Idle) */}
+      <div
+        className={cn(
+          'absolute bottom-6 left-6 md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:-rotate-90 transition-all duration-500',
+          isActive ? 'opacity-0 scale-95 translate-y-4' : 'opacity-100'
+        )}
+      >
+        <h3 className="text-xl font-bold tracking-wider text-white/70 whitespace-nowrap uppercase">
+          {member.name}
+        </h3>
+      </div>
+
+      {/* Expanded Content */}
+      <div
+        className={cn(
+          'absolute inset-0 flex flex-col justify-end p-6 transition-all duration-700',
+          isActive
+            ? 'opacity-100 translate-y-0'
+            : 'opacity-0 translate-y-8 pointer-events-none'
+        )}
+      >
+        <div className="relative z-10">
+          <span className="mb-2 inline-block rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary backdrop-blur-sm">
+            {member.title}
+          </span>
+          <h3 className="mb-1 text-2xl font-bold md:text-3xl text-white">
+            {member.name}
+          </h3>
+          <p className="mb-4 text-sm text-white/80 line-clamp-2 md:line-clamp-3 md:w-3/4">
+            {member.description}
+          </p>
+          <div className="flex gap-3">
+            {member.socials.map((social, idx) => (
+              <Link
+                key={idx}
+                href={social.href}
+                className="rounded-full bg-white/10 p-2 transition-colors hover:bg-white hover:text-black text-white"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <social.icon size={18} />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Main Component ---
 export default function TeamAccordion() {
   const [activeIndex, setActiveIndex] = useState<number | null>(0);
 
@@ -118,89 +216,16 @@ export default function TeamAccordion() {
 
         {/* Accordion Container */}
         <div className="flex flex-col gap-3 md:h-[400px] md:flex-row lg:h-[500px]">
-          {members.map((member, index) => {
-            const isActive = activeIndex === index;
-            return (
-              <div
-                key={member.name}
-                onClick={() => setActiveIndex(isActive ? null : index)}
-                className={cn(
-                  'group relative flex cursor-pointer overflow-hidden rounded-2xl bg-muted transition-all duration-700 ease-in-out',
-                  isActive
-                    ? 'h-[350px] md:h-full md:grow-3'
-                    : 'h-[100px] md:h-full md:flex-1'
-                )}
-              >
-                {/* Image Background */}
-                <div className="absolute inset-0 h-full w-full">
-                  <Image
-                    src={member.image}
-                    alt={member.name}
-                    fill
-                    className={cn(
-                      'h-full w-full object-cover transition-all duration-700 md:group-hover:scale-110',
-                      isActive ? 'grayscale-0 scale-105' : 'grayscale'
-                    )}
-                    priority
-                  />
-                  <div
-                    className={cn(
-                      'absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300',
-                      isActive ? 'opacity-60' : 'opacity-80'
-                    )}
-                  />
-                </div>
-
-                {/* Vertical Text (Desktop Idle State) / Label (Mobile Idle) */}
-                <div
-                  className={cn(
-                    'absolute bottom-6 left-6 md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:-rotate-90 transition-all duration-500',
-                    isActive
-                      ? 'opacity-0 scale-95 translate-y-4'
-                      : 'opacity-100'
-                  )}
-                >
-                  <h3 className="text-xl font-bold tracking-wider text-white/70 whitespace-nowrap uppercase">
-                    {member.name}
-                  </h3>
-                </div>
-
-                {/* Expanded Content */}
-                <div
-                  className={cn(
-                    'absolute inset-0 flex flex-col justify-end p-6 transition-all duration-700',
-                    isActive
-                      ? 'opacity-100 translate-y-0'
-                      : 'opacity-0 translate-y-8 pointer-events-none'
-                  )}
-                >
-                  <div className="relative z-10">
-                    <span className="mb-2 inline-block rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary backdrop-blur-sm">
-                      {member.title}
-                    </span>
-                    <h3 className="mb-1 text-2xl font-bold md:text-3xl text-white">
-                      {member.name}
-                    </h3>
-                    <p className="mb-4 text-sm text-white/80 line-clamp-2 md:line-clamp-3 md:w-3/4">
-                      {member.description}
-                    </p>
-                    <div className="flex gap-3">
-                      {member.socials.map((social, idx) => (
-                        <Link
-                          key={idx}
-                          href={social.href}
-                          className="rounded-full bg-white/10 p-2 transition-colors hover:bg-white hover:text-black text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <social.icon size={18} />
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {members.map((member, index) => (
+            <TeamMemberCard
+              key={member.name}
+              member={member}
+              isActive={activeIndex === index}
+              onClick={() =>
+                setActiveIndex(activeIndex === index ? null : index)
+              }
+            />
+          ))}
         </div>
       </div>
     </section>

@@ -1,13 +1,12 @@
-import { getSPPBById } from "@/drizzle/actions/sppb";
-import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
-import Image from "next/image";
+import { getSPPBById } from '@/drizzle/actions/sppb';
+import { notFound } from 'next/navigation';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 
-import { PrintButton } from "@/components/print-button";
+import { PrintButton } from '@/components/print-button';
 
-import { PrintStyles } from "@/components/print-styles";
-import { Metadata } from "next";
+import { PrintStyles } from '@/components/print-styles';
+import { Metadata } from 'next';
 
 interface PrintSPPBPageProps {
   params: Promise<{
@@ -21,11 +20,11 @@ export async function generateMetadata({
   const { id } = await params;
   const sppbId = Number(id);
 
-  if (isNaN(sppbId)) return { title: "Print SPPB" };
+  if (isNaN(sppbId)) return { title: 'Print SPPB' };
 
   const result = await getSPPBById(sppbId);
 
-  if (!result.success || !result.data) return { title: "SPPB Not Found" };
+  if (!result.success || !result.data) return { title: 'SPPB Not Found' };
 
   return {
     title: `SPPB - ${result.data.nomorSppb}`,
@@ -51,7 +50,7 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
   return (
     <div
       className="mx-auto w-[210mm] min-h-[297mm] bg-white relative print:w-auto print:h-auto print:min-h-0 text-black leading-tight"
-      style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+      style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
     >
       <PrintStyles />
 
@@ -60,45 +59,53 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
       <div className="p-8 h-full flex flex-col justify-between print:p-[15mm] print:h-[297mm] font-sans text-black text-[12px]">
         <div className="grow flex flex-col">
           {/* KOP SURAT */}
-          <div className="flex flex-col items-center justify-center border-b-4 border-double border-black pb-2 mb-4 text-center">
-            {/* Logo */}
-            <div className="mb-2">
+          <div className="relative flex pb-6 mb-4 border-b-2 border-[#B8860B]">
+            {/* Decorative End Circles */}
+            <div className="absolute -bottom-[5px] -left-1 w-2 h-2 rounded-full bg-[#B8860B]" />
+            <div className="absolute -bottom-[5px] -right-1 w-2 h-2 rounded-full bg-[#B8860B]" />
+
+            {/* Logo - Flex Left */}
+            <div className="w-24 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/jayaraya.png"
                 alt="Logo Jaya Raya"
-                className="h-16 w-auto object-contain"
+                className="h-22 w-auto object-contain"
               />
             </div>
 
             {/* Teks Kop */}
-            <div className="space-y-0.5">
-              <h1 className="text-lg font-bold uppercase tracking-wide">
+            <div className="flex-1 text-center -ms-6">
+              <h1 className="text-[16px] font-bold uppercase tracking-wide leading-tight">
                 PEMERINTAH PROVINSI DAERAH KHUSUS IBUKOTA JAKARTA
               </h1>
-              <h2 className="text-base font-bold uppercase">
+              <h2 className="text-[12px] font-semibold uppercase leading-tight">
                 KELURAHAN UJUNG MENTENG - JAKTIM
               </h2>
-              <p className="text-xs">JL. RAYA BEKASI KM. 25</p>
+              <p className="text-[12px] leading-tight">
+                JL. RAYA BEKASI KM. 26
+              </p>
             </div>
           </div>
 
           {/* Judul & Nomor */}
           <div className="text-center mb-4">
-            <h3 className="text-base font-bold decoration-2 uppercase">
+            <h3 className="text-[16px] font-bold decoration-2 uppercase">
               SURAT PERINTAH PENYALURAN BARANG
             </h3>
-            <p className="text-base font-bold uppercase">(SPPB)</p>
-            <p className="text-sm mt-1">Nomor: {data.nomorSppb}</p>
+            <p className="text-[16px] font-bold uppercase">(SPPB)</p>
+            <p className="text-[12px] mt-1">
+              Nomor: <span className="font-bold">{data.nomorSppb}</span>
+            </p>
           </div>
 
           {/* Body Text */}
           <div className="mb-2 text-justify">
-            <p className="mb-2">
-              Pada hari ini {format(new Date(), "EEEE", { locale: localeId })}{" "}
-              tanggal {format(new Date(), "d", { locale: localeId })} bulan{" "}
-              {format(new Date(), "MMMM", { locale: localeId })} tahun{" "}
-              {format(new Date(), "yyyy", { locale: localeId })}, yang bertanda
+            <p className="mb-2 text-[12px]">
+              Pada hari ini {format(new Date(), 'EEEE', { locale: localeId })}{' '}
+              tanggal {format(new Date(), 'd', { locale: localeId })} bulan{' '}
+              {format(new Date(), 'MMMM', { locale: localeId })} tahun{' '}
+              {format(new Date(), 'yyyy', { locale: localeId })}, yang bertanda
               tangan dibawah ini:
             </p>
 
@@ -107,7 +114,7 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
                 <tr>
                   <td className="w-24 align-top">Nama</td>
                   <td className="w-3 align-top">:</td>
-                  <td className="align-top font-bold">
+                  <td className="align-top uppercase font-bold">
                     {data.pejabatPenyetuju?.nama}
                   </td>
                 </tr>
@@ -115,22 +122,22 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
                   <td className="align-top">Jabatan</td>
                   <td className="align-top">:</td>
                   <td className="align-top">
-                    {data.jabatanPejabatPenyetuju?.nama || "-"}
+                    {data.jabatanPejabatPenyetuju?.nama || '-'}
                     <br />
-                    {data.jabatanPejabatPenyetuju?.unitKerja || "-"}
+                    {data.jabatanPejabatPenyetuju?.unitKerja || '-'}
                   </td>
                 </tr>
               </tbody>
             </table>
 
             <p className="leading-relaxed mb-4">
-              Berdasarkan surat permintaan barang (SPB) dari Nomor:{" "}
-              <span className="font-bold">{data.spb?.nomorSpb}</span>, tanggal{" "}
+              Berdasarkan Surat Permintaan Barang (SPB) dari Nomor:{' '}
+              <span className="font-bold">{data.spb?.nomorSpb}</span>, tanggal{' '}
               {data.spb?.tanggalSpb
-                ? format(new Date(data.spb.tanggalSpb), "dd MMMM yyyy", {
+                ? format(new Date(data.spb.tanggalSpb), 'dd MMMM yyyy', {
                     locale: localeId,
                   })
-                : "-"}
+                : '-'}
               , dengan ini diperintahkan kepada Pengurus Barang/ Pengurus Barang
               Pembantu/ Pengurus Barang UPB untuk mendistribusikan /
               mengeluarkan persediaan, sebagaimana daftar terlampir:
@@ -139,6 +146,7 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
 
           {/* Tabel Item - Flex Grow to push footer down, but table inside needs to be structured */}
           <div className="grow flex flex-col">
+            <p className="mb-2">Daftar barang persediaan yang didistribusikan/dikeluarkan sebagai berikut:</p>
             <table className="w-full text-[11px] border-collapse border border-black grow h-full">
               <thead>
                 <tr className="bg-gray-100">
@@ -172,10 +180,10 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
                       {item.qtyDisetujui}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-center align-top">
-                      {item.barang?.satuan?.nama || "-"}
+                      {item.barang?.satuan?.nama || '-'}
                     </td>
                     <td className="py-1 px-2 border-black align-top">
-                      {item.keterangan || ""}
+                      {item.keterangan || ''}
                     </td>
                   </tr>
                 ))}
@@ -204,8 +212,8 @@ export default async function PrintSPPBPage({ params }: PrintSPPBPageProps) {
           <div className="flex justify-end text-[12px] px-8">
             <div className="text-center min-w-[200px]">
               <p className="mb-0.5">
-                Jakarta,{" "}
-                {format(new Date(), "dd MMM yyyy", {
+                Jakarta,{' '}
+                {format(new Date(), 'dd MMM yyyy', {
                   locale: localeId,
                 })}
               </p>

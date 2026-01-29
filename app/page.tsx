@@ -1,11 +1,11 @@
-import Link from "next/link";
-import Image from "next/image";
-import LightRays from "@/components/ui/light-rays";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import Link from 'next/link';
+import Image from 'next/image';
+import LightRays from '@/components/ui/light-rays';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 export default async function Page() {
   const session = await auth.api.getSession({
@@ -125,10 +125,10 @@ export default async function Page() {
       {/* Simple Footer */}
       <footer className="relative z-10 py-6 text-center text-sm text-muted-foreground/60">
         <p>
-          &copy; {new Date().getFullYear()} Kelurahan Ujung Menteng.{" "}
+          &copy; {new Date().getFullYear()} Kelurahan Ujung Menteng.{' '}
           <br className="sm:hidden" />
-          Dikembangkan oleh{" "}
-          <Link href={"/our-team"} className="underline">
+          Dikembangkan oleh{' '}
+          <Link href={'/our-team'} className="underline">
             Mahasiswa Gunadarma.
           </Link>
         </p>

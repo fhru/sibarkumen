@@ -1,10 +1,10 @@
-import { getBastKeluarById } from "@/drizzle/actions/bast-keluar";
-import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { id as localeId } from "date-fns/locale";
-import { PrintButton } from "@/components/print-button";
-import { PrintStyles } from "@/components/print-styles";
-import { Metadata } from "next";
+import { getBastKeluarById } from '@/drizzle/actions/bast-keluar';
+import { notFound } from 'next/navigation';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { PrintButton } from '@/components/print-button';
+import { PrintStyles } from '@/components/print-styles';
+import { Metadata } from 'next';
 
 interface PrintBastKeluarPageProps {
   params: Promise<{
@@ -18,12 +18,12 @@ export async function generateMetadata({
   const { id } = await params;
   const bastId = Number(id);
 
-  if (isNaN(bastId)) return { title: "Print BAST Keluar" };
+  if (isNaN(bastId)) return { title: 'Print BAST Keluar' };
 
   const result = await getBastKeluarById(bastId);
 
   if (!result.success || !result.data)
-    return { title: "BAST Keluar Not Found" };
+    return { title: 'BAST Keluar Not Found' };
 
   return {
     title: `BAST Keluar - ${result.data.nomorBast}`,
@@ -64,7 +64,7 @@ export default async function PrintBastKeluarPage({
       acc.afterTax += afterTax;
       return acc;
     },
-    { jumlah: 0, ppn: 0, afterTax: 0 },
+    { jumlah: 0, ppn: 0, afterTax: 0 }
   );
   const minRows = 10;
   const emptyRowsCtx =
@@ -73,7 +73,7 @@ export default async function PrintBastKeluarPage({
   return (
     <div
       className="mx-auto w-[210mm] min-h-[297mm] bg-white relative print:w-auto print:h-auto print:min-h-0 text-black leading-tight"
-      style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+      style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
     >
       <PrintStyles />
 
@@ -82,56 +82,58 @@ export default async function PrintBastKeluarPage({
       <div className="p-8 h-full flex flex-col justify-between print:p-[15mm] print:h-[297mm] font-sans text-black text-[12px]">
         <div className="grow flex flex-col">
           {/* KOP SURAT */}
-          <div className="flex flex-col items-center justify-center border-b-4 border-double border-black pb-2 mb-4 text-center">
+          <div className="flex flex-col items-center justify-center pb-2 mb-1 text-center">
             {/* Logo */}
             <div className="mb-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/jayaraya.png"
                 alt="Logo Jaya Raya"
-                className="h-16 w-auto object-contain"
+                className="h-20 w-auto object-contain"
               />
             </div>
 
             {/* Teks Kop */}
             <div className="space-y-0.5">
-              <h1 className="text-lg font-bold uppercase tracking-wide">
+              <h1 className="text-[14px] font-bold uppercase tracking-wide">
                 PEMERINTAH PROVINSI DAERAH KHUSUS IBUKOTA JAKARTA
               </h1>
-              <h2 className="text-base font-bold uppercase">
+              <h2 className="text-[12px] font-bold uppercase">
                 KELURAHAN UJUNG MENTENG - JAKTIM
               </h2>
-              <p className="text-xs">JL. RAYA BEKASI KM. 26</p>
             </div>
           </div>
 
           {/* Judul & Nomor */}
-          <div className="text-center mb-6">
-            <h3 className="text-base font-bold decoration-2 uppercase">
+          <div className="text-center mb-4">
+            <h1 className="text-[14px] font-bold uppercase mb-3">JAKARTA</h1>
+            <h3 className="text-[12px] font-bold uppercase">
               BERITA ACARA SERAH TERIMA BARANG <br />
               DISTRIBUSI/PENGELUARAN
             </h3>
-            <p className="text-sm mt-1">Nomor: {data.nomorBast}</p>
+            <p className="text-[12px] mt-1">
+              Nomor: <span className="font-bold">{data.nomorBast}</span>
+            </p>
           </div>
 
           {/* Body Text */}
           <div className="mb-4 text-justify">
-            <p className="mb-4">
-              Pada hari ini{" "}
-              {format(bastDate, "EEEE", { locale: localeId }).toWellFormed()}{" "}
-              tanggal {format(bastDate, "d", { locale: localeId })} bulan{" "}
-              {format(bastDate, "MMMM", { locale: localeId })} tahun{" "}
-              {format(bastDate, "yyyy", { locale: localeId })}, yang bertanda
+            <p className="mb-2 text-[12px]">
+              Pada hari ini{' '}
+              {format(bastDate, 'EEEE', { locale: localeId }).toWellFormed()}{' '}
+              tanggal {format(bastDate, 'd', { locale: localeId })} bulan{' '}
+              {format(bastDate, 'MMMM', { locale: localeId })} tahun{' '}
+              {format(bastDate, 'yyyy', { locale: localeId })}, yang bertanda
               tangan dibawah ini:
             </p>
 
-            <div className="mb-4">
-              <table className="w-full ml-4">
+            <div className="mb-2">
+              <table className="w-full">
                 <tbody>
                   <tr>
                     <td className="w-24 align-top">Nama</td>
                     <td className="w-3 align-top">:</td>
-                    <td className="align-top font-bold">
+                    <td className="align-top font-bold uppercase">
                       {data.pihakPertama?.nama}
                     </td>
                   </tr>
@@ -139,20 +141,20 @@ export default async function PrintBastKeluarPage({
                     <td className="align-top">Jabatan</td>
                     <td className="align-top">:</td>
                     <td className="align-top">
-                      {data.jabatanPihakPertama?.nama || "-"}
+                      {data.jabatanPihakPertama?.nama || '-'}
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <p className="leading-relaxed mb-4">
+            <p className="leading-relaxed mb-2 text-[12px]">
               Berdasarkan Surat Perintah Penyaluran Barang (SPPB) dari Pejabat
               Penatausahaan Barang SKPD/UKPD/UPB KELURAHAN UJUNG MENTENG -
-              JAKTIM Nomor: <b>{data.sppb?.nomorSppb}</b> tanggal{" "}
-              {format(sppbDate, "d", { locale: localeId })} bulan{" "}
-              {format(sppbDate, "MMMM", { locale: localeId })} tahun{" "}
-              {format(sppbDate, "yyyy", { locale: localeId })}. telah diserahkan
+              JAKTIM Nomor: <b>{data.sppb?.nomorSppb}</b> tanggal{' '}
+              {format(sppbDate, 'd', { locale: localeId })} bulan{' '}
+              {format(sppbDate, 'MMMM', { locale: localeId })} tahun{' '}
+              {format(sppbDate, 'yyyy', { locale: localeId })}. telah diserahkan
               oleh Pengurus Barang / Pengurus Barang Pembantu / Pengurus Barang
               UPB kepada Pemakai Barang Persediaan, sebagaimana daftar
               terlampir.
@@ -161,8 +163,10 @@ export default async function PrintBastKeluarPage({
 
           {/* Tabel Item */}
           <div className="grow flex flex-col">
-            <p className="mb-2">Daftar barang yang diterima sebagai berikut:</p>
-            <table className="w-full text-[11px] border-collapse border border-black grow h-full">
+            <p className="mb-2 text-[12px]">
+              Daftar barang yang diterima sebagai berikut:
+            </p>
+            <table className="w-full text-[12px] border-collapse border border-black grow h-full">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="py-1 px-2 border-r border-b border-black w-10 text-center h-8">
@@ -204,28 +208,28 @@ export default async function PrintBastKeluarPage({
                       <div className="font-medium">{item.barang?.nama}</div>
                     </td>
                     <td className="py-1 px-2 border-r border-black text-right align-top">
-                      Rp {parseFloat(item.hargaSatuan).toLocaleString("id-ID")}
+                      Rp {parseFloat(item.hargaSatuan).toLocaleString('id-ID')}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-center align-top">
-                      {item.barang?.satuan?.nama || "-"}
+                      {item.barang?.satuan?.nama || '-'}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-center align-top">
                       {item.qtySerahTerima}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-right align-top">
-                      Rp{" "}
+                      Rp{' '}
                       {(
                         Number(item.qtySerahTerima) * Number(item.hargaSatuan)
-                      ).toLocaleString("id-ID")}
+                      ).toLocaleString('id-ID')}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-right align-top">
-                      Rp {Number(item.nilaiPpn).toLocaleString("id-ID")}
+                      Rp {Number(item.nilaiPpn).toLocaleString('id-ID')}
                     </td>
                     <td className="py-1 px-2 border-r border-black text-right align-top">
-                      Rp {Number(item.totalHarga).toLocaleString("id-ID")}
+                      Rp {Number(item.totalHarga).toLocaleString('id-ID')}
                     </td>
                     <td className="py-1 px-2 border-black align-top">
-                      {item.keterangan || ""}
+                      {item.keterangan || ''}
                     </td>
                   </tr>
                 ))}
@@ -252,13 +256,13 @@ export default async function PrintBastKeluarPage({
                     Jumlah
                   </td>
                   <td className="py-1 px-2 border-r border-t border-black text-right">
-                    Rp {totals.jumlah.toLocaleString("id-ID")}
+                    Rp {totals.jumlah.toLocaleString('id-ID')}
                   </td>
                   <td className="py-1 px-2 border-r border-t border-black text-right">
-                    Rp {totals.ppn.toLocaleString("id-ID")}
+                    Rp {totals.ppn.toLocaleString('id-ID')}
                   </td>
                   <td className="py-1 px-2 border-r border-t border-black text-right">
-                    Rp {totals.afterTax.toLocaleString("id-ID")}
+                    Rp {totals.afterTax.toLocaleString('id-ID')}
                   </td>
                   <td className="border-t border-black"></td>
                 </tr>
@@ -277,7 +281,7 @@ export default async function PrintBastKeluarPage({
           <div className="flex justify-end mb-10">
             <div className="text-right">
               <p>
-                Jakarta, {format(bastDate, "dd MMM yyyy", { locale: localeId })}
+                Jakarta, {format(bastDate, 'dd MMM yyyy', { locale: localeId })}
               </p>
             </div>
           </div>
@@ -285,18 +289,18 @@ export default async function PrintBastKeluarPage({
           <div className="grid grid-cols-2 gap-8">
             <div className="text-left">
               <p className="mb-1">Yang Menyerahkan</p>
-              <p>{data.jabatanPihakPertama?.nama || "-"}</p>
+              <p>{data.jabatanPihakPertama?.nama || '-'}</p>
               <div className="mt-16">
                 <p className="font-bold uppercase">{data.pihakPertama?.nama}</p>
-                <p>NIP. {data.pihakPertama?.nip || "-"}</p>
+                <p>NIP. {data.pihakPertama?.nip || '-'}</p>
               </div>
             </div>
             <div className="text-right">
               <p className="mb-1">Yang Menerima</p>
-              <p>{data.jabatanPihakKedua?.nama || "Pemakai Persediaan"}</p>
+              <p>{data.jabatanPihakKedua?.nama || 'Pemakai Persediaan'}</p>
               <div className="mt-16">
                 <p className="font-bold uppercase">{data.pihakKedua?.nama}</p>
-                <p>NIP. {data.pihakKedua?.nip || "-"}</p>
+                <p>NIP. {data.pihakKedua?.nip || '-'}</p>
               </div>
             </div>
           </div>

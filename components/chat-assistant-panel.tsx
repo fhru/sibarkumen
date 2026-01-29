@@ -161,6 +161,54 @@ function formatTime(value?: string) {
   });
 }
 
+const MessageItem = React.memo(
+  ({
+    message,
+    streamingId,
+  }: {
+    message: ChatMessage;
+    streamingId: string | null;
+  }) => {
+    const isUser = message.role === 'user';
+    const timestamp = formatTime(message.createdAt);
+
+    return (
+      <div
+        className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}
+      >
+        <div
+          className={cn(
+            'max-w-[85%] rounded-lg px-2.5 py-2 text-sm leading-relaxed',
+            isUser
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground'
+          )}
+        >
+          {message.content ? (
+            <div className="space-y-2">{renderMarkdown(message.content)}</div>
+          ) : streamingId === message.id ? (
+            <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Mengetik...
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Belum ada jawaban. Coba ulangi pertanyaan.
+            </span>
+          )}
+        </div>
+        {timestamp && (
+          <div className="mt-1 text-[10px] text-muted-foreground">
+            {timestamp}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+MessageItem.displayName = 'MessageItem';
+
 export function ChatAssistantPanel({
   title = 'Sibarkumen AI Assistant',
   initialOpen = false,
@@ -204,7 +252,10 @@ export function ChatAssistantPanel({
 
   React.useEffect(() => {
     if (!open) return;
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use instant scroll when streaming to reduce CPU usage
+    endRef.current?.scrollIntoView({
+      behavior: isStreaming ? 'auto' : 'smooth',
+    });
   }, [messages, open, isStreaming]);
 
   React.useEffect(() => {
@@ -416,7 +467,12 @@ export function ChatAssistantPanel({
     onSend,
   ]);
 
-  const blockedPath = ['/sign-in', '/our-team', '/forgot-password', '/reset-password'];
+  const blockedPath = [
+    '/sign-in',
+    '/our-team',
+    '/forgot-password',
+    '/reset-password',
+  ];
 
   if (blockedPath.includes(pathname)) {
     return null;
@@ -486,48 +542,13 @@ export function ChatAssistantPanel({
                 </div>
               )}
 
-              {messages.map((message) => {
-                const isUser = message.role === 'user';
-                const timestamp = formatTime(message.createdAt);
-                return (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      'flex flex-col',
-                      isUser ? 'items-end' : 'items-start'
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'max-w-[85%] rounded-lg px-2.5 py-2 text-sm leading-relaxed',
-                        isUser
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground'
-                      )}
-                    >
-                      {message.content ? (
-                        <div className="space-y-2">
-                          {renderMarkdown(message.content)}
-                        </div>
-                      ) : streamingId === message.id ? (
-                        <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Mengetik...
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          Belum ada jawaban. Coba ulangi pertanyaan.
-                        </span>
-                      )}
-                    </div>
-                    {timestamp && (
-                      <div className="mt-1 text-[10px] text-muted-foreground">
-                        {timestamp}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {messages.map((message) => (
+                <MessageItem
+                  key={message.id}
+                  message={message}
+                  streamingId={streamingId}
+                />
+              ))}
               <div ref={endRef} />
             </div>
           </ScrollArea>
